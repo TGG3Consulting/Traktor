@@ -52,7 +52,8 @@ void main() {
       final auth = c.read(authControllerProvider.notifier);
 
       await auth.requestCode('+37491234567');
-      await auth.submitCode('000000');
+      // Заведомо неверный код: правильный сейчас 000000 (пока SMS на паузе).
+      await auth.submitCode('111111');
 
       final state = c.read(authControllerProvider);
       expect(state.stage, AuthStage.codeSent, reason: 'остаёмся на экране кода');
