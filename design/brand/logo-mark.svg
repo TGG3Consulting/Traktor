@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="Traktor mark">
+  <g stroke="#E8730C" stroke-width="30" stroke-linecap="round" fill="none">
+    <path d="M74 92 H182"/>
+    <path d="M128 92 V182"/>
+  </g>
+  <circle cx="128" cy="182" r="10" fill="#F5A055"/>
+</svg>

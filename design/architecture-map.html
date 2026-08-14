@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traktor — карта архитектуры</title>
+<style>
+:root{--bg:#14171B;--panel:#1C2026;--panel2:#22262D;--line:#31363E;--text:#EDEFF2;--dim:#8B93A0;
+--orange:#E8730C;--blue:#3478C6;--teal:#14B8A6;--purple:#8B5CF6;--green:#2E9E5B;--amber:#E5A400;--red:#D64545}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:Inter,-apple-system,"Segoe UI",Roboto,sans-serif;padding:28px 20px 60px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:26px;letter-spacing:-.01em}
+h1 span{color:var(--orange)}
+.sub{color:var(--dim);font-size:13.5px;margin:6px 0 26px;line-height:1.5}
+.layer{margin-bottom:16px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--panel)}
+.layer>.lt{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.lt b{color:var(--text);letter-spacing:0;text-transform:none;font-size:12.5px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:150px;flex:1}
+.box b{font-size:13.5px;display:block}
+.box i{font-style:normal;font-size:11px;color:var(--dim);display:block;margin-top:3px;line-height:1.45}
+.box.hl{border-color:var(--orange)}
+.tag{display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+padding:2px 7px;border-radius:9px;margin-bottom:6px}
+.arrowrow{display:flex;justify-content:center;gap:60px;color:var(--dim);font-size:18px;padding:2px 0}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0 0;font-size:12px;color:var(--dim)}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--panel)}
+.card h3{font-size:14.5px;margin-bottom:10px}
+.flow{font-size:12.5px;line-height:1.75;color:#C7CCD4}
+.flow em{font-style:normal;color:var(--orange);font-weight:600}
+.flow s{text-decoration:none;color:var(--dim)}
+.evt{display:inline-block;background:rgba(139,92,246,.15);color:#B79BF9;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+td,th{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--dim);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+td b{color:var(--text)} td{color:#B9BFC9}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🚜 Trak<span>tor</span> — карта архитектуры v1.0</h1>
+  <div class="sub">Мультисервисная система: 9 доменных сервисов · события через outbox → Pub/Sub · Postgres+PostGIS источник истины ·
+  Flutter-клиенты · Go-бэкенд · GCP Cloud Run + Cloudflare Edge. Детали и обоснования — docs/arhitektura-v1.md (15 ADR).</div>
+
+  <div class="layer">
+    <div class="lt"><b>КЛИЕНТЫ</b> Flutter · единая кодовая база · монорепо melos</div>
+    <div class="row">
+      <div class="box"><span class="tag" style="background:rgba(232,115,12,.15);color:var(--orange)">iOS + Android</span><b>Мобильное приложение</b><i>Riverpod · go_router · Drift offline · один WS · optimistic UI ставок</i></div>
+      <div class="box"><span class="tag" style="background:rgba(232,115,12,.15);color:var(--orange)">Web</span><b>Клиентский web + гостевые страницы</b><i>SEO-пререндер публичных страниц · deep links</i></div>
+      <div class="box"><span class="tag" style="background:rgba(232,115,12,.15);color:var(--orange)">Web</span><b>Админ-панель</b><i>отдельное приложение · тот же design_system</i></div>
+      <div class="box"><span class="tag" style="background:rgba(52,120,198,.15);color:#6FA5DE">пакеты</span><b>design_system · api_client · realtime</b><i>кодоген из OpenAPI · golden-тесты · ARB hy/ru/en</i></div>
+    </div>
+  </div>
+
+  <div class="arrowrow">▼ HTTPS ▼ WSS</div>
+
+  <div class="layer">
+    <div class="lt"><b>EDGE — CLOUDFLARE</b></div>
+    <div class="row">
+      <div class="box"><b>DNS · CDN · WAF · Bot mgmt</b><i>rate-limit на границе · TLS</i></div>
+      <div class="box"><b>R2 — объектное хранилище</b><i>фото техники/работ · нулевой egress · S3-API</i></div>
+      <div class="box"><b>Image Resizing</b><i>горячие трансформации · blur-hash превью</i></div>
+      <div class="box"><b>Тайлы карт (Protomaps/OSM)</b><i>MapLibre GL · $0 вместо Google Maps (ADR-12)</i></div>
+    </div>
+  </div>
+
+  <div class="arrowrow">▼</div>
+
+  <div class="layer" style="border-color:#3E4450">
+    <div class="lt"><b>ВХОД — GCP Cloud Run</b> · Frankfurt (≈70 мс до Еревана)</div>
+    <div class="row">
+      <div class="box hl"><b>API Gateway / BFF</b><i>JWT-проверка (JWKS) · Idempotency-Key · агрегатные эндпоинты экранов · серверные фиче-флаги · kill-switch</i></div>
+      <div class="box hl"><b>Centrifugo (WebSocket)</b><i>каналы auction:{id} · chat:{deal} · user:{id} · recovery истории · server_time в каждом кадре</i></div>
+    </div>
+  </div>
+
+  <div class="arrowrow">▼</div>
+
+  <div class="layer">
+    <div class="lt"><b>ДОМЕННЫЕ СЕРВИСЫ</b> Go · schema-per-service · только API + события, cross-schema JOIN запрещён</div>
+    <div class="row">
+      <div class="box"><span class="tag" style="background:rgba(46,158,91,.15);color:#5BBD85">identity</span><b>Пользователи и вход</b><i>Dexatel OTP · JWT ES256 + refresh rotation · роли · Play Integrity</i></div>
+      <div class="box"><span class="tag" style="background:rgba(46,158,91,.15);color:#5BBD85">catalog</span><b>Каталог и техника</b><i>категории specTemplate · тарифы аренды · бригады · верификация</i></div>
+      <div class="box"><span class="tag" style="background:rgba(46,158,91,.15);color:#5BBD85">orders</span><b>Заказы 4 типов</b><i>job · rental · transport · workers · черновики · приглашения</i></div>
+      <div class="box"><span class="tag" style="background:rgba(229,164,0,.15);color:var(--amber)">auction</span><b>Аукцион и отклики</b><i>advisory-lock · append-only ставки · timer-wheel · антиснайпинг · скоринг 60/25/15</i></div>
+      <div class="box"><span class="tag" style="background:rgba(229,164,0,.15);color:var(--amber)">deals</span><b>Сделки и брони</b><i>стейт-машина §4.4 · booking EXCLUDE-constraint · продления · споры · смета</i></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="box"><span class="tag" style="background:rgba(52,120,198,.15);color:#6FA5DE">chat</span><b>Чат</b><i>пред-сделочный с маскировкой контактов · системные сообщения</i></div>
+      <div class="box"><span class="tag" style="background:rgba(52,120,198,.15);color:#6FA5DE">notifications</span><b>Уведомления</b><i>fanout всех событий · FCM + центр + WS · тихие часы · подписки-фильтры</i></div>
+      <div class="box"><span class="tag" style="background:rgba(52,120,198,.15);color:#6FA5DE">media</span><b>Медиа</b><i>presigned upload · EXIF-strip · thumbnails · pHash-дедуп</i></div>
+      <div class="box"><span class="tag" style="background:rgba(139,92,246,.15);color:#B79BF9">reporting</span><b>CRM и отчёты</b><i>CQRS-проекции · stats_daily · XLSX/PDF экспорт</i></div>
+      <div class="box"><span class="tag" style="background:rgba(214,69,69,.15);color:#E08585">admin-bff</span><b>Админка-BFF</b><i>модерация · споры · аудит append-only</i></div>
+    </div>
+  </div>
+
+  <div class="arrowrow">▼ outbox → шина ▼ SQL</div>
+
+  <div class="layer">
+    <div class="lt"><b>ДАННЫЕ И ШИНА</b></div>
+    <div class="row">
+      <div class="box"><b>PostgreSQL 16 + PostGIS</b><i>источник истины · schema-per-service · PITR · exclusion constraints для броней · expand/contract-миграции</i></div>
+      <div class="box"><b>Pub/Sub + outbox-релей</b><i>реестр схем событий · идемпотентные консьюмеры · DLQ с алертом</i></div>
+      <div class="box"><b>Redis (Memorystore)</b><i>лидерборды аукциона · rate-limit · idempotency-окна · presence</i></div>
+      <div class="box"><b>Typesense</b><i>текстовый поиск hy/ru · фасеты · обратный matcher подписок</i></div>
+      <div class="box"><b>BigQuery (фаза 2)</b><i>поток событий → продуктовые воронки ТЗ §4.3</i></div>
+    </div>
+  </div>
+
+  <div class="layer">
+    <div class="lt"><b>ВНЕШНИЕ И ПЛАТФОРМЕННЫЕ</b></div>
+    <div class="row">
+      <div class="box"><b>Dexatel</b><i>SMS-OTP (за интерфейсом SmsProvider)</i></div>
+      <div class="box"><b>Firebase</b><i>только FCM · Crashlytics · Analytics · Remote Config</i></div>
+      <div class="box"><b>Photon (OSM) + fallback</b><i>геокодинг и автодополнение адресов</i></div>
+      <div class="box"><b>Idram / Telcell</b><i>v2: эскроу + ledger двойной записи</i></div>
+      <div class="box"><b>OTel → Grafana Cloud · Sentry</b><i>SLO: p95 API &lt;300мс · ставка по WS &lt;2с</i></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Поток: ставка в аукционе (бюджет ≤ 2 с)</h3>
+      <div class="flow">
+        клиент <s>(Idempotency-Key)</s> → <em>gateway</em> → <em>auction</em>: lock(jobId) → валидации → txn{ставка + лидер + антиснайпинг + outbox} → 200 за ~50 мс<br>
+        → релей → <span class="evt">BidPlaced</span> → <em>notifications</em> (push «перебили») + <em>Centrifugo</em> → все экраны аукциона обновлены &lt; 1 с<br>
+        <s>финиш: timer-wheel → скоринг → </s><span class="evt">AuctionFinished</span><s> → deals открывает окно решения 12 ч</s>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Поток: продление аренды (§5.3)</h3>
+      <div class="flow">
+        клиент «+2 ч» → <em>deals</em>: проверка соседней брони (локально) → максимум и цена → запрос → push исполнителю → подтверждение 1 тапом →<br>
+        txn{UPDATE booking.period <s>(EXCLUDE-constraint гарантирует непересечение)</s> + строка сметы + outbox} → <span class="evt">RentalExtended</span> → счётчик у заказчика обновлён<br>
+        <s>нельзя продлить → кандидаты «перехвата» из catalog+search</s>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3>15 ключевых решений (ADR) — кратко</h3>
+    <table>
+      <tr><th>ADR</th><th>Решение</th><th>Почему (главное)</th></tr>
+      <tr><td><b>1</b></td><td>Клиенты Flutter, бэкенд <b>Go</b></td><td>серверного Flutter не существует; Go = WS-производительность аукциона + найм</td></tr>
+      <tr><td><b>2</b></td><td><b>GCP Cloud Run</b>, Frankfurt, Terraform</td><td>нулевой DevOps в MVP; контейнеры = нет lock-in; ~70 мс до Еревана</td></tr>
+      <tr><td><b>3</b></td><td><b>9 сервисов</b> по bounded contexts</td><td>не монолит и не зоопарк: домены с разной нагрузкой и ритмом релизов</td></tr>
+      <tr><td><b>4</b></td><td><b>Postgres+PostGIS</b> вместо Firestore</td><td>транзакции аукциона, EXCLUDE-брони, отчёты CRM, предсказуемая цена</td></tr>
+      <tr><td><b>5</b></td><td>События: <b>outbox → Pub/Sub</b></td><td>нет потерянных событий и двойных записей; консьюмеры идемпотентны</td></tr>
+      <tr><td><b>6</b></td><td>Свой identity: Dexatel OTP + JWT</td><td>$0.02–0.05/SMS вместо $0.17; JWKS-проверка без похода в сервис</td></tr>
+      <tr><td><b>7</b></td><td>Realtime: <b>Centrifugo</b>; push: FCM</td><td>ставка ≤2с; recovery пропущенного; presence из коробки</td></tr>
+      <tr><td><b>8</b></td><td>Медиа: <b>R2</b> + presigned + pHash</td><td>нулевой egress; EXIF-strip; дедуп чужих фото</td></tr>
+      <tr><td><b>9</b></td><td>Аукцион: lock + журнал + серверные таймеры</td><td>гонки, снайпинг и кривые часы клиента закрыты по построению</td></tr>
+      <tr><td><b>10</b></td><td>Сделки: явная стейт-машина + саги</td><td>матрица §4.4 = код; Temporal отложен до эскроу v2</td></tr>
+      <tr><td><b>11</b></td><td>REST/OpenAPI + кодоген Dart</td><td>один контракт → клиент, сервер, документация; без ручного дрейфа</td></tr>
+      <tr><td><b>12</b></td><td>Карты: <b>MapLibre + OSM</b></td><td>сотни $/мес Google-карт на масштабе → ~$10</td></tr>
+      <tr><td><b>13</b></td><td>Поиск: PostGIS + <b>Typesense</b></td><td>гео-радиус нативно; опечатки и hy/ru-морфология; обратный matcher подписок</td></tr>
+      <tr><td><b>14</b></td><td>OTel + Grafana + Sentry, SLO зафиксированы</td><td>p95&lt;300мс, WS&lt;2с — измеряем с первого дня</td></tr>
+      <tr><td><b>15</b></td><td>Безопасность слоями + пути эвакуации</td><td>reserve шифрован; телефоны гейтятся сделкой; каждый vendor заменим</td></tr>
+    </table>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--green)"></span>ядро домена</span>
+    <span><span class="dot" style="background:var(--amber)"></span>критичный realtime</span>
+    <span><span class="dot" style="background:var(--blue)"></span>коммуникации</span>
+    <span><span class="dot" style="background:var(--purple)"></span>аналитика/CQRS</span>
+    <span><span class="dot" style="background:var(--red)"></span>админ</span>
+    <span style="margin-left:auto">Фаза 1 (MVP): ~$150–250/мес · Стоимость и фазы — §11 документа</span>
+  </div>
+</div>
+</body>
+</html>

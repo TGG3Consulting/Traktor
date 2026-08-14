@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "auction.BidPlaced.v1",
+  "title": "BidPlaced",
+  "description": "Сделана ставка в обратном аукционе. Источник — auction. Слушают: notifications (push «перебили» предыдущему лидеру), search/reporting (проекции).",
+  "type": "object",
+  "required": ["eventId", "type", "occurredAt", "producer", "payload"],
+  "properties": {
+    "eventId": { "type": "string", "format": "uuid" },
+    "type": { "const": "auction.BidPlaced.v1" },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "producer": { "const": "auction" },
+    "payload": {
+      "type": "object",
+      "required": ["bidId", "jobId", "ownerId", "unitId", "price", "currency", "isLeading", "serverTime"],
+      "properties": {
+        "bidId": { "type": "string", "format": "uuid" },
+        "jobId": { "type": "string", "format": "uuid" },
+        "ownerId": { "type": "string", "format": "uuid" },
+        "unitId": { "type": "string", "format": "uuid" },
+        "price": { "type": "integer", "description": "минимальные единицы валюты" },
+        "currency": { "type": "string", "default": "AMD" },
+        "isLeading": { "type": "boolean", "description": "стала ли лучшей" },
+        "previousLeaderId": { "type": "string", "format": "uuid", "description": "кому слать «вашу ставку перебили»" },
+        "newDeadline": { "type": "string", "format": "date-time", "description": "после антиснайпинга, если продлился" },
+        "serverTime": { "type": "string", "format": "date-time", "description": "источник истины времени для клиентских таймеров" }
+      }
+    }
+  }
+}

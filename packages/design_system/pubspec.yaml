@@ -1,0 +1,20 @@
+name: design_system
+description: Дизайн-система Traktor — токены, темы и UI-kit из брендбука (design/brand/).
+version: 0.1.0
+publish_to: none
+
+environment:
+  # withValues/CardThemeData и др. современные API — Flutter 3.27+ / Dart 3.6+.
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Inter (лат+кир) + Noto Sans Armenian (hy). На проде можно self-host через flutter fonts.
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Traktor">
+  <rect width="512" height="512" rx="114" fill="#E8730C"/>
+  <g stroke="#FFFFFF" stroke-width="58" stroke-linecap="round" fill="none">
+    <path d="M160 196 H352"/>
+    <path d="M256 196 V362"/>
+  </g>
+</svg>

@@ -1,0 +1,59 @@
+/* Traktor — Design Tokens (v1.0, 13.08.2026) — источник: ТЗ §1.7–1.8
+   Единственный источник правды для CSS/web. Дублируется в tokens.dart для Flutter.
+   Не хардкодить цвета/радиусы в компонентах — только через эти переменные. */
+:root{
+  /* Brand */
+  --tk-primary:#E8730C;
+  --tk-primary-press:#C96208;
+  --tk-primary-light:#F5A055;
+  --tk-graphite:#1A1D21;
+
+  /* Semantic */
+  --tk-success:#2E9E5B;
+  --tk-warning:#E5A400;
+  --tk-error:#D64545;
+  --tk-info:#3478C6;
+
+  /* Surfaces — light */
+  --tk-bg:#F5F6F8;
+  --tk-surface:#FFFFFF;
+  --tk-surface-2:#F5F6F8;
+  --tk-text:#1A1D21;
+  --tk-text-2:#6B7280;
+  --tk-border:#E7E9EC;
+
+  /* Radius */
+  --tk-r-card:12px;
+  --tk-r-button:10px;
+
+  /* Spacing base (4dp grid) */
+  --tk-space:4px;
+  --tk-pad-mobile:16px;
+  --tk-pad-web:24px;
+
+  /* Type scale (size/line) */
+  --tk-h1:24px/32px;   /* semibold */
+  --tk-h2:20px/28px;   /* semibold */
+  --tk-h3:17px/24px;   /* semibold */
+  --tk-body:15px/22px; /* regular */
+  --tk-caption:13px/18px;
+  --tk-price:20px/28px; /* bold, tabular-nums */
+
+  --tk-font-sans:'Inter','Noto Sans Armenian',-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+[data-theme="dark"]{
+  --tk-bg:#1A1D21;
+  --tk-surface:#23272C;
+  --tk-surface-2:#2A2F35;
+  --tk-text:#F3F4F6;
+  --tk-text-2:#9CA3AF;
+  --tk-border:#33383F;
+  /* В тёмной теме primary чуть глуше для контраста на графите */
+  --tk-primary:#DB6A0A;
+}
+/* Статусная цветовая карта (ТЗ §1.10) */
+:root{
+  --tk-st-draft:#8A919B; --tk-st-published:#3478C6; --tk-st-bidding:#E5A400;
+  --tk-st-deciding:#8B5CF6; --tk-st-confirmed:#14B8A6; --tk-st-inprogress:#E8730C;
+  --tk-st-acceptance:#38BDF8; --tk-st-completed:#2E9E5B; --tk-st-dispute:#D64545; --tk-st-cancelled:#4B5563;
+}

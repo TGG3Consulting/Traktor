@@ -1,0 +1,106 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:api_client/api_client.dart';
+import '../../core/env.dart';
+
+/// Стадии входа.
+enum AuthStage { signedOut, codeSent, needsProfile, signedIn }
+
+class AuthState {
+  const AuthState({this.stage = AuthStage.signedOut, this.phone, this.error});
+  final AuthStage stage;
+  final String? phone;
+  final String? error;
+
+  AuthState copyWith({AuthStage? stage, String? phone, String? error}) =>
+      AuthState(stage: stage ?? this.stage, phone: phone ?? this.phone, error: error);
+}
+
+/// Абстракция входа: за ней либо реальный сервис identity (api_client), либо
+/// fake для локальной разработки. Возвращает [Session] (токены + профиль).
+abstract class AuthRepository {
+  Future<void> startOtp(String phone);
+  Future<Session> verifyOtp(String phone, String code);
+}
+
+/// Fake: код всегда 482915, выдаёт правдоподобную сессию без сервера.
+class FakeAuthRepository implements AuthRepository {
+  static const testCode = '482915';
+
+  @override
+  Future<void> startOtp(String phone) => Future.delayed(const Duration(milliseconds: 300));
+
+  @override
+  Future<Session> verifyOtp(String phone, String code) async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (code != testCode) {
+      throw ApiException(401, 'Код неверный');
+    }
+    return Session(
+      accessToken: 'fake.access.token',
+      refreshToken: 'fake.refresh.token',
+      expiresInSec: 900,
+      user: ApiUser(id: 'fake-user', phone: phone, roles: const ['client'], activeRole: 'client'),
+    );
+  }
+}
+
+/// Реальный вход через сервис identity.
+class ApiAuthRepository implements AuthRepository {
+  ApiAuthRepository(this._api);
+  final AuthApi _api;
+
+  @override
+  Future<void> startOtp(String phone) => _api.otpStart(phone);
+
+  @override
+  Future<Session> verifyOtp(String phone, String code) =>
+      _api.otpVerify(phone, code, idempotencyKey: '$phone:$code');
+}
+
+final authApiProvider = Provider<AuthApi>((ref) => AuthApi(Env.apiBaseUrl));
+
+final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  if (Env.useRealBackend) {
+    return ApiAuthRepository(ref.read(authApiProvider));
+  }
+  return FakeAuthRepository();
+});
+
+/// Текущая сессия (токены + пользователь). Позже — персист в Drift + refresh.
+final sessionProvider = StateProvider<Session?>((ref) => null);
+
+class AuthController extends Notifier<AuthState> {
+  @override
+  AuthState build() => const AuthState();
+
+  AuthRepository get _repo => ref.read(authRepositoryProvider);
+
+  Future<void> requestCode(String phone) async {
+    try {
+      await _repo.startOtp(phone);
+      state = state.copyWith(stage: AuthStage.codeSent, phone: phone, error: null);
+    } on ApiException catch (e) {
+      state = state.copyWith(error: e.detail);
+    }
+  }
+
+  Future<void> submitCode(String code) async {
+    final phone = state.phone ?? '';
+    try {
+      final session = await _repo.verifyOtp(phone, code);
+      ref.read(sessionProvider.notifier).state = session;
+      // Новый пользователь (без имени) → шаг профиля; иначе сразу внутрь.
+      state = state.copyWith(
+        stage: session.user.name.isEmpty ? AuthStage.needsProfile : AuthStage.signedIn,
+        error: null,
+      );
+    } on ApiException catch (e) {
+      state = state.copyWith(error: e.detail);
+    }
+  }
+
+  void completeProfile() => state = state.copyWith(stage: AuthStage.signedIn);
+  void changeNumber() => state = state.copyWith(stage: AuthStage.signedOut, phone: null);
+}
+
+final authControllerProvider = NotifierProvider<AuthController, AuthState>(AuthController.new);

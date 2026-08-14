@@ -1,0 +1,192 @@
+openapi: 3.1.0
+info:
+  title: Traktor API
+  version: 0.1.0
+  description: >
+    Единый контракт REST API Traktor (source of truth). Из него генерируются
+    Dart-клиент (packages/api_client), серверные интерфейсы (Go) и документация.
+    Меняется контракт → регенерируются обе стороны. Ломающие изменения ловит CI.
+servers:
+  - url: https://api.traktor.am/v1
+    description: prod (домен — после выбора Тиграном)
+  - url: https://api.stage.traktor.am/v1
+    description: stage
+
+tags:
+  - name: identity
+    description: Регистрация и вход (OTP через Dexatel), сессии, профиль.
+
+paths:
+  /auth/otp/start:
+    post:
+      tags: [identity]
+      summary: Отправить OTP на телефон
+      operationId: authOtpStart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string, example: "+37491234567", description: "E.164" }
+      responses:
+        "200":
+          description: Код отправлен (или доступен тест-режим)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  retryAfterSec: { type: integer, example: 60 }
+                  channel: { type: string, enum: [sms, telegram], example: sms }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /auth/otp/verify:
+    post:
+      tags: [identity]
+      summary: Проверить код и выдать сессию
+      operationId: authOtpVerify
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone: { type: string }
+                code: { type: string, example: "482915" }
+      responses:
+        "200":
+          description: Успешный вход
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "423":
+          description: Слишком много неверных попыток (пауза)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /auth/refresh:
+    post:
+      tags: [identity]
+      summary: Обновить access по refresh-токену (ротация)
+      operationId: authRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties: { refreshToken: { type: string } }
+      responses:
+        "200":
+          description: Новая пара токенов
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Session" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /me:
+    get:
+      tags: [identity]
+      summary: Профиль текущего пользователя
+      operationId: getMe
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Профиль
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [identity]
+      summary: Обновить свой профиль (имя, фото, город, активная роль)
+      operationId: updateMe
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 2, maxLength: 50 }
+                city: { type: string }
+                activeRole: { $ref: "#/components/schemas/Role" }
+      responses:
+        "200":
+          description: Обновлённый профиль
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string }
+      description: Гарантия «двойной тап ≠ две операции» (ТЗ §4.3).
+  responses:
+    Problem:
+      description: Ошибка (RFC 9457 problem+json) с человекочитаемым detail для тоста
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+    RateLimited:
+      description: Превышен лимит запросов
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+  schemas:
+    Role:
+      type: string
+      enum: [client, owner]
+    Session:
+      type: object
+      required: [accessToken, refreshToken, expiresInSec, user]
+      properties:
+        accessToken: { type: string, description: "JWT ES256, 15 мин" }
+        refreshToken: { type: string, description: "rotating, 30 дней" }
+        expiresInSec: { type: integer, example: 900 }
+        user: { $ref: "#/components/schemas/User" }
+    User:
+      type: object
+      required: [id, phone, roles, activeRole]
+      properties:
+        id: { type: string, format: uuid }
+        phone: { type: string, description: "виден только владельцу; другим — до сделки скрыт" }
+        name: { type: string }
+        avatarUrl: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        roles:
+          type: array
+          items: { $ref: "#/components/schemas/Role" }
+        activeRole: { $ref: "#/components/schemas/Role" }
+        rating: { type: number, example: 4.8 }
+        ratingCount: { type: integer, example: 36 }
+        verified: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string, description: "человекочитаемо, годится в тост" }

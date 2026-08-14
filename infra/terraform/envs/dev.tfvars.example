@@ -1,0 +1,11 @@
+# Скопировать в dev.tfvars и заполнить реальными значениями (dev.tfvars в .gitignore).
+env                   = "dev"
+project_id            = "traktor-XXXXXX"          # GCP Project ID
+region                = "europe-west3"
+domain                = "getraktor.com"
+cloudflare_account_id = "XXXXXXXXXXXXXXXX"
+cloudflare_zone_id    = "XXXXXXXXXXXXXXXX"
+
+# Теги образов появляются после первой сборки в Artifact Registry:
+identity_image = "europe-west3-docker.pkg.dev/traktor-XXXXXX/traktor/identity:latest"
+gateway_image  = "europe-west3-docker.pkg.dev/traktor-XXXXXX/traktor/gateway:latest"

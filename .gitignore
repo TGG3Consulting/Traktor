@@ -1,0 +1,33 @@
+# Dart / Flutter
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+**/*.g.dart
+**/*.freezed.dart
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — НИКОГДА не коммитить (только Secret Manager)
+*.env
+*.env.*
+**/service-account*.json
+**/*-key.json
+infra/terraform/**/*.tfvars
+infra/terraform/**/.terraform/
+infra/terraform/**/*.tfstate*
+!infra/terraform/**/*.tfvars.example
+
+# Go
+services/**/bin/
+services/**/*.test

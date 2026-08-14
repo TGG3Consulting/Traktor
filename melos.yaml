@@ -1,0 +1,27 @@
+name: traktor
+
+packages:
+  - apps/**
+  - packages/**
+
+command:
+  bootstrap:
+    # Единая версия SDK во всех пакетах — задаётся в корне.
+    runPubGetInParallel: true
+
+scripts:
+  analyze:
+    description: Статический анализ всех Dart/Flutter пакетов.
+    run: melos exec -- "flutter analyze --fatal-infos"
+
+  format:
+    description: Проверка форматирования (CI падает при расхождении).
+    run: melos exec -- "dart format --output=none --set-exit-if-changed ."
+
+  test:
+    description: Unit- и widget-тесты всех пакетов.
+    run: melos exec --dir-exists=test -- "flutter test"
+
+  gen:
+    description: Кодогенерация (Riverpod, freezed, api_client из OpenAPI).
+    run: melos exec --depends-on=build_runner -- "dart run build_runner build --delete-conflicting-outputs"
