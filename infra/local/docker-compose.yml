@@ -97,6 +97,18 @@ services:
         soft: 65536
         hard: 65536
 
+  # Раздаёт собранное веб-приложение (apps/mobile/build/web).
+  # В облаке эту роль возьмёт Cloudflare Pages или R2 — код приложения тот же.
+  web:
+    image: nginx:alpine
+    container_name: traktor-web
+    restart: unless-stopped
+    ports:
+      - "18090:80"
+    volumes:
+      - ../../apps/mobile/build/web:/usr/share/nginx/html:ro
+      - ./nginx-web.conf:/etc/nginx/conf.d/default.conf:ro
+
 volumes:
   pgdata:
   redisdata:

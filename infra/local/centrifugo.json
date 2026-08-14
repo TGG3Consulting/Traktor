@@ -5,7 +5,10 @@
   "token_hmac_secret_key": "traktor-local-centrifugo-secret",
   "api_key": "traktor-local-centrifugo-api",
 
-  "allowed_origins": ["*"],
+  "allowed_origins": ["https://app.homly.am", "http://localhost:*"],
+
+  "//health": "Эндпоинт /health выключен по умолчанию — включаем, чтобы туннель и мониторинг могли проверять сервис.",
+  "health": true,
 
   "presence": true,
   "join_leave": true,
