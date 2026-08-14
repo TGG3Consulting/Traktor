@@ -17,6 +17,7 @@ type Memory struct {
 	mu     sync.RWMutex
 	jobs   map[string]job.Job
 	offers map[string]job.Offer       // отклики по идентификатору
+	deals  map[string]job.Deal        // сделки по идентификатору
 	views  map[string]map[string]bool // jobID → кто смотрел
 	idemp  map[string]string          // ключ идемпотентности → jobID
 }
@@ -25,6 +26,7 @@ func NewMemory() *Memory {
 	return &Memory{
 		jobs:   map[string]job.Job{},
 		offers: map[string]job.Offer{},
+		deals:  map[string]job.Deal{},
 		views:  map[string]map[string]bool{},
 		idemp:  map[string]string{},
 	}

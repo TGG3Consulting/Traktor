@@ -248,6 +248,66 @@ class JobsApi {
     return Offer.fromJson(_handle(resp));
   }
 
+  // ── сделки (ТЗ §2.11) ──────────────────────────────────────────────────────
+
+  /// POST /jobs/{id}/deal — подтвердить выбор и открыть сделку.
+  Future<Deal> confirmDeal(String token, String jobId,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/jobs/$jobId/deal'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    return Deal.fromJson(_handle(resp));
+  }
+
+  /// GET /jobs/{id}/deal — сделка по заданию; null, если её ещё нет.
+  Future<Deal?> dealByJob(String token, String jobId) async {
+    final resp = await _http.get(_u('/jobs/$jobId/deal'), headers: _headers(token));
+    final json = _handle(resp);
+    final deal = json['deal'];
+    if (deal == null) return null;
+    return Deal.fromJson((deal as Map).cast<String, dynamic>());
+  }
+
+  /// GET /deals/{id}
+  Future<Deal> deal(String token, String dealId) async {
+    final resp = await _http.get(_u('/deals/$dealId'), headers: _headers(token));
+    return Deal.fromJson(_handle(resp));
+  }
+
+  /// GET /deals/my — мои сделки в обеих ролях.
+  Future<List<Deal>> myDeals(String token, {int limit = 20, int offset = 0}) async {
+    final resp = await _http.get(
+      _u('/deals/my', {'limit': '$limit', 'offset': '$offset'}),
+      headers: _headers(token),
+    );
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => Deal.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// POST /deals/{id}/step — следующий шаг работы.
+  Future<Deal> dealStep(String token, String dealId, String status,
+      {String note = '', required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/deals/$dealId/step'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'status': status, 'note': note}),
+    );
+    return Deal.fromJson(_handle(resp));
+  }
+
+  /// POST /deals/{id}/cancel — отменить сделку с причиной.
+  Future<Deal> cancelDeal(String token, String dealId, String reason,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/deals/$dealId/cancel'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'reason': reason}),
+    );
+    return Deal.fromJson(_handle(resp));
+  }
+
   /// POST /jobs/{id}/cancel — снять задание.
   Future<Job> cancel(String token, String id, {required String idempotencyKey}) async {
     final resp = await _http.post(

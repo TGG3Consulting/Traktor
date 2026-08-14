@@ -426,3 +426,84 @@ class Offer {
         updatedAt: DateTime.tryParse(j['updatedAt'] as String? ?? '')?.toLocal(),
       );
 }
+
+/// Событие в истории сделки: кто и когда что сделал.
+class DealEvent {
+  const DealEvent({required this.status, required this.at, this.byId = '', this.note = ''});
+
+  final String status;
+  final DateTime at;
+  final String byId;
+  final String note;
+
+  factory DealEvent.fromJson(Map<String, dynamic> j) => DealEvent(
+        status: j['status'] as String? ?? '',
+        at: DateTime.tryParse(j['at'] as String? ?? '')?.toLocal() ?? DateTime.now(),
+        byId: j['byId'] as String? ?? '',
+        note: j['note'] as String? ?? '',
+      );
+}
+
+/// Сделка (ТЗ §2.11): то, что происходит после подтверждения выбора.
+class Deal {
+  const Deal({
+    required this.id,
+    required this.jobId,
+    required this.clientId,
+    required this.ownerId,
+    required this.price,
+    required this.status,
+    this.offerId,
+    this.currency = 'AMD',
+    this.timeline = const [],
+    this.acceptanceDeadline,
+    this.cancelReason = '',
+    this.cancelledBy,
+    this.createdAt,
+    this.updatedAt,
+    this.closedAt,
+  });
+
+  final String id;
+  final String jobId;
+  final String? offerId;
+  final String clientId;
+  final String ownerId;
+  final int price;
+  final String currency;
+
+  /// confirmed | on_the_way | in_progress | work_done | completed | disputed | cancelled
+  final String status;
+  final List<DealEvent> timeline;
+
+  /// До какого момента заказчик может принять работу; потом — автоприёмка.
+  final DateTime? acceptanceDeadline;
+  final String cancelReason;
+  final String? cancelledBy;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final DateTime? closedAt;
+
+  bool get isClosed => status == 'completed' || status == 'cancelled';
+
+  factory Deal.fromJson(Map<String, dynamic> j) => Deal(
+        id: j['id'] as String? ?? '',
+        jobId: j['jobId'] as String? ?? '',
+        offerId: j['offerId'] as String?,
+        clientId: j['clientId'] as String? ?? '',
+        ownerId: j['ownerId'] as String? ?? '',
+        price: (j['price'] as num?)?.toInt() ?? 0,
+        currency: j['currency'] as String? ?? 'AMD',
+        status: j['status'] as String? ?? 'confirmed',
+        timeline: (j['timeline'] as List? ?? const [])
+            .map((e) => DealEvent.fromJson((e as Map).cast<String, dynamic>()))
+            .toList(),
+        acceptanceDeadline:
+            DateTime.tryParse(j['acceptanceDeadline'] as String? ?? '')?.toLocal(),
+        cancelReason: j['cancelReason'] as String? ?? '',
+        cancelledBy: j['cancelledBy'] as String?,
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+        updatedAt: DateTime.tryParse(j['updatedAt'] as String? ?? '')?.toLocal(),
+        closedAt: DateTime.tryParse(j['closedAt'] as String? ?? '')?.toLocal(),
+      );
+}

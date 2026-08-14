@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/session_refresh.dart';
 import '../auth/auth_controller.dart';
+import 'deal/deal_providers.dart';
 import 'jobs_providers.dart';
 import 'offers/offer_sheet.dart';
 import 'offers/offers_providers.dart';
@@ -228,6 +229,26 @@ class _Actions extends ConsumerWidget {
   }
 
   Widget _ownerActions(BuildContext context, WidgetRef ref) {
+    // Исполнитель выбран — заказчику остаётся подтвердить и работать.
+    if (job.status == JobStatus.dealPending) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: () => _confirmDeal(context, ref),
+          child: const Text('Подтвердить сделку'),
+        ),
+      );
+    }
+    final deal = ref.watch(dealByJobProvider(job.id)).valueOrNull;
+    if (deal != null) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: () => context.go('/deals/${deal.id}'),
+          child: const Text('Открыть сделку'),
+        ),
+      );
+    }
     if (!_open) {
       return Text(
         'Задание закрыто',
@@ -255,6 +276,17 @@ class _Actions extends ConsumerWidget {
   }
 
   Widget _executorActions(BuildContext context, WidgetRef ref, ColorScheme scheme) {
+    // Исполнителя выбрали — дальше вся работа идёт на экране сделки.
+    final deal = ref.watch(dealByJobProvider(job.id)).valueOrNull;
+    if (deal != null && deal.ownerId != '') {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: () => context.go('/deals/${deal.id}'),
+          child: const Text('Открыть сделку'),
+        ),
+      );
+    }
     if (!_open) {
       return Text(
         'Задание больше не принимает отклики',
@@ -332,6 +364,17 @@ class _Actions extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Предложение отправлено заказчику')),
       );
+    }
+  }
+
+  Future<void> _confirmDeal(BuildContext context, WidgetRef ref) async {
+    try {
+      final deal = await ref.read(dealActionsProvider).confirm(job.id);
+      if (context.mounted) context.go('/deals/${deal.id}');
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.detail)));
+      }
     }
   }
 

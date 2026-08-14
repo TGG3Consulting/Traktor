@@ -56,6 +56,14 @@ type Store interface {
 	// показывать кнопку отклика или уже отправленное предложение.
 	MyOfferForJob(ctx context.Context, jobID, ownerID string) (*job.Offer, error)
 
+	// ── сделки (ТЗ §2.11) ────────────────────────────────────────────────────
+	CreateDeal(ctx context.Context, d *job.Deal) error
+	UpdateDeal(ctx context.Context, d *job.Deal) error
+	DealByID(ctx context.Context, id string) (*job.Deal, error)
+	// DealByJob — сделка по заданию: на задание она одна.
+	DealByJob(ctx context.Context, jobID string) (*job.Deal, error)
+	DealsByUser(ctx context.Context, userID string, limit, offset int) ([]job.Deal, error)
+
 	// Идемпотентность мутаций: повтор запроса с тем же ключом возвращает
 	// прежнее задание, а не создаёт новое (§2.3.12).
 	FindIdempotent(ctx context.Context, key, userID, endpoint string) (string, bool, error)

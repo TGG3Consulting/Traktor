@@ -52,9 +52,22 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/{id}/offers", s.makeOffer)
 			r.Get("/{id}/offers", s.jobOffers)
 			r.Get("/{id}/offers/my", s.myOfferForJob)
+
+			// Сделка по заданию (ТЗ §2.11).
+			r.Post("/{id}/deal", s.confirmDeal)
+			r.Get("/{id}/deal", s.dealByJob)
 		})
 
 		r.Get("/{id}", s.view)
+	})
+
+	// Сделки: шаги работы и приёмка.
+	r.Route("/v1/deals", func(r chi.Router) {
+		r.Use(s.requireUser)
+		r.Get("/my", s.myDeals)
+		r.Get("/{dealId}", s.deal)
+		r.Post("/{dealId}/step", s.advanceDeal)
+		r.Post("/{dealId}/cancel", s.cancelDeal)
 	})
 
 	// Решения по конкретному предложению.

@@ -90,6 +90,7 @@ func run(log *slog.Logger) error {
 		{Prefix: "/v1/categories", Upstream: cfg.CatalogURL},
 		{Prefix: "/v1/jobs", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/offers", Upstream: cfg.OrdersURL},
+		{Prefix: "/v1/deals", Upstream: cfg.OrdersURL},
 		{Prefix: "/.well-known/", Upstream: cfg.IdentityURL},
 	})
 	if err != nil {

@@ -631,6 +631,169 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "409": { description: "Раунд торга уже использован", content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
 
+  /jobs/{id}/deal:
+    post:
+      tags: [orders]
+      summary: Подтвердить выбор и открыть сделку (ТЗ §2.11)
+      description: >
+        Отдельный шаг после выбора исполнителя: с этого момента цена
+        зафиксирована. Повторный вызов возвращает ту же сделку.
+      operationId: confirmDeal
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Сделка
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Deal" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    get:
+      tags: [orders]
+      summary: Сделка по заданию
+      description: "deal=null — сделки ещё нет."
+      operationId: dealByJob
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Сделка или null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deal:
+                    oneOf:
+                      - $ref: "#/components/schemas/Deal"
+                      - type: "null"
+
+  /deals/my:
+    get:
+      tags: [orders]
+      summary: Мои сделки в обеих ролях
+      operationId: myDeals
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Сделки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Deal" }
+
+  /deals/{dealId}:
+    get:
+      tags: [orders]
+      summary: Одна сделка (только участники)
+      operationId: getDeal
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: dealId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Сделка
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Deal" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /deals/{dealId}/step:
+    post:
+      tags: [orders]
+      summary: Следующий шаг работы
+      description: >
+        Кто вправе сделать шаг, решает сервер: выехал/начал/завершил — исполнитель,
+        приёмка — заказчик. Перепрыгнуть шаг нельзя.
+      operationId: advanceDeal
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: dealId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [on_the_way, in_progress, work_done, completed, disputed]
+                note: { type: string }
+      responses:
+        "200":
+          description: Сделка после шага
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Deal" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /deals/{dealId}/cancel:
+    post:
+      tags: [orders]
+      summary: Отменить сделку (причина обязательна)
+      operationId: cancelDeal
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: dealId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        "200":
+          description: Сделка отменена
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Deal" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422":
+          description: Причина не указана
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ValidationProblem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -656,6 +819,41 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
   schemas:
+    DealEvent:
+      type: object
+      required: [status, at]
+      properties:
+        status: { type: string }
+        at: { type: string, format: date-time }
+        byId: { type: string, format: uuid }
+        note: { type: string }
+    Deal:
+      type: object
+      required: [id, jobId, clientId, ownerId, price, status]
+      properties:
+        id: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        offerId: { type: string, format: uuid, nullable: true }
+        clientId: { type: string, format: uuid }
+        ownerId: { type: string, format: uuid }
+        price: { type: integer, format: int64, description: "зафиксирована при создании сделки" }
+        currency: { type: string, default: AMD }
+        status:
+          type: string
+          enum: [confirmed, on_the_way, in_progress, work_done, completed, disputed, cancelled]
+        timeline:
+          type: array
+          items: { $ref: "#/components/schemas/DealEvent" }
+        acceptanceDeadline:
+          type: string
+          format: date-time
+          nullable: true
+          description: "48 часов на приёмку, дальше автоприёмка"
+        cancelReason: { type: string }
+        cancelledBy: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        closedAt: { type: string, format: date-time, nullable: true }
     OfferInput:
       type: object
       required: [kind, price]
