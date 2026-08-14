@@ -5,3 +5,4 @@ library api_client;
 
 export 'src/models.dart';
 export 'src/auth_api.dart';
+export 'src/devices_api.dart';

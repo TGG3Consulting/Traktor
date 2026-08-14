@@ -33,3 +33,6 @@ infra/terraform/**/*.tfstate*
 # Go
 services/**/bin/
 services/**/*.test
+
+# Временная папка для удаления вручную (мост не может rm)
+_to_delete/

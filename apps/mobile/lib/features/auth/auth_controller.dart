@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:api_client/api_client.dart';
 import '../../core/env.dart';
+import '../../core/app_settings.dart';
+import '../../core/notifications/push_service.dart';
 
 /// Стадии входа.
 enum AuthStage { signedOut, codeSent, needsProfile, signedIn }
@@ -59,6 +62,9 @@ class ApiAuthRepository implements AuthRepository {
 
 final authApiProvider = Provider<AuthApi>((ref) => AuthApi(Env.apiBaseUrl));
 
+/// Клиент раздела notifications (регистрация push-токена устройства).
+final devicesApiProvider = Provider<DevicesApi>((ref) => DevicesApi(Env.apiBaseUrl));
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   if (Env.useRealBackend) {
     return ApiAuthRepository(ref.read(authApiProvider));
@@ -89,6 +95,8 @@ class AuthController extends Notifier<AuthState> {
     try {
       final session = await _repo.verifyOtp(phone, code);
       ref.read(sessionProvider.notifier).state = session;
+      // Регистрируем push-токен устройства (не блокирует вход).
+      unawaited(_registerDeviceBestEffort(session));
       // Новый пользователь (без имени) → шаг профиля; иначе сразу внутрь.
       state = state.copyWith(
         stage: session.user.name.isEmpty ? AuthStage.needsProfile : AuthStage.signedIn,
@@ -96,6 +104,30 @@ class AuthController extends Notifier<AuthState> {
       );
     } on ApiException catch (e) {
       state = state.copyWith(error: e.detail);
+    }
+  }
+
+  /// Регистрация push-токена после успешного входа. Best-effort: любой сбой
+  /// тихо игнорируется — уведомления не критичны для входа. Пока подключён
+  /// FakePushService; при заведении Firebase-проекта провайдер заменится на FCM,
+  /// код здесь не меняется. Без реального бэка (fake-вход) — пропускаем.
+  Future<void> _registerDeviceBestEffort(Session session) async {
+    if (!Env.useRealBackend) return;
+    try {
+      final push = ref.read(pushServiceProvider);
+      if (!await push.requestPermission()) return;
+      final token = await push.getToken();
+      if (token == null || token.isEmpty) return;
+      final locale = ref.read(appSettingsProvider).locale?.languageCode ?? 'ru';
+      await ref.read(devicesApiProvider).register(
+            accessToken: session.accessToken,
+            token: token,
+            platform: push.platform,
+            locale: locale,
+            idempotencyKey: '${session.user.id}:$token',
+          );
+    } catch (_) {
+      // Токен устройства — не критичен для входа; сбой не показываем пользователю.
     }
   }
 

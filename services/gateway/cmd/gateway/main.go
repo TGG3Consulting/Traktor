@@ -26,9 +26,11 @@ func main() {
 	}
 
 	// Маршруты к сервисам (по мере появления сервисов список растёт).
+	// Наиболее длинный совпадающий префикс выигрывает (см. proxy.Router).
 	router, err := proxy.Router([]proxy.Route{
 		{Prefix: "/v1/auth/", Upstream: cfg.IdentityURL},
 		{Prefix: "/v1/me", Upstream: cfg.IdentityURL},
+		{Prefix: "/v1/devices", Upstream: cfg.NotificationsURL},
 		{Prefix: "/.well-known/", Upstream: cfg.IdentityURL},
 	})
 	if err != nil {

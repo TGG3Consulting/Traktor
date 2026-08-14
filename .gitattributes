@@ -1,0 +1,23 @@
+# Нормализация переносов строк: в репозитории — LF, чекаут — родной для ОС.
+# Снимает предупреждения CRLF на Windows (C:\Traktor) и держит diff чистым.
+* text=auto eol=lf
+
+# Явно текстовые исходники — всегда LF.
+*.go      text eol=lf
+*.dart    text eol=lf
+*.md      text eol=lf
+*.yaml    text eol=lf
+*.yml     text eol=lf
+*.json    text eol=lf
+*.sql     text eol=lf
+*.tf      text eol=lf
+*.html    text eol=lf
+*.css     text eol=lf
+*.arb     text eol=lf
+Dockerfile text eol=lf
+
+# Бинарные ассеты — не трогать.
+*.png     binary
+*.jpg     binary
+*.ico     binary
+*.svg     text eol=lf

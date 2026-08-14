@@ -9,22 +9,24 @@ import (
 // Config — окружение шлюза. Апстримы и JWKS берутся из env (в проде —
 // внутренние адреса Cloud Run / Secret Manager).
 type Config struct {
-	Port        string
-	JWKSURL     string
-	IdentityURL string
-	RateLimit   int
-	RateWindow  time.Duration
-	AllowOrigin string
+	Port             string
+	JWKSURL          string
+	IdentityURL      string
+	NotificationsURL string
+	RateLimit        int
+	RateWindow       time.Duration
+	AllowOrigin      string
 }
 
 func Load() *Config {
 	return &Config{
-		Port:        getenv("PORT", "8080"),
-		JWKSURL:     getenv("JWKS_URL", "http://localhost:8081/.well-known/jwks.json"),
-		IdentityURL: getenv("IDENTITY_URL", "http://localhost:8081"),
-		RateLimit:   getenvInt("RATE_LIMIT", 100),
-		RateWindow:  time.Duration(getenvInt("RATE_WINDOW_SEC", 60)) * time.Second,
-		AllowOrigin: getenv("ALLOW_ORIGIN", "*"),
+		Port:             getenv("PORT", "8080"),
+		JWKSURL:          getenv("JWKS_URL", "http://localhost:8081/.well-known/jwks.json"),
+		IdentityURL:      getenv("IDENTITY_URL", "http://localhost:8081"),
+		NotificationsURL: getenv("NOTIFICATIONS_URL", "http://localhost:8082"),
+		RateLimit:        getenvInt("RATE_LIMIT", 100),
+		RateWindow:       time.Duration(getenvInt("RATE_WINDOW_SEC", 60)) * time.Second,
+		AllowOrigin:      getenv("ALLOW_ORIGIN", "*"),
 	}
 }
 

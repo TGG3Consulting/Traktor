@@ -58,9 +58,16 @@
 - [x] UI/UX и архитектура УТВЕРЖДЕНЫ Тиграном 13.08.2026 (запрет на код снят)
 - [x] Фаза 1 брендинг: концепт B «T-балка» выбран, бренд-пакет + токены готовы (design/brand/)
 - [ ] ТЕКУЩЕЕ: финальное «ок» Тиграна на бренд-пакет → Фаза 2
-- [ ] ФАЗА 2 (следующая): монорепо, инфраструктура (Terraform), api-gateway + identity,
+- [ ] ФАЗА 2 (в работе): монорепо, инфраструктура (Terraform), api-gateway + identity,
       design_system из tokens.dart, каркасы Flutter. НУЖНЫ от Тиграна: домен + аккаунты
-      (GitHub, GCP+billing, Cloudflare, Dexatel, Apple Developer, Google Play).
+      (GitHub✓, GCP+billing, Cloudflare, Dexatel, Apple Developer, Google Play).
+  - Сделано 14.08: identity (OTP/JWT), gateway (JWKS/rate-limit/idempotency/proxy),
+    api_client, приложение подключено к бэку (флаг REAL_BACKEND), Terraform (IaC),
+    репозиторий + зелёный CI. Сервис **notifications** (push-токены + рассылка, FCM за
+    интерфейсом; fake по умолчанию) + клиентская обвязка пушей (PushService/DevicesApi).
+  - Firebase (FCM) целиком ждёт Firebase-проекта (Google-аккаунт): FCM_PROJECT_ID +
+    firebase_messaging в клиент. До этого — fake-провайдер, всё компилируется и тестируется.
+  - Напоминание: добавить `notifications` в Go-матрицу CI (.github/workflows/ci.yml — правит Тигран).
 
 ## Правила работы (полный свод — в ORCHESTRATOR.md)
 - Рабочая папка на компьютере владельца: C:\Traktor (зеркалить туда все результаты).

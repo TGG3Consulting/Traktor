@@ -15,6 +15,8 @@ servers:
 tags:
   - name: identity
     description: Регистрация и вход (OTP через Dexatel), сессии, профиль.
+  - name: notifications
+    description: Push-токены устройств и уведомления (FCM за интерфейсом).
 
 paths:
   /auth/otp/start:
@@ -130,6 +132,39 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/User" }
 
+  /devices:
+    post:
+      tags: [notifications]
+      summary: Зарегистрировать push-токен текущего устройства
+      operationId: registerDevice
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeviceRegistration" }
+      responses:
+        "204": { description: Токен зарегистрирован/обновлён (идемпотентно) }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /devices/{token}:
+    delete:
+      tags: [notifications]
+      summary: Снять регистрацию push-токена (logout / отзыв разрешения)
+      operationId: unregisterDevice
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Регистрация снята }
+        "401": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -158,6 +193,19 @@ components:
     Role:
       type: string
       enum: [client, owner]
+    DeviceRegistration:
+      type: object
+      required: [token, platform]
+      properties:
+        token: { type: string, description: "Регистрационный токен FCM устройства" }
+        platform:
+          type: string
+          enum: [android, ios, web]
+        locale:
+          type: string
+          enum: [hy, ru, en]
+          description: "Язык для текста пуша"
+        appVersion: { type: string }
     Session:
       type: object
       required: [accessToken, refreshToken, expiresInSec, user]
