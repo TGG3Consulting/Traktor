@@ -7,6 +7,7 @@ package httpapi
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -131,8 +132,14 @@ func (s *Server) notify(w http.ResponseWriter, r *http.Request) {
 		Data:  body.Data,
 	})
 	if err != nil {
+		slog.Error("рассылка не удалась", "user", body.UserID, "title", body.Title, "err", err)
 		problem(w, http.StatusInternalServerError, "Сбой рассылки")
 		return
 	}
+	// Пишем каждую рассылку: без этого невозможно ответить на вопрос «почему
+	// исполнителю не пришло уведомление» — то ли не отправляли, то ли у него
+	// нет зарегистрированных устройств.
+	slog.Info("уведомление отправлено",
+		"user", body.UserID, "title", body.Title, "delivered", delivered)
 	writeJSON(w, 200, map[string]any{"delivered": delivered})
 }

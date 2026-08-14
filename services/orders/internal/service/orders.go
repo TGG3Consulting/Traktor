@@ -14,19 +14,29 @@ import (
 	"github.com/google/uuid"
 
 	"traktor/orders/internal/job"
+	"traktor/orders/internal/notify"
 	"traktor/orders/internal/store"
 )
 
 type Service struct {
-	st  store.Store
-	now func() time.Time
+	st     store.Store
+	now    func() time.Time
+	notify notify.Notifier
 }
 
 func New(st store.Store, now func() time.Time) *Service {
+	return NewWithNotifier(st, now, notify.Noop{})
+}
+
+// NewWithNotifier — то же самое, но с уведомлениями о событиях заданий.
+func NewWithNotifier(st store.Store, now func() time.Time, n notify.Notifier) *Service {
 	if now == nil {
 		now = time.Now
 	}
-	return &Service{st: st, now: now}
+	if n == nil {
+		n = notify.Noop{}
+	}
+	return &Service{st: st, now: now, notify: n}
 }
 
 // DraftInput — поля визарда. Все указатели: nil означает «шаг не трогали»,

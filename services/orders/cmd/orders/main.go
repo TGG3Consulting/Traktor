@@ -17,6 +17,7 @@ import (
 
 	"traktor/orders/internal/config"
 	"traktor/orders/internal/httpapi"
+	"traktor/orders/internal/notify"
 	"traktor/orders/internal/service"
 	"traktor/orders/internal/store"
 )
@@ -43,9 +44,17 @@ func run(log *slog.Logger) error {
 	}
 	defer closeStore()
 
+	var notifier notify.Notifier = notify.Noop{}
+	if cfg.NotificationsURL != "" {
+		notifier = notify.NewHTTP(cfg.NotificationsURL, log)
+		log.Info("уведомления включены", "notifications", cfg.NotificationsURL)
+	} else {
+		log.Warn("NOTIFICATIONS_URL не задан: уведомления о заданиях не отправляются")
+	}
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           httpapi.New(service.New(st, time.Now)).Routes(),
+		Handler:           httpapi.New(service.NewWithNotifier(st, time.Now, notifier)).Routes(),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}

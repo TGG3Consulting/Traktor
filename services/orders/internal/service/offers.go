@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
 
 	"traktor/orders/internal/job"
+	"traktor/orders/internal/notify"
 )
 
 // OfferInput — предложение исполнителя (ТЗ §2.10).
@@ -91,6 +93,13 @@ func (s *Service) MakeOffer(ctx context.Context, ownerID, jobID string, in Offer
 	if err := s.st.CreateOffer(ctx, offer); err != nil {
 		return nil, err
 	}
+
+	// Заказчик узнаёт об отклике сразу: скорость ответа — главное, чего ждут
+	// от площадки обе стороны (ТЗ §2.14).
+	s.notify.Send(ctx, j.ClientID, notify.TitleNewOffer,
+		fmt.Sprintf("%s · %s", j.Title, notify.MoneyRU(offer.Price, offer.Currency)),
+		map[string]string{"route": "/jobs/" + j.ID + "/offers", "jobId": j.ID})
+
 	return offer, nil
 }
 
@@ -131,6 +140,14 @@ func (s *Service) DeclineOffer(ctx context.Context, clientID, offerID, reason st
 	if err := s.st.UpdateOffer(ctx, o); err != nil {
 		return nil, err
 	}
+
+	text := "Заказчик выбрал другой вариант"
+	if o.DeclineReason != "" {
+		text = o.DeclineReason
+	}
+	s.notify.Send(ctx, o.OwnerID, notify.TitleDeclined, text,
+		map[string]string{"route": "/jobs/" + o.JobID, "jobId": o.JobID})
+
 	return o, nil
 }
 
@@ -164,6 +181,11 @@ func (s *Service) CounterOffer(ctx context.Context, clientID, offerID string, pr
 	if err := s.st.UpdateOffer(ctx, o); err != nil {
 		return nil, err
 	}
+
+	s.notify.Send(ctx, o.OwnerID, notify.TitleCounter,
+		notify.MoneyRU(price, o.Currency)+" — примите или предложите свою",
+		map[string]string{"route": "/jobs/" + o.JobID, "jobId": o.JobID})
+
 	return o, nil
 }
 
@@ -215,6 +237,19 @@ func (s *Service) AcceptOffer(ctx context.Context, clientID, offerID string) (*j
 	if err := s.st.Update(ctx, j); err != nil {
 		return nil, err
 	}
+
+	s.notify.Send(ctx, o.OwnerID, notify.TitleAccepted,
+		fmt.Sprintf("%s · %s", j.Title, notify.MoneyRU(o.Price, o.Currency)),
+		map[string]string{"route": "/jobs/" + j.ID, "jobId": j.ID})
+	for i := range others {
+		if others[i].ID == o.ID || others[i].OwnerID == "" {
+			continue
+		}
+		s.notify.Send(ctx, others[i].OwnerID, notify.TitleJobClosed,
+			j.Title+" — заказчик выбрал другого исполнителя",
+			map[string]string{"route": "/jobs/" + j.ID, "jobId": j.ID})
+	}
+
 	return o, nil
 }
 

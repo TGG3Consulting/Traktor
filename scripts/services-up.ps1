@@ -89,6 +89,8 @@ Start-Process -FilePath "$bin\catalog.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-catalog.log" -RedirectStandardError "$out\svc-catalog.err" | Out-Null
 
 $env:PORT = '18084'
+# orders soobshchaet notifications o novyh otklikah i resheniyah zakazchika
+$env:NOTIFICATIONS_URL = 'http://127.0.0.1:18082'
 Start-Process -FilePath "$bin\orders.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-orders.log" -RedirectStandardError "$out\svc-orders.err" | Out-Null
 
