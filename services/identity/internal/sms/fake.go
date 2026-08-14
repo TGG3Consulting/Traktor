@@ -2,6 +2,7 @@ package sms
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 )
 
@@ -18,6 +19,9 @@ func (f *Fake) SendCode(_ context.Context, phone, code string) (string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.last[phone] = code
+	// Включается только когда нет ключа Dexatel (dev-режим), поэтому реальные
+	// коды пользователей сюда не попадают.
+	slog.Info("fake SMS: код выпущен", "phone", phone, "code", code)
 	return "fake", nil
 }
 

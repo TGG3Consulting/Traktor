@@ -1,11 +1,14 @@
-# Сборка identity → distroless (минимальный, без shell, меньше поверхность атаки).
-FROM golang:1.24 AS build
+# Сборка identity → distroless (минимальный образ, без shell — меньше поверхность атаки).
+FROM golang:1.25 AS build
 WORKDIR /src
-COPY go.mod ./
+
+# Слой зависимостей кэшируется отдельно: правка кода не приводит к повторной
+# загрузке модулей.
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
-# Прод-сборка с Postgres (в CI доступна сеть для pgx):
-#   RUN CGO_ENABLED=0 go build -tags postgres -o /out/identity ./cmd/identity
-RUN CGO_ENABLED=0 go build -o /out/identity ./cmd/identity
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/identity ./cmd/identity
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/identity /identity

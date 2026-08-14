@@ -11,7 +11,7 @@ import (
 )
 
 // Config — окружение сервиса identity. Секреты — из Secret Manager (env),
-// не из файлов в репозитории.
+// не из файлов в репозитории (правило 15).
 type Config struct {
 	Port          string
 	TestMode      bool // fake SMS, без реальных отправок
@@ -19,6 +19,15 @@ type Config struct {
 	DexatelSender string
 	PrivKey       *ecdsa.PrivateKey
 	Kid           string
+
+	// DatabaseURL пуст → сервис поднимается на in-memory хранилище (dev).
+	// Задан → pgx + автоматические миграции (прод и локальный Postgres).
+	DatabaseURL string
+	PhoneEncKey string // ключ шифрования телефонов (pgcrypto)
+
+	// EphemeralKey = true означает, что ключ подписи сгенерирован при старте:
+	// после перезапуска все выданные токены станут недействительными.
+	EphemeralKey bool
 }
 
 func Load() (*Config, error) {
@@ -28,6 +37,8 @@ func Load() (*Config, error) {
 		DexatelKey:    os.Getenv("DEXATEL_API_KEY"),
 		DexatelSender: getenv("DEXATEL_SENDER", "Traktor"),
 		Kid:           getenv("JWT_KID", "dev"),
+		DatabaseURL:   os.Getenv("DATABASE_URL"),
+		PhoneEncKey:   os.Getenv("PHONE_ENC_KEY"),
 	}
 
 	pemStr := os.Getenv("JWT_EC_PRIVATE_KEY_PEM")
@@ -44,6 +55,13 @@ func Load() (*Config, error) {
 			return nil, err
 		}
 		c.PrivKey = k
+		c.EphemeralKey = true
+	}
+
+	// С реальной базой шифровать телефоны обязательно: без ключа они легли бы
+	// в базу открытым текстом, а это прямое нарушение правила 15.
+	if c.DatabaseURL != "" && c.PhoneEncKey == "" {
+		return nil, errors.New("config: при DATABASE_URL обязателен PHONE_ENC_KEY")
 	}
 	return c, nil
 }

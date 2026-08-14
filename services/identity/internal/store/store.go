@@ -1,15 +1,25 @@
-// Package store — доступ к данным identity. Дефолтная сборка использует
-// in-memory реализацию (компилируется офлайн, годится для dev/тестов).
-// Продовый Postgres — в postgres.go под build-тегом `postgres` (CI).
+// Package store — доступ к данным identity. Есть две реализации одного
+// интерфейса: Memory (dev и тесты) и Postgres на pgx/v5 (прод). Какая из них
+// используется, решает cmd/identity по наличию DATABASE_URL.
 package store
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"time"
 )
 
 var ErrNotFound = errors.New("store: not found")
+
+// PhoneHash — детерминированный ключ поиска по номеру. Сам номер в базе лежит
+// зашифрованным (pgcrypto), а искать по шифротексту нельзя, поэтому рядом
+// хранится этот хэш.
+func PhoneHash(phone string) string {
+	h := sha256.Sum256([]byte(phone))
+	return hex.EncodeToString(h[:])
+}
 
 // User — минимальная сущность пользователя (полная модель — в ТЗ §1.12).
 type User struct {

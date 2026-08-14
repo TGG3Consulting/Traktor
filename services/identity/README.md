@@ -1,6 +1,8 @@
 # identity
 
-Сервис входа Traktor: OTP по SMS (Dexatel), JWT ES256 с ротацией refresh, профиль, JWKS. Реализует `contracts/openapi/traktor.yaml` (раздел identity). Только стандартная библиотека Go — компилируется офлайн; продовый Postgres — по build-тегу `postgres`.
+Сервис входа Traktor: OTP по SMS (Dexatel), JWT ES256 с ротацией refresh, профиль, JWKS. Реализует `contracts/openapi/traktor.yaml` (раздел identity).
+
+Библиотеки (правило 23): `golang-jwt/jwt/v5` — выпуск и проверка токенов, `lestrrat-go/jwx/v2` — JWKS, `go-chi/chi/v5` — роутер, `jackc/pgx/v5` — Postgres, `golang-migrate/migrate/v4` — миграции. Самописной криптографии нет.
 
 ## Эндпоинты
 - `POST /v1/auth/otp/start` — отправить код на телефон
@@ -27,14 +29,16 @@ TEST_MODE=1 go run ./cmd/identity     # fake SMS, эфемерный ключ, i
 go test ./...   # OTP-флоу, блокировка после 3 попыток, ротация refresh с reuse-detection
 ```
 
-## Прод-сборка (с Postgres, в CI)
-```bash
-go build -tags postgres ./cmd/identity
-```
+## Хранилище
+`DATABASE_URL` пуст → in-memory (dev и тесты). Задан → Postgres через pgx; схема
+накатывается автоматически при старте (`migrations/000001_init.up.sql`, своя таблица
+версий `schema_migrations_identity`). Телефоны хранятся зашифрованными (pgcrypto),
+поиск — по `phone_hash`; ключ шифрования — `PHONE_ENC_KEY` (обязателен при DATABASE_URL).
 
-## Границы (что доделывается на шаге поднятия БД)
-- Postgres-реализация Store (сейчас in-memory) — по тегу `postgres`, схема в `migrations/0001_init.sql`.
-- `/me` возвращает данные из claims; полный профиль — после GetUserByID в Postgres.
-- Refresh сохраняет семью токенов; сквозная привязка к пользователю по ID — с реальной БД.
+Интеграционные тесты БД: `scripts\pg-test.bat` (поднимает Postgres в Docker) или
+`go test -tags integration ./internal/store/` с заданным `TEST_DATABASE_URL`.
+
+## Границы (что доделывается дальше)
 - Outbox-события (UserRegistered) — на шаге шины.
 - Реальные поля Dexatel API — уточнить по их докам после аккаунта (интерфейс Provider не меняется).
+- Фоновая чистка просроченных OTP и refresh-токенов.

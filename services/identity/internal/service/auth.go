@@ -12,6 +12,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/google/uuid"
+
 	"traktor/identity/internal/sms"
 	"traktor/identity/internal/store"
 	"traktor/identity/internal/token"
@@ -122,7 +124,7 @@ func (a *Auth) VerifyOTP(ctx context.Context, phone, code string) (*Session, err
 	u, err := a.store.GetUserByPhone(ctx, phone)
 	if errors.Is(err, store.ErrNotFound) {
 		u = &store.User{
-			ID:         randToken()[:32],
+			ID:         uuid.NewString(),
 			Phone:      phone,
 			Roles:      []string{"client"},
 			ActiveRole: "client",
@@ -151,7 +153,7 @@ func (a *Auth) issue(ctx context.Context, u store.User) (*Session, error) {
 	if err := a.store.SaveRefresh(ctx, store.Refresh{
 		TokenHash: hashStr(refresh),
 		UserID:    u.ID,
-		FamilyID:  randToken()[:16],
+		FamilyID:  uuid.NewString(),
 		ExpiresAt: now.Add(refreshTTL),
 	}); err != nil {
 		return nil, err

@@ -1,18 +1,18 @@
-// Package token — выпуск и проверка JWT ES256 (ECDSA P-256 + SHA-256) на
-// стандартной библиотеке, без внешних зависимостей. Access-токен короткий
-// (15 мин), проверяется всеми сервисами локально по публичному ключу (JWKS).
+// Package token — выпуск и проверка access-токенов (JWT ES256, ECDSA P-256).
+//
+// Правило 23: криптография и разбор JWT — только зрелая библиотека
+// github.com/golang-jwt/jwt/v5. Своих реализаций подписи здесь нет.
+//
+// Формат полезной нагрузки не изменился (sub / iat / exp / roles / activeRole /
+// typ), поэтому уже выпущенные токены и клиенты остаются совместимыми.
 package token
 
 import (
 	"crypto/ecdsa"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
-	"math/big"
-	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var (
@@ -21,7 +21,11 @@ var (
 	ErrExpired   = errors.New("token: expired")
 )
 
-// Claims — полезная нагрузка access-токена.
+// Alg — единственный разрешённый алгоритм подписи. Явный список защищает от
+// подмены алгоритма (alg=none / HS256 с публичным ключом).
+const Alg = "ES256"
+
+// Claims — полезная нагрузка access-токена в терминах предметной области.
 type Claims struct {
 	Sub        string   `json:"sub"`
 	Roles      []string `json:"roles"`
@@ -31,6 +35,14 @@ type Claims struct {
 	Exp        int64    `json:"exp"`
 }
 
+// wire — представление тех же данных для golang-jwt.
+type wire struct {
+	Roles      []string `json:"roles,omitempty"`
+	ActiveRole string   `json:"activeRole,omitempty"`
+	Typ        string   `json:"typ,omitempty"`
+	jwt.RegisteredClaims
+}
+
 type Signer struct {
 	priv *ecdsa.PrivateKey
 	kid  string
@@ -38,56 +50,53 @@ type Signer struct {
 
 func NewSigner(priv *ecdsa.PrivateKey, kid string) *Signer { return &Signer{priv: priv, kid: kid} }
 
-func b64(b []byte) string           { return base64.RawURLEncoding.EncodeToString(b) }
-func ub64(s string) ([]byte, error) { return base64.RawURLEncoding.DecodeString(s) }
-
-// Sign выпускает подписанный компактный JWT.
+// Sign выпускает подписанный компактный JWT с заголовком kid (по нему
+// потребитель выбирает ключ из JWKS).
 func (s *Signer) Sign(c Claims) (string, error) {
-	header := map[string]string{"alg": "ES256", "typ": "JWT", "kid": s.kid}
-	hb, _ := json.Marshal(header)
-	pb, err := json.Marshal(c)
-	if err != nil {
-		return "", err
+	claims := wire{
+		Roles:      c.Roles,
+		ActiveRole: c.ActiveRole,
+		Typ:        c.Typ,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   c.Sub,
+			IssuedAt:  jwt.NewNumericDate(time.Unix(c.Iat, 0)),
+			ExpiresAt: jwt.NewNumericDate(time.Unix(c.Exp, 0)),
+		},
 	}
-	signingInput := b64(hb) + "." + b64(pb)
-	h := sha256.Sum256([]byte(signingInput))
-	r, ss, err := ecdsa.Sign(rand.Reader, s.priv, h[:])
-	if err != nil {
-		return "", err
-	}
-	sig := make([]byte, 64)
-	r.FillBytes(sig[:32])
-	ss.FillBytes(sig[32:])
-	return signingInput + "." + b64(sig), nil
+	t := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	t.Header["kid"] = s.kid
+	return t.SignedString(s.priv)
 }
 
-// Parse проверяет подпись публичным ключом и срок действия, возвращает Claims.
+// Parse проверяет подпись публичным ключом и срок действия на момент now.
 func Parse(tok string, pub *ecdsa.PublicKey, now time.Time) (*Claims, error) {
-	parts := strings.Split(tok, ".")
-	if len(parts) != 3 {
-		return nil, ErrMalformed
+	parser := jwt.NewParser(
+		jwt.WithValidMethods([]string{Alg}),
+		jwt.WithExpirationRequired(),
+		jwt.WithTimeFunc(func() time.Time { return now }),
+	)
+	var w wire
+	if _, err := parser.ParseWithClaims(tok, &w, func(*jwt.Token) (any, error) { return pub, nil }); err != nil {
+		switch {
+		case errors.Is(err, jwt.ErrTokenExpired), errors.Is(err, jwt.ErrTokenNotValidYet):
+			return nil, ErrExpired
+		case errors.Is(err, jwt.ErrTokenSignatureInvalid):
+			return nil, ErrSignature
+		default:
+			return nil, ErrMalformed
+		}
 	}
-	signingInput := parts[0] + "." + parts[1]
-	sig, err := ub64(parts[2])
-	if err != nil || len(sig) != 64 {
-		return nil, ErrMalformed
+	c := &Claims{
+		Sub:        w.Subject,
+		Roles:      w.Roles,
+		ActiveRole: w.ActiveRole,
+		Typ:        w.Typ,
 	}
-	h := sha256.Sum256([]byte(signingInput))
-	r := new(big.Int).SetBytes(sig[:32])
-	ss := new(big.Int).SetBytes(sig[32:])
-	if !ecdsa.Verify(pub, h[:], r, ss) {
-		return nil, ErrSignature
+	if w.IssuedAt != nil {
+		c.Iat = w.IssuedAt.Unix()
 	}
-	pb, err := ub64(parts[1])
-	if err != nil {
-		return nil, ErrMalformed
+	if w.ExpiresAt != nil {
+		c.Exp = w.ExpiresAt.Unix()
 	}
-	var c Claims
-	if err := json.Unmarshal(pb, &c); err != nil {
-		return nil, ErrMalformed
-	}
-	if now.Unix() >= c.Exp {
-		return nil, ErrExpired
-	}
-	return &c, nil
+	return c, nil
 }
