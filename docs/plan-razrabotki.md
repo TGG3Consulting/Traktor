@@ -79,6 +79,8 @@
 - [ ] осталось для Firebase (FCM) целиком: **заведение Firebase-проекта** (Google-аккаунт Тиграна) → `FCM_PROJECT_ID` + подключение пакета `firebase_messaging` в клиент (нужны платформенные конфиги google-services.json / GoogleService-Info.plist и папки android/ios/web) → замена `FakePushService` на `FirebasePushService` (код вызова не меняется). CI-пайплайн сборки образов сервисов (нужен GCP).
 - [x] 14.08: `notifications` добавлен в матрицу Go CI (Тигран правил ci.yml на GitHub) — CI зелёный на трёх сервисах.
 - [x] 14.08: доводка вертикали входа (полные цепочки, правило 5): реализован `PATCH /v1/me` (обновление профиля — имя/город/активная роль; смена роли добавляет её в список ролей), `GET /me` отдаёт полный профиль из БД; **исправлен баг**: `refresh` восстанавливает пользователя по ID и сохраняет роли (владелец больше не «сбрасывался» в заказчика). Клиент: `AuthApi.updateMe`, экран «первый профиль» реально сохраняет имя/город на бэк (за REAL_BACKEND). Всё покрыто тестами (service + HTTP), Go зелёный.
+- [x] 14.08: офлайн-каркас (старт, п.5) — локальное хранилище `SharedPreferences` (`core/storage/local_store.dart`): настройки (тема/язык/роль) персистятся и переживают перезапуск. Дальше сюда же — сессия (с secure-storage) и Drift-кэш доменных данных/черновиков.
+- [ ] далее по п.5: персист сессии (токены) + восстановление входа на splash + выход из аккаунта; Drift-кэш; Sentry/Crashlytics за интерфейсом ErrorReporter (Crashlytics — после Firebase-проекта).
 - [ ] ЗАВИСИТ ОТ ТИГРАНА (применить Terraform и развернуть сборку): домен + аккаунты (GCP+billing, Cloudflare, Dexatel, Apple, GitHub).
 
 1. Монорепо GitHub: структура `apps/ packages/ services/ infra/ contracts/` + melos + CI (GitHub Actions: lint→test→build→deploy dev).
