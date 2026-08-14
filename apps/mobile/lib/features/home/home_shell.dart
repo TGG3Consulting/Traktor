@@ -25,40 +25,100 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final settings = ref.watch(appSettingsProvider);
     final isClient = settings.role != TkRole.owner;
 
+    // Четыре таба; центральное место в панели пустое — там «висит» круглая
+    // кнопка создания (как в прототипе). Раньше плюс был и пунктом панели,
+    // и кнопкой поверх — получалось две одинаковые кнопки.
     final tabs = isClient
-        ? [l.homeClient, 'Поиск', '', 'Сообщения', 'Профиль']
-        : [l.homeOwner, 'Мои ставки', '', 'Сообщения', 'Профиль'];
+        ? [l.homeClient, 'Поиск', 'Сообщения', 'Профиль']
+        : [l.homeOwner, 'Мои ставки', 'Сообщения', 'Профиль'];
     final icons = [
       isClient ? Icons.home_outlined : Icons.list_alt_outlined,
       isClient ? Icons.search : Icons.insights_outlined,
-      Icons.add,
       Icons.chat_bubble_outline,
       Icons.person_outline,
     ];
 
     return Scaffold(
       body: SafeArea(
-        child: _tab == 4 ? const _ProfileTab() : _Placeholder(title: tabs[_tab]),
+        child: _tab == 3 ? const _ProfileTab() : _Placeholder(title: tabs[_tab]),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => _onCreate(context, isClient),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        shape: const CircleBorder(),
+        tooltip: isClient ? 'Создать задание' : 'Быстрый отклик',
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) {
-          if (i == 2) return; // центральный FAB
-          setState(() => _tab = i);
-        },
-        destinations: [
-          for (var i = 0; i < 5; i++)
-            NavigationDestination(
-              icon: Icon(i == 2 ? Icons.add : icons[i]),
-              label: i == 2 ? '' : tabs[i],
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        height: 64,
+        padding: EdgeInsets.zero,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _NavItem(icon: icons[0], label: tabs[0], selected: _tab == 0, onTap: () => setState(() => _tab = 0)),
+            _NavItem(icon: icons[1], label: tabs[1], selected: _tab == 1, onTap: () => setState(() => _tab = 1)),
+            const SizedBox(width: 56), // вырез под круглую кнопку
+            _NavItem(icon: icons[2], label: tabs[2], selected: _tab == 2, onTap: () => setState(() => _tab = 2)),
+            _NavItem(icon: icons[3], label: tabs[3], selected: _tab == 3, onTap: () => setState(() => _tab = 3)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Центральная кнопка: у заказчика — создание задания, у исполнителя —
+  /// быстрый отклик. Экраны появятся в модуле «Задания»; пока честно говорим,
+  /// что раздел ещё не готов, вместо кнопки, которая молча ничего не делает.
+  void _onCreate(BuildContext context, bool isClient) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isClient
+            ? 'Создание задания появится в следующем обновлении'
+            : 'Отклики появятся в следующем обновлении'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+}
+
+/// Пункт нижней панели: иконка и подпись, активный подсвечен цветом бренда.
+class _NavItem extends StatelessWidget {
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: color),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
