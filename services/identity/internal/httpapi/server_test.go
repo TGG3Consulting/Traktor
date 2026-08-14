@@ -101,3 +101,58 @@ func TestFullHTTPFlow(t *testing.T) {
 		t.Fatalf("refresh: %d %v", resp.StatusCode, out)
 	}
 }
+
+func TestUpdateMe(t *testing.T) {
+	ts, fake := setup(t)
+	defer ts.Close()
+	const phone = "+37491888999"
+
+	postJSON(t, ts.URL+"/v1/auth/otp/start", map[string]string{"phone": phone}, nil)
+	_, out := postJSON(t, ts.URL+"/v1/auth/otp/verify",
+		map[string]string{"phone": phone, "code": fake.Last(phone)}, map[string]string{"Idempotency-Key": "k"})
+	access, _ := out["accessToken"].(string)
+	if access == "" {
+		t.Fatal("нет токена")
+	}
+
+	// PATCH /me: имя + активная роль owner.
+	body, _ := json.Marshal(map[string]any{"name": "Тигран", "activeRole": "owner"})
+	req, _ := http.NewRequest(http.MethodPatch, ts.URL+"/v1/me", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+access)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("PATCH /me: %d %s", resp.StatusCode, string(data))
+	}
+	var patched map[string]any
+	_ = json.Unmarshal(data, &patched)
+	if patched["name"] != "Тигран" || patched["activeRole"] != "owner" || patched["verified"] != true {
+		t.Fatalf("профиль не обновился: %v", patched)
+	}
+
+	// GET /me отдаёт обновлённый профиль.
+	greq, _ := http.NewRequest(http.MethodGet, ts.URL+"/v1/me", nil)
+	greq.Header.Set("Authorization", "Bearer "+access)
+	gresp, _ := http.DefaultClient.Do(greq)
+	gdata, _ := io.ReadAll(gresp.Body)
+	gresp.Body.Close()
+	var me map[string]any
+	_ = json.Unmarshal(gdata, &me)
+	if me["name"] != "Тигран" || me["activeRole"] != "owner" {
+		t.Fatalf("/me не отражает обновление: %v", me)
+	}
+
+	// PATCH без токена → 401.
+	nreq, _ := http.NewRequest(http.MethodPatch, ts.URL+"/v1/me", bytes.NewReader([]byte("{}")))
+	nreq.Header.Set("Content-Type", "application/json")
+	nresp, _ := http.DefaultClient.Do(nreq)
+	if nresp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("PATCH без токена: ждали 401, получили %d", nresp.StatusCode)
+	}
+	nresp.Body.Close()
+}

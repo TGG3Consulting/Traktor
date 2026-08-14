@@ -131,6 +131,34 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// Сохранить первый профиль (имя обязательно, город опционально). С реальным
+  /// бэком шлёт PATCH /me и обновляет сессию свежим профилем; на fake-входе —
+  /// просто завершает шаг. Возвращает true, если можно идти на домашний экран.
+  Future<bool> saveProfile({required String name, String? city}) async {
+    final session = ref.read(sessionProvider);
+    if (Env.useRealBackend && session != null) {
+      try {
+        final updated = await ref.read(authApiProvider).updateMe(
+              session.accessToken,
+              name: name,
+              city: (city != null && city.isNotEmpty) ? city : null,
+              idempotencyKey: '${session.user.id}:profile',
+            );
+        ref.read(sessionProvider.notifier).state = Session(
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          expiresInSec: session.expiresInSec,
+          user: updated,
+        );
+      } on ApiException catch (e) {
+        state = state.copyWith(error: e.detail);
+        return false;
+      }
+    }
+    completeProfile();
+    return true;
+  }
+
   void completeProfile() => state = state.copyWith(stage: AuthStage.signedIn);
   void changeNumber() => state = state.copyWith(stage: AuthStage.signedOut, phone: null);
 }

@@ -182,9 +182,69 @@ func (a *Auth) Refresh(ctx context.Context, refreshToken string) (*Session, erro
 	if err := a.store.MarkRefreshUsed(ctx, rec.TokenHash); err != nil {
 		return nil, err
 	}
-	// Пользователь по refresh: находим по UserID через phone-индекс не нужен —
-	// в реальной БД будет прямой доступ по ID; в памяти пользователь уже создан.
-	// Для простоты каркаса выпускаем сессию по сохранённым в токене данным.
-	u := store.User{ID: rec.UserID, Roles: []string{"client"}, ActiveRole: "client"}
-	return a.issue(ctx, u)
+	// Восстанавливаем реального пользователя по ID: роли/активная роль/профиль
+	// должны сохраниться после ротации (владелец не должен «превратиться» в
+	// заказчика). Инвариант §2.3.9 — источник истины сервер.
+	u, err := a.store.GetUserByID(ctx, rec.UserID)
+	if err != nil {
+		return nil, ErrRefreshInvalid
+	}
+	return a.issue(ctx, *u)
+}
+
+// Me возвращает актуальный профиль пользователя по его ID (claims.Sub).
+func (a *Auth) Me(ctx context.Context, id string) (*store.User, error) {
+	return a.store.GetUserByID(ctx, id)
+}
+
+// ProfilePatch — частичное обновление профиля (nil-поля не трогаются).
+type ProfilePatch struct {
+	Name       *string
+	City       *string
+	ActiveRole *string
+}
+
+var ErrInvalidRole = errors.New("invalid role")
+
+// UpdateProfile применяет частичные изменения профиля. Смена активной роли,
+// которой ещё нет у пользователя, добавляет её в список ролей (пользователь
+// может быть и заказчиком, и исполнителем — ТЗ §2.4). Профиль с именем считаем
+// подтверждённым (verified) — этого ждёт клиент, чтобы уйти с шага «первый профиль».
+func (a *Auth) UpdateProfile(ctx context.Context, id string, p ProfilePatch) (*store.User, error) {
+	u, err := a.store.GetUserByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if p.Name != nil {
+		u.Name = *p.Name
+		if u.Name != "" {
+			u.Verified = true
+		}
+	}
+	if p.City != nil {
+		u.City = *p.City
+	}
+	if p.ActiveRole != nil {
+		role := *p.ActiveRole
+		if role != "client" && role != "owner" {
+			return nil, ErrInvalidRole
+		}
+		u.ActiveRole = role
+		if !contains(u.Roles, role) {
+			u.Roles = append(u.Roles, role)
+		}
+	}
+	if err := a.store.UpdateUser(ctx, *u); err != nil {
+		return nil, err
+	}
+	return u, nil
+}
+
+func contains(xs []string, x string) bool {
+	for _, v := range xs {
+		if v == x {
+			return true
+		}
+	}
+	return false
 }

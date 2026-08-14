@@ -15,13 +15,34 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _name = TextEditingController();
+  final _city = TextEditingController(text: 'Ереван');
+  bool _busy = false;
 
-  bool get _valid => _name.text.trim().length >= 2;
+  bool get _valid => _name.text.trim().length >= 2 && !_busy;
 
   @override
   void dispose() {
     _name.dispose();
+    _city.dispose();
     super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _busy = true);
+    final ok = await ref
+        .read(authControllerProvider.notifier)
+        .saveProfile(name: _name.text.trim(), city: _city.text.trim());
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (ok) {
+      context.go('/home');
+    } else {
+      // Ошибку показываем тостом (detail из problem+json).
+      final err = ref.read(authControllerProvider).error;
+      if (err != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      }
+    }
   }
 
   @override
@@ -52,18 +73,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               const SizedBox(height: 14),
               TkTextField(
                 label: l.cityLabel,
-                controller: TextEditingController(text: 'Ереван'),
+                controller: _city,
                 helper: l.cityDetected,
               ),
               const Spacer(),
               TkButton(
                 label: l.start,
-                onPressed: _valid
-                    ? () {
-                        ref.read(authControllerProvider.notifier).completeProfile();
-                        context.go('/home');
-                      }
-                    : null,
+                loading: _busy,
+                onPressed: _valid ? _submit : null,
               ),
             ],
           ),

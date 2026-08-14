@@ -115,6 +115,8 @@ paths:
       summary: Обновить свой профиль (имя, фото, город, активная роль)
       operationId: updateMe
       security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
         required: true
         content:

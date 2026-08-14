@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"traktor/identity/internal/service"
+	"traktor/identity/internal/store"
 	"traktor/identity/internal/token"
 )
 
@@ -32,6 +33,7 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /v1/auth/otp/verify", s.otpVerify)
 	mux.HandleFunc("POST /v1/auth/refresh", s.refresh)
 	mux.HandleFunc("GET /v1/me", s.me)
+	mux.HandleFunc("PATCH /v1/me", s.updateMe)
 	mux.HandleFunc("GET /.well-known/jwks.json", s.jwks)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
 	return mux
@@ -118,11 +120,44 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		problem(w, http.StatusUnauthorized, "Требуется вход")
 		return
 	}
-	writeJSON(w, 200, map[string]any{
-		"id":         claims.Sub,
-		"roles":      claims.Roles,
-		"activeRole": claims.ActiveRole,
+	u, err := s.auth.Me(r.Context(), claims.Sub)
+	if err != nil {
+		problem(w, http.StatusNotFound, "Профиль не найден")
+		return
+	}
+	writeJSON(w, 200, userJSON(*u))
+}
+
+// updateMe — PATCH /v1/me. Частичное обновление профиля (имя, город, активная
+// роль). Пустое тело допустимо (ничего не меняет). Возвращает актуальный профиль.
+func (s *Server) updateMe(w http.ResponseWriter, r *http.Request) {
+	claims, err := s.bearer(r)
+	if err != nil {
+		problem(w, http.StatusUnauthorized, "Требуется вход")
+		return
+	}
+	var body struct {
+		Name       *string `json:"name"`
+		City       *string `json:"city"`
+		ActiveRole *string `json:"activeRole"`
+	}
+	if err := decode(r, &body); err != nil {
+		problem(w, http.StatusBadRequest, "Неверный запрос")
+		return
+	}
+	u, err := s.auth.UpdateProfile(r.Context(), claims.Sub, service.ProfilePatch{
+		Name: body.Name, City: body.City, ActiveRole: body.ActiveRole,
 	})
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidRole):
+			problem(w, http.StatusBadRequest, "Недопустимая роль")
+		default:
+			problem(w, http.StatusNotFound, "Профиль не найден")
+		}
+		return
+	}
+	writeJSON(w, 200, userJSON(*u))
 }
 
 func (s *Server) bearer(r *http.Request) (*token.Claims, error) {
@@ -145,18 +180,24 @@ func (s *Server) jwks(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
+// userJSON — единое представление профиля (совпадает со схемой User в OpenAPI).
+func userJSON(u store.User) map[string]any {
+	return map[string]any{
+		"id":         u.ID,
+		"phone":      u.Phone,
+		"name":       u.Name,
+		"city":       u.City,
+		"roles":      u.Roles,
+		"activeRole": u.ActiveRole,
+		"verified":   u.Verified,
+	}
+}
+
 func sessionJSON(sess *service.Session) map[string]any {
 	return map[string]any{
 		"accessToken":  sess.AccessToken,
 		"refreshToken": sess.RefreshToken,
 		"expiresInSec": sess.ExpiresInSec,
-		"user": map[string]any{
-			"id":         sess.User.ID,
-			"phone":      sess.User.Phone,
-			"name":       sess.User.Name,
-			"roles":      sess.User.Roles,
-			"activeRole": sess.User.ActiveRole,
-			"verified":   sess.User.Verified,
-		},
+		"user":         userJSON(sess.User),
 	}
 }

@@ -7,17 +7,19 @@ import (
 
 // Memory — потокобезопасная in-memory реализация Store для dev/тестов.
 type Memory struct {
-	mu      sync.Mutex
-	otps    map[string]OTP
-	users   map[string]User // по phone
-	refresh map[string]Refresh
+	mu        sync.Mutex
+	otps      map[string]OTP
+	users     map[string]User // по phone
+	usersByID map[string]User // по id
+	refresh   map[string]Refresh
 }
 
 func NewMemory() *Memory {
 	return &Memory{
-		otps:    map[string]OTP{},
-		users:   map[string]User{},
-		refresh: map[string]Refresh{},
+		otps:      map[string]OTP{},
+		users:     map[string]User{},
+		usersByID: map[string]User{},
+		refresh:   map[string]Refresh{},
 	}
 }
 
@@ -55,10 +57,21 @@ func (m *Memory) GetUserByPhone(_ context.Context, phone string) (*User, error) 
 	return &u, nil
 }
 
+func (m *Memory) GetUserByID(_ context.Context, id string) (*User, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	u, ok := m.usersByID[id]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return &u, nil
+}
+
 func (m *Memory) CreateUser(_ context.Context, u User) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.users[u.Phone] = u
+	m.usersByID[u.ID] = u
 	return nil
 }
 
@@ -66,6 +79,7 @@ func (m *Memory) UpdateUser(_ context.Context, u User) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.users[u.Phone] = u
+	m.usersByID[u.ID] = u
 	return nil
 }
 

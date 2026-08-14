@@ -59,5 +59,30 @@ class AuthApi {
     return ApiUser.fromJson(_handle(resp));
   }
 
+  /// PATCH /me (Bearer + Idempotency-Key) — обновить профиль: имя, город,
+  /// активная роль. Передаются только заданные поля. Возвращает свежий профиль.
+  Future<ApiUser> updateMe(
+    String accessToken, {
+    String? name,
+    String? city,
+    String? activeRole,
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.patch(
+      _u('/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: jsonEncode({
+        if (name != null) 'name': name,
+        if (city != null) 'city': city,
+        if (activeRole != null) 'activeRole': activeRole,
+      }),
+    );
+    return ApiUser.fromJson(_handle(resp));
+  }
+
   void close() => _http.close();
 }

@@ -93,3 +93,69 @@ func TestRefreshRotationAndReuse(t *testing.T) {
 		t.Fatal("новый access пустой")
 	}
 }
+
+func TestRefreshPreservesRole(t *testing.T) {
+	ctx := context.Background()
+	a, fake, pub := newAuth(t)
+	const phone = "+37491444555"
+	_, _, _ = a.StartOTP(ctx, phone)
+	sess, err := a.VerifyOTP(ctx, phone, fake.Last(phone))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Пользователь стал исполнителем.
+	if _, err := a.UpdateProfile(ctx, sess.User.ID, ProfilePatch{ActiveRole: ptr("owner")}); err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	// После ротации токена роль владельца должна сохраниться (баг-регресс).
+	s2, err := a.Refresh(ctx, sess.RefreshToken)
+	if err != nil {
+		t.Fatalf("refresh: %v", err)
+	}
+	claims, err := token.Parse(s2.AccessToken, pub, time.Now())
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if claims.ActiveRole != "owner" {
+		t.Fatalf("после refresh активная роль должна быть owner, получили %q", claims.ActiveRole)
+	}
+	if !contains(claims.Roles, "owner") {
+		t.Fatalf("после refresh роли должны содержать owner: %v", claims.Roles)
+	}
+}
+
+func TestUpdateProfile(t *testing.T) {
+	ctx := context.Background()
+	a, fake, _ := newAuth(t)
+	const phone = "+37491666777"
+	_, _, _ = a.StartOTP(ctx, phone)
+	sess, err := a.VerifyOTP(ctx, phone, fake.Last(phone))
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, err := a.UpdateProfile(ctx, sess.User.ID, ProfilePatch{
+		Name: ptr("Тигран"), City: ptr("Ереван"), ActiveRole: ptr("owner"),
+	})
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if u.Name != "Тигран" || u.City != "Ереван" || u.ActiveRole != "owner" {
+		t.Fatalf("профиль не обновился: %+v", u)
+	}
+	if !u.Verified {
+		t.Fatal("профиль с именем должен стать verified")
+	}
+	if !contains(u.Roles, "owner") || !contains(u.Roles, "client") {
+		t.Fatalf("должны быть обе роли: %v", u.Roles)
+	}
+	// Недопустимая роль отклоняется.
+	if _, err := a.UpdateProfile(ctx, sess.User.ID, ProfilePatch{ActiveRole: ptr("admin")}); err != ErrInvalidRole {
+		t.Fatalf("ждали ErrInvalidRole, получили %v", err)
+	}
+	// Несуществующий пользователь.
+	if _, err := a.UpdateProfile(ctx, "no-such-id", ProfilePatch{Name: ptr("x")}); err == nil {
+		t.Fatal("ждали ошибку на несуществующего пользователя")
+	}
+}
+
+func ptr(s string) *string { return &s }

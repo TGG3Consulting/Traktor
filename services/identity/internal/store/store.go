@@ -47,6 +47,7 @@ type Store interface {
 	DeleteOTP(ctx context.Context, phone string) error
 
 	GetUserByPhone(ctx context.Context, phone string) (*User, error)
+	GetUserByID(ctx context.Context, id string) (*User, error)
 	CreateUser(ctx context.Context, u User) error
 	UpdateUser(ctx context.Context, u User) error
 
