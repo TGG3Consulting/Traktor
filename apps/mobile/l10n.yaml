@@ -3,7 +3,7 @@ template-arb-file: app_ru.arb
 output-dir: lib/l10n
 output-localization-file: app_localizations.dart
 output-class: AppLocalizations
-# Синтетический пакет flutter_gen убран в свежем Flutter — генерируем реальные
-# файлы в lib/l10n и импортируем как package:traktor_mobile/l10n/...
-synthetic-package: false
+# Генерируем реальные файлы в lib/l10n и импортируем как
+# package:traktor_mobile/l10n/... (синтетический пакет flutter_gen убран из
+# Flutter, параметр synthetic-package больше не поддерживается).
 nullable-getter: false

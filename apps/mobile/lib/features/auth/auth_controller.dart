@@ -15,8 +15,21 @@ class AuthState {
   final String? phone;
   final String? error;
 
-  AuthState copyWith({AuthStage? stage, String? phone, String? error}) =>
-      AuthState(stage: stage ?? this.stage, phone: phone ?? this.phone, error: error);
+  /// [resetPhone] нужен потому, что обычный `phone: null` в copyWith означает
+  /// «не менять», а нам иногда нужно именно стереть номер (кнопка «Изменить
+  /// номер»). Без этого пользователь, вернувшийся на шаг телефона, отправил бы
+  /// код на старый номер.
+  AuthState copyWith({
+    AuthStage? stage,
+    String? phone,
+    String? error,
+    bool resetPhone = false,
+  }) =>
+      AuthState(
+        stage: stage ?? this.stage,
+        phone: resetPhone ? null : (phone ?? this.phone),
+        error: error,
+      );
 }
 
 /// Абстракция входа: за ней либо реальный сервис identity (api_client), либо
@@ -165,7 +178,8 @@ class AuthController extends Notifier<AuthState> {
   }
 
   void completeProfile() => state = state.copyWith(stage: AuthStage.signedIn);
-  void changeNumber() => state = state.copyWith(stage: AuthStage.signedOut, phone: null);
+  void changeNumber() =>
+      state = state.copyWith(stage: AuthStage.signedOut, resetPhone: true);
 
   /// Выход из аккаунта: чистим локальную сессию и состояние входа. Токен
   /// устройства снимаем best-effort (не блокирует выход).
