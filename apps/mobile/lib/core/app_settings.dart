@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:design_system/design_system.dart';
 
 /// Глобальные настройки приложения: тема, язык, активная роль.
 /// Синхронизируются между устройствами через профиль (User.settings) — Фаза 2 бэка.

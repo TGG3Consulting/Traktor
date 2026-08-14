@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:design_system/design_system.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 /// §2.1 Splash. ≤2 сек: логотип + проверка сессии. Есть сессия → домашний экран
 /// роли; иначе → онбординг. Лого — марка брендбука (концепт B «T-балка»).
