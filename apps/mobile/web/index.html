@@ -42,6 +42,20 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <script>
+    // Одноразовая уборка: у ранних сборок был service worker, который держал
+    // старую копию приложения в браузере и не отдавал обновления. Снимаем его
+    // регистрацию и чистим кэши — иначе пользователь навсегда застревает на
+    // старой версии, сколько ни обновляй страницу.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (rs) {
+        rs.forEach(function (r) { r.unregister(); });
+      });
+    }
+    if (window.caches && caches.keys) {
+      caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

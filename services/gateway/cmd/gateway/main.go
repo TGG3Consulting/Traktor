@@ -37,6 +37,27 @@ func main() {
 	}
 }
 
+// accessLog пишет каждый входящий запрос: метод, путь, код ответа, время и
+// источник. Без этого невозможно отличить «сервис сломался» от «запрос до
+// сервиса вообще не дошёл» — а это самая частая причина «у меня не работает».
+func accessLog(log *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			ww := chimw.NewWrapResponseWriter(w, r.ProtoMajor)
+			next.ServeHTTP(ww, r)
+			log.Info("запрос",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"status", ww.Status(),
+				"ms", time.Since(start).Milliseconds(),
+				"origin", r.Header.Get("Origin"),
+				"ip", r.RemoteAddr,
+			)
+		})
+	}
+}
+
 func run(log *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -70,6 +91,7 @@ func run(log *slog.Logger) error {
 	r.Use(
 		chimw.RequestID,
 		chimw.RealIP,
+		accessLog(log),
 		chimw.Recoverer,
 		chimw.Timeout(30*time.Second),
 		cors.Handler(cors.Options{

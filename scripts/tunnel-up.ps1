@@ -42,15 +42,18 @@ credentials-file: $credFile
 
 # Kazhdyy podomen vedet na svoy lokalnyy servis. Pri pereezde v oblako
 # menyaetsya tolko service-adres (ili tunnel snosimtsya, a DNS smotrit v Cloud Run).
+#
+# Adresa imenno 127.0.0.1, a ne localhost: cloudflared razreshaet imya i pervym
+# probuet IPv6 (::1), gde servisy ne slushayut, i otdaet 502.
 ingress:
   - hostname: api.$domain
-    service: http://localhost:18080
+    service: http://127.0.0.1:18080
   - hostname: rt.$domain
-    service: http://localhost:18000
+    service: http://127.0.0.1:18000
     originRequest:
       noTLSVerify: true
   - hostname: app.$domain
-    service: http://localhost:18090
+    service: http://127.0.0.1:18090
   - service: http_status:404
 "@ | Set-Content -Path $config -Encoding UTF8
 Write-Output '   zapisana'
