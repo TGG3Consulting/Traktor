@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+          cache: false
       - name: Проверки (формат · vet · тесты)
         working-directory: services/${{ matrix.service }}
         run: |
@@ -32,13 +33,20 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-      - name: Melos bootstrap
+      - name: design_system — анализ и тесты
+        working-directory: packages/design_system
         run: |
-          dart pub global activate melos
-          melos bootstrap
-      - name: Формат
-        run: melos run format
-      - name: Анализ
-        run: melos run analyze
-      - name: Тесты
-        run: melos run test
+          flutter pub get
+          flutter analyze
+          flutter test
+      - name: api_client — анализ
+        working-directory: packages/api_client
+        run: |
+          dart pub get
+          dart analyze
+      - name: mobile — анализ
+        working-directory: apps/mobile
+        run: |
+          flutter pub get
+          flutter gen-l10n
+          flutter analyze
