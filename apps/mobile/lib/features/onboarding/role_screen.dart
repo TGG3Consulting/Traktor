@@ -29,14 +29,14 @@ class RoleScreen extends ConsumerWidget {
               Text(l.onbTitle, style: TkText.h1, textAlign: TextAlign.center),
               const SizedBox(height: 20),
               _RoleCard(
-                icon: Icons.build_outlined,
+                icon: TkIcons.wrench,
                 title: l.roleOwnerTitle,
                 sub: l.roleOwnerSub,
                 onTap: () => pick(TkRole.owner),
               ),
               const SizedBox(height: 14),
               _RoleCard(
-                icon: Icons.assignment_outlined,
+                icon: TkIcons.clipboardText,
                 title: l.roleClientTitle,
                 sub: l.roleClientSub,
                 onTap: () => pick(TkRole.client),
@@ -61,7 +61,8 @@ class RoleScreen extends ConsumerWidget {
 
 class _RoleCard extends StatelessWidget {
   const _RoleCard({required this.icon, required this.title, required this.sub, required this.onTap});
-  final IconData icon;
+  /// SVG-путь иконки Phosphor из [TkIcons].
+  final String icon;
   final String title;
   final String sub;
   final VoidCallback onTap;
@@ -73,7 +74,7 @@ class _RoleCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
-          Icon(icon, size: 34, color: Theme.of(context).colorScheme.primary),
+          TkIcon(icon, size: 34, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

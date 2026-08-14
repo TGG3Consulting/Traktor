@@ -25,100 +25,68 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final settings = ref.watch(appSettingsProvider);
     final isClient = settings.role != TkRole.owner;
 
-    // Четыре таба; центральное место в панели пустое — там «висит» круглая
-    // кнопка создания (как в прототипе). Раньше плюс был и пунктом панели,
-    // и кнопкой поверх — получалось две одинаковые кнопки.
-    final tabs = isClient
-        ? [l.homeClient, 'Поиск', 'Сообщения', 'Профиль']
-        : [l.homeOwner, 'Мои ставки', 'Сообщения', 'Профиль'];
-    final icons = [
-      isClient ? Icons.home_outlined : Icons.list_alt_outlined,
-      isClient ? Icons.search : Icons.insights_outlined,
-      Icons.chat_bubble_outline,
-      Icons.person_outline,
-    ];
+    // Панель 1:1 с прототипом: четыре пункта и вырез по центру под круглую
+    // кнопку. Иконки — Phosphor (правило 8), подписи и порядок — из прототипа.
+    final items = isClient
+        ? [
+            TkTabItem(icon: TkIcons.house, label: l.homeClient),
+            const TkTabItem(icon: TkIcons.magnifyingGlass, label: 'Поиск'),
+            const TkTabItem(icon: TkIcons.chatCircle, label: 'Сообщения'),
+            const TkTabItem(icon: TkIcons.user, label: 'Профиль'),
+          ]
+        : [
+            TkTabItem(icon: TkIcons.clipboardText, label: l.homeOwner),
+            const TkTabItem(icon: TkIcons.chartBar, label: 'Мои ставки'),
+            const TkTabItem(icon: TkIcons.chatCircle, label: 'Сообщения'),
+            const TkTabItem(icon: TkIcons.user, label: 'Профиль'),
+          ];
 
     return Scaffold(
       body: SafeArea(
-        child: _tab == 3 ? const _ProfileTab() : _Placeholder(title: tabs[_tab]),
+        child: _tab == 3
+            ? const _ProfileTab()
+            : _Placeholder(title: items[_tab].label),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: TkCreateButton(
+        tooltip: isClient ? 'Создать заказ' : 'Добавить технику',
         onPressed: () => _onCreate(context, isClient),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        shape: const CircleBorder(),
-        tooltip: isClient ? 'Создать задание' : 'Быстрый отклик',
-        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        height: 64,
-        padding: EdgeInsets.zero,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _NavItem(icon: icons[0], label: tabs[0], selected: _tab == 0, onTap: () => setState(() => _tab = 0)),
-            _NavItem(icon: icons[1], label: tabs[1], selected: _tab == 1, onTap: () => setState(() => _tab = 1)),
-            const SizedBox(width: 56), // вырез под круглую кнопку
-            _NavItem(icon: icons[2], label: tabs[2], selected: _tab == 2, onTap: () => setState(() => _tab = 2)),
-            _NavItem(icon: icons[3], label: tabs[3], selected: _tab == 3, onTap: () => setState(() => _tab = 3)),
-          ],
-        ),
+      bottomNavigationBar: TkTabBar(
+        items: items,
+        currentIndex: _tab,
+        onSelected: (i) => setState(() => _tab = i),
       ),
     );
   }
 
-  /// Центральная кнопка: у заказчика — создание задания, у исполнителя —
-  /// быстрый отклик. Экраны появятся в модуле «Задания»; пока честно говорим,
-  /// что раздел ещё не готов, вместо кнопки, которая молча ничего не делает.
-  void _onCreate(BuildContext context, bool isClient) {
+  /// Круглая кнопка: у заказчика — выбор типа заказа (ТЗ §5.1), у исполнителя —
+  /// добавление техники. Экраны этих сценариев делаются в соответствующих
+  /// модулях; пока раздел не готов, честно говорим об этом, а не молчим.
+  Future<void> _onCreate(BuildContext context, bool isClient) async {
+    if (!isClient) {
+      _notReady(context, 'Добавление техники');
+      return;
+    }
+    final type = await showTkOrderTypeSheet(context);
+    if (type == null || !context.mounted) return;
+    switch (type) {
+      case TkOrderType.job:
+        _notReady(context, 'Создание задания');
+      case TkOrderType.rental:
+        _notReady(context, 'Аренда техники');
+      case TkOrderType.transport:
+        _notReady(context, 'Перевозка А→Б');
+      case TkOrderType.workers:
+        _notReady(context, 'Заказ разнорабочих');
+    }
+  }
+
+  void _notReady(BuildContext context, String what) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isClient
-            ? 'Создание задания появится в следующем обновлении'
-            : 'Отклики появятся в следующем обновлении'),
+        content: Text('$what — в работе, появится в следующем обновлении'),
         duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-}
-
-/// Пункт нижней панели: иконка и подпись, активный подсвечен цветом бренда.
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = selected
-        ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.onSurfaceVariant;
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: color),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -160,7 +128,7 @@ class _ProfileTab extends ConsumerWidget {
           child: Column(
             children: [
               ListTile(
-                leading: const Icon(Icons.dark_mode_outlined),
+                leading: const TkIcon(TkIcons.moon),
                 title: const Text('Тёмная тема'),
                 trailing: Switch(
                   value: settings.themeMode == ThemeMode.dark,
@@ -169,7 +137,7 @@ class _ProfileTab extends ConsumerWidget {
               ),
               const Divider(height: 1),
               ListTile(
-                leading: const Icon(Icons.language),
+                leading: const TkIcon(TkIcons.globe),
                 title: const Text('Язык'),
                 trailing: DropdownButton<String>(
                   value: (settings.locale ?? const Locale('ru')).languageCode,

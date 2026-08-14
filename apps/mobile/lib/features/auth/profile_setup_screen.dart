@@ -63,7 +63,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 child: CircleAvatar(
                   radius: 46,
                   backgroundColor: scheme.surfaceContainerHighest,
-                  child: Icon(Icons.photo_camera_outlined, color: scheme.onSurface.withValues(alpha: 0.5), size: 30),
+                  child: TkIcon(TkIcons.camera, color: scheme.onSurface.withValues(alpha: 0.5), size: 30),
                 ),
               ),
               const SizedBox(height: 8),

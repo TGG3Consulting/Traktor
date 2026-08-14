@@ -14,3 +14,7 @@ export 'src/components/tk_status_badge.dart';
 export 'src/components/tk_chip.dart';
 export 'src/components/tk_card.dart';
 export 'src/components/tk_text_field.dart';
+export 'src/icons/tk_icons.dart';
+export 'src/icons/tk_icon.dart';
+export 'src/components/tk_tab_bar.dart';
+export 'src/components/tk_order_type_sheet.dart';

@@ -13,6 +13,9 @@ dependencies:
     sdk: flutter
   # Inter (лат+кир) + Noto Sans Armenian (hy). На проде можно self-host через flutter fonts.
   google_fonts: ^6.2.1
+  # Иконки интерфейса — только Phosphor (правило 8): официальные SVG-пути
+  # лежат в lib/src/icons/tk_icons.dart и рисуются через flutter_svg.
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:
