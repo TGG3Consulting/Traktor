@@ -1,0 +1,15 @@
+feat(mobile): платформы web и windows, брендированная веб-обёртка
+
+Проект не был сконфигурирован ни под одну платформу — flutter build web падал
+с «This project is not configured for the web». Добавлены папки web и windows
+(flutter create --platforms web,windows), теперь приложение можно открыть
+в браузере и как обычное окно Windows.
+
+Веб-обёртка приведена к брендбуку вместо заглушек Flutter: заголовок
+«Traktor — техника и задания», описание, theme-color #E8730C и фон #F5F6F8
+из design/brand/tokens.css.
+
+Шаблонный test/widget_test.dart от flutter create удалён: он ссылался на
+несуществующий класс MyApp и ломал analyze и прогон тестов. Появившийся вместе
+с шаблоном analysis_options.yaml (flutter_lints) оставлен — по его замечаниям
+добавлены пропущенные const.
