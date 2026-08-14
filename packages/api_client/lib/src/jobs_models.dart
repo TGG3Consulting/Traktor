@@ -359,3 +359,70 @@ class ValidationException implements Exception {
   @override
   String toString() => title;
 }
+
+/// Отклик исполнителя на задание с фиксированной ценой (ТЗ §2.10).
+class Offer {
+  const Offer({
+    required this.id,
+    required this.jobId,
+    required this.ownerId,
+    required this.kind,
+    required this.price,
+    required this.status,
+    this.currency = 'AMD',
+    this.comment = '',
+    this.eta = '',
+    this.unitId,
+    this.declineReason = '',
+    this.clientCounterPrice,
+    this.clientCounterAt,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final String id;
+  final String jobId;
+  final String ownerId;
+
+  /// accept — согласен на цену задания, counter — предлагает свою.
+  final String kind;
+  final int price;
+  final String currency;
+  final String comment;
+
+  /// Когда сможет приступить — свободный текст («завтра с утра»).
+  final String eta;
+  final String? unitId;
+
+  /// active | withdrawn | declined | accepted | counter_offered
+  final String status;
+  final String declineReason;
+
+  /// Встречная цена заказчика (один раунд торга).
+  final int? clientCounterPrice;
+  final DateTime? clientCounterAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  bool get isActive => status == 'active' || status == 'counter_offered';
+  bool get isAccepted => status == 'accepted';
+  bool get hasCounter => clientCounterPrice != null;
+
+  factory Offer.fromJson(Map<String, dynamic> j) => Offer(
+        id: j['id'] as String? ?? '',
+        jobId: j['jobId'] as String? ?? '',
+        ownerId: j['ownerId'] as String? ?? '',
+        kind: j['kind'] as String? ?? 'accept',
+        price: (j['price'] as num?)?.toInt() ?? 0,
+        currency: j['currency'] as String? ?? 'AMD',
+        comment: j['comment'] as String? ?? '',
+        eta: j['eta'] as String? ?? '',
+        unitId: j['unitId'] as String?,
+        status: j['status'] as String? ?? 'active',
+        declineReason: j['declineReason'] as String? ?? '',
+        clientCounterPrice: (j['clientCounterPrice'] as num?)?.toInt(),
+        clientCounterAt: DateTime.tryParse(j['clientCounterAt'] as String? ?? '')?.toLocal(),
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+        updatedAt: DateTime.tryParse(j['updatedAt'] as String? ?? '')?.toLocal(),
+      );
+}

@@ -9,6 +9,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/session_refresh.dart';
 import '../auth/auth_controller.dart';
 import 'jobs_providers.dart';
+import 'offers/offer_sheet.dart';
+import 'offers/offers_providers.dart';
 import 'spec_labels.dart';
 
 /// Деталка задания (ТЗ §2.8, прототип `job_fixed` / `auction`).
@@ -218,7 +220,7 @@ class _Actions extends ConsumerWidget {
       ),
       child: SafeArea(
         top: false,
-        child: isMine ? _ownerActions(context, ref) : _executorActions(context, scheme),
+        child: isMine ? _ownerActions(context, ref) : _executorActions(context, ref, scheme),
       ),
     );
   }
@@ -242,9 +244,7 @@ class _Actions extends ConsumerWidget {
         const SizedBox(width: 10),
         Expanded(
           child: FilledButton(
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Экран откликов — следующий модуль')),
-            ),
+            onPressed: job.offersCount > 0 ? () => context.go('/jobs/${job.id}/offers') : null,
             child: Text(job.offersCount > 0 ? 'Отклики (${job.offersCount})' : 'Откликов пока нет'),
           ),
         ),
@@ -252,7 +252,7 @@ class _Actions extends ConsumerWidget {
     );
   }
 
-  Widget _executorActions(BuildContext context, ColorScheme scheme) {
+  Widget _executorActions(BuildContext context, WidgetRef ref, ColorScheme scheme) {
     if (!_open) {
       return Text(
         'Задание больше не принимает отклики',
@@ -260,21 +260,92 @@ class _Actions extends ConsumerWidget {
         style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
       );
     }
+    if (job.isAuction) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ставки появятся в модуле аукциона')),
+          ),
+          child: const Text('Сделать ставку'),
+        ),
+      );
+    }
+
+    // Своё предложение уже отправлено — показываем его и даём изменить или
+    // снять, вместо повторной кнопки «откликнуться».
+    final mine = ref.watch(myOfferProvider(job.id)).valueOrNull;
+    if (mine != null && mine.isActive) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            mine.hasCounter
+                ? 'Заказчик предложил ${tkMoney(mine.clientCounterPrice, currency: job.currency)} — '
+                    'примите или предложите своё'
+                : 'Ваше предложение: ${tkMoney(mine.price, currency: job.currency)}',
+            textAlign: TextAlign.center,
+            style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _withdraw(context, ref, mine.id),
+                  child: const Text('Снять'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => _openOfferSheet(context, existing: mine),
+                  child: const Text('Изменить'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
     return SizedBox(
       width: double.infinity,
       child: FilledButton(
-        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(job.isAuction
-                ? 'Ставки появятся в модуле аукциона'
-                : 'Отклики появятся в модуле сделок'),
-          ),
-        ),
-        child: Text(job.isAuction
-            ? 'Сделать ставку'
-            : 'Принять цену ${tkMoney(job.budgetAmount, currency: job.currency)}'),
+        onPressed: () => _openOfferSheet(context),
+        child: Text('Откликнуться · ${tkMoney(job.budgetAmount, currency: job.currency)}'),
       ),
     );
+  }
+
+  Future<void> _openOfferSheet(BuildContext context, {Offer? existing}) async {
+    final sent = await showOfferSheet(
+      context,
+      jobId: job.id,
+      jobPrice: job.budgetAmount ?? 0,
+      currency: job.currency,
+      existing: existing,
+    );
+    if (sent == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Предложение отправлено заказчику')),
+      );
+    }
+  }
+
+  Future<void> _withdraw(BuildContext context, WidgetRef ref, String offerId) async {
+    try {
+      await ref.read(offerActionsProvider).withdraw(job.id, offerId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Предложение снято')),
+        );
+      }
+    } on ApiException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.detail)));
+      }
+    }
   }
 
   /// Снятие задания необратимо для исполнителей, которые уже откликнулись, —

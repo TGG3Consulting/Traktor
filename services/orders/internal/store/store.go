@@ -46,6 +46,16 @@ type Store interface {
 	// экрана.
 	AddView(ctx context.Context, jobID, viewerID string) (bool, error)
 
+	// ── отклики (ТЗ §2.10) ───────────────────────────────────────────────────
+	CreateOffer(ctx context.Context, o *job.Offer) error
+	UpdateOffer(ctx context.Context, o *job.Offer) error
+	OfferByID(ctx context.Context, id string) (*job.Offer, error)
+	OffersByJob(ctx context.Context, jobID string) ([]job.Offer, error)
+	OffersByOwner(ctx context.Context, ownerID string, limit, offset int) ([]job.Offer, error)
+	// MyOfferForJob — свой отклик исполнителя: по нему экран задания понимает,
+	// показывать кнопку отклика или уже отправленное предложение.
+	MyOfferForJob(ctx context.Context, jobID, ownerID string) (*job.Offer, error)
+
 	// Идемпотентность мутаций: повтор запроса с тем же ключом возвращает
 	// прежнее задание, а не создаёт новое (§2.3.12).
 	FindIdempotent(ctx context.Context, key, userID, endpoint string) (string, bool, error)

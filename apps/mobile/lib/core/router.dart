@@ -11,6 +11,7 @@ import '../features/jobs/create/step3_place.dart';
 import '../features/jobs/create/step4_price.dart';
 import '../features/jobs/create/step5_review.dart';
 import '../features/jobs/job_detail_screen.dart';
+import '../features/jobs/offers/offers_screen.dart';
 import '../features/onboarding/language_screen.dart';
 import '../features/onboarding/role_screen.dart';
 import '../features/onboarding/splash_screen.dart';
@@ -40,6 +41,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/jobs/published/:id',
       builder: (_, state) => JobPublishedScreen(jobId: state.pathParameters['id']!),
+    ),
+
+    // Отклики по заданию (ТЗ §2.10) — экран заказчика.
+    GoRoute(
+      path: '/jobs/:id/offers',
+      builder: (_, state) => JobOffersScreen(jobId: state.pathParameters['id']!),
     ),
 
     // Деталка задания. Ссылка вида /jobs/{id} — то, чем делятся в мессенджере,

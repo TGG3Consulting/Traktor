@@ -14,17 +14,19 @@ import (
 // Memory — хранилище в памяти: запуск без базы (dev) и быстрые тесты
 // сервисного слоя. Данные не переживают перезапуск — так и задумано.
 type Memory struct {
-	mu    sync.RWMutex
-	jobs  map[string]job.Job
-	views map[string]map[string]bool // jobID → кто смотрел
-	idemp map[string]string          // ключ идемпотентности → jobID
+	mu     sync.RWMutex
+	jobs   map[string]job.Job
+	offers map[string]job.Offer       // отклики по идентификатору
+	views  map[string]map[string]bool // jobID → кто смотрел
+	idemp  map[string]string          // ключ идемпотентности → jobID
 }
 
 func NewMemory() *Memory {
 	return &Memory{
-		jobs:  map[string]job.Job{},
-		views: map[string]map[string]bool{},
-		idemp: map[string]string{},
+		jobs:   map[string]job.Job{},
+		offers: map[string]job.Offer{},
+		views:  map[string]map[string]bool{},
+		idemp:  map[string]string{},
 	}
 }
 

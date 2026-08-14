@@ -149,6 +149,105 @@ class JobsApi {
     return Job.fromJson(_handle(resp));
   }
 
+  // ── отклики (ТЗ §2.10) ─────────────────────────────────────────────────────
+
+  List<Offer> _offers(Map<String, dynamic> json) =>
+      (json['items'] as List? ?? const [])
+          .map((e) => Offer.fromJson((e as Map).cast<String, dynamic>()))
+          .toList();
+
+  /// POST /jobs/{id}/offers — откликнуться (accept — согласен на цену,
+  /// counter — предлагаю свою).
+  Future<Offer> makeOffer(
+    String token,
+    String jobId, {
+    required String kind,
+    required int price,
+    String comment = '',
+    String eta = '',
+    String? unitId,
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.post(
+      _u('/jobs/$jobId/offers'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({
+        'kind': kind,
+        'price': price,
+        'comment': comment,
+        'eta': eta,
+        if (unitId != null) 'unitId': unitId,
+      }),
+    );
+    return Offer.fromJson(_handle(resp));
+  }
+
+  /// GET /jobs/{id}/offers — отклики по заданию (только для заказчика).
+  Future<List<Offer>> jobOffers(String token, String jobId) async {
+    final resp = await _http.get(_u('/jobs/$jobId/offers'), headers: _headers(token));
+    return _offers(_handle(resp));
+  }
+
+  /// GET /jobs/{id}/offers/my — свой отклик; null, если ещё не откликался.
+  Future<Offer?> myOfferForJob(String token, String jobId) async {
+    final resp = await _http.get(_u('/jobs/$jobId/offers/my'), headers: _headers(token));
+    final json = _handle(resp);
+    final offer = json['offer'];
+    if (offer == null) return null;
+    return Offer.fromJson((offer as Map).cast<String, dynamic>());
+  }
+
+  /// GET /offers/my — все мои предложения (панель исполнителя).
+  Future<List<Offer>> myOffers(String token, {int limit = 20, int offset = 0}) async {
+    final resp = await _http.get(
+      _u('/offers/my', {'limit': '$limit', 'offset': '$offset'}),
+      headers: _headers(token),
+    );
+    return _offers(_handle(resp));
+  }
+
+  /// POST /offers/{id}/withdraw — снять своё предложение.
+  Future<Offer> withdrawOffer(String token, String offerId,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/offers/$offerId/withdraw'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    return Offer.fromJson(_handle(resp));
+  }
+
+  /// POST /offers/{id}/accept — выбрать исполнителя.
+  Future<Offer> acceptOffer(String token, String offerId,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/offers/$offerId/accept'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    return Offer.fromJson(_handle(resp));
+  }
+
+  /// POST /offers/{id}/decline — отклонить предложение.
+  Future<Offer> declineOffer(String token, String offerId,
+      {String reason = '', required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/offers/$offerId/decline'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'reason': reason}),
+    );
+    return Offer.fromJson(_handle(resp));
+  }
+
+  /// POST /offers/{id}/counter — встречная цена заказчика (один раунд).
+  Future<Offer> counterOffer(String token, String offerId, int price,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/offers/$offerId/counter'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'price': price}),
+    );
+    return Offer.fromJson(_handle(resp));
+  }
+
   /// POST /jobs/{id}/cancel — снять задание.
   Future<Job> cancel(String token, String id, {required String idempotencyKey}) async {
     final resp = await _http.post(

@@ -421,6 +421,216 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /jobs/{id}/offers:
+    post:
+      tags: [orders]
+      summary: Откликнуться на задание (ТЗ §2.10)
+      description: >
+        kind=accept — согласие с ценой задания (сервер подставляет свою цену),
+        kind=counter — встречное предложение. Повторный отклик того же
+        исполнителя обновляет предложение, а не создаёт второе.
+      operationId: makeOffer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OfferInput" }
+      responses:
+        "201":
+          description: Предложение отправлено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offer" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422":
+          description: Цена или комментарий не прошли проверку
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ValidationProblem" }
+    get:
+      tags: [orders]
+      summary: Отклики по заданию (только владелец задания)
+      operationId: listJobOffers
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Предложения
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Offer" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /jobs/{id}/offers/my:
+    get:
+      tags: [orders]
+      summary: Своё предложение по заданию
+      description: "offer=null — исполнитель ещё не откликался."
+      operationId: myOfferForJob
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Предложение или null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  offer:
+                    oneOf:
+                      - $ref: "#/components/schemas/Offer"
+                      - type: "null"
+
+  /offers/my:
+    get:
+      tags: [orders]
+      summary: Мои предложения (панель исполнителя)
+      operationId: myOffers
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Предложения
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Offer" }
+
+  /offers/{offerId}/withdraw:
+    post:
+      tags: [orders]
+      summary: Снять своё предложение
+      operationId: withdrawOffer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Предложение снято
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offer" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /offers/{offerId}/accept:
+    post:
+      tags: [orders]
+      summary: Выбрать исполнителя
+      description: >
+        Задание переходит в deal_pending, остальные предложения отклоняются
+        автоматически. Если был раунд встречной цены, работает она.
+      operationId: acceptOffer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Исполнитель выбран
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offer" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /offers/{offerId}/decline:
+    post:
+      tags: [orders]
+      summary: Отклонить предложение
+      operationId: declineOffer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, description: "необязательная причина для исполнителя" }
+      responses:
+        "200":
+          description: Отклонено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offer" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /offers/{offerId}/counter:
+    post:
+      tags: [orders]
+      summary: Встречная цена заказчика (один раунд)
+      operationId: counterOffer
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: offerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [price]
+              properties:
+                price: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Встречная цена отправлена
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Offer" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { description: "Раунд торга уже использован", content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } } }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -446,6 +656,39 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
   schemas:
+    OfferInput:
+      type: object
+      required: [kind, price]
+      properties:
+        kind:
+          type: string
+          enum: [accept, counter]
+          description: accept — согласен с ценой задания, counter — своя цена
+        price: { type: integer, format: int64 }
+        comment: { type: string, maxLength: 200 }
+        eta: { type: string, description: "когда сможет приступить, свободный текст" }
+        unitId: { type: string, format: uuid, nullable: true }
+    Offer:
+      type: object
+      required: [id, jobId, ownerId, kind, price, status]
+      properties:
+        id: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        ownerId: { type: string, format: uuid }
+        kind: { type: string, enum: [accept, counter] }
+        price: { type: integer, format: int64 }
+        currency: { type: string, default: AMD }
+        comment: { type: string }
+        eta: { type: string }
+        unitId: { type: string, format: uuid, nullable: true }
+        status:
+          type: string
+          enum: [active, withdrawn, declined, accepted, counter_offered]
+        declineReason: { type: string }
+        clientCounterPrice: { type: integer, format: int64, nullable: true }
+        clientCounterAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     Category:
       type: object
       required: [id, kind, slug, name, icon, specTemplate]

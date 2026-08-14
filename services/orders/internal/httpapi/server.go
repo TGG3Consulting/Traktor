@@ -47,9 +47,24 @@ func (s *Server) Routes() http.Handler {
 			r.Patch("/drafts/{id}", s.updateDraft)
 			r.Post("/{id}/publish", s.publish)
 			r.Post("/{id}/cancel", s.cancel)
+
+			// Отклики по заданию (ТЗ §2.10) — именные действия, только с входом.
+			r.Post("/{id}/offers", s.makeOffer)
+			r.Get("/{id}/offers", s.jobOffers)
+			r.Get("/{id}/offers/my", s.myOfferForJob)
 		})
 
 		r.Get("/{id}", s.view)
+	})
+
+	// Решения по конкретному предложению.
+	r.Route("/v1/offers", func(r chi.Router) {
+		r.Use(s.requireUser)
+		r.Get("/my", s.myOffers)
+		r.Post("/{offerId}/withdraw", s.withdrawOffer)
+		r.Post("/{offerId}/accept", s.acceptOffer)
+		r.Post("/{offerId}/decline", s.declineOffer)
+		r.Post("/{offerId}/counter", s.counterOffer)
 	})
 	return r
 }

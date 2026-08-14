@@ -1,0 +1,253 @@
+import 'package:api_client/api_client.dart';
+import 'package:design_system/design_system.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'offers_providers.dart';
+
+/// Шит отклика исполнителя (ТЗ §2.8: «Предложить свою» — цена, комментарий,
+/// когда сможет).
+///
+/// Второстепенные сценарии живут в шитах, а не в отдельных экранах (§1.10):
+/// исполнитель видит задание за шитом и не теряет контекст.
+Future<bool?> showOfferSheet(
+  BuildContext context, {
+  required String jobId,
+  required int jobPrice,
+  required String currency,
+  Offer? existing,
+}) {
+  return showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _OfferSheet(
+      jobId: jobId,
+      jobPrice: jobPrice,
+      currency: currency,
+      existing: existing,
+    ),
+  );
+}
+
+class _OfferSheet extends ConsumerStatefulWidget {
+  const _OfferSheet({
+    required this.jobId,
+    required this.jobPrice,
+    required this.currency,
+    this.existing,
+  });
+
+  final String jobId;
+  final int jobPrice;
+  final String currency;
+  final Offer? existing;
+
+  @override
+  ConsumerState<_OfferSheet> createState() => _OfferSheetState();
+}
+
+class _OfferSheetState extends ConsumerState<_OfferSheet> {
+  late final TextEditingController _price;
+  late final TextEditingController _comment;
+  late final TextEditingController _eta;
+  late String _kind;
+  bool _sending = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _kind = e?.kind ?? 'accept';
+    _price = TextEditingController(text: '${e?.price ?? widget.jobPrice}');
+    _comment = TextEditingController(text: e?.comment ?? '');
+    _eta = TextEditingController(text: e?.eta ?? '');
+  }
+
+  @override
+  void dispose() {
+    _price.dispose();
+    _comment.dispose();
+    _eta.dispose();
+    super.dispose();
+  }
+
+  int get _priceValue => int.tryParse(_price.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+
+  Future<void> _send() async {
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    try {
+      await ref.read(offerActionsProvider).make(
+            widget.jobId,
+            kind: _kind,
+            price: _kind == 'accept' ? widget.jobPrice : _priceValue,
+            comment: _comment.text.trim(),
+            eta: _eta.text.trim(),
+          );
+      if (mounted) Navigator.pop(context, true);
+    } on ValidationException catch (e) {
+      setState(() {
+        _sending = false;
+        _error = e.fields.values.join('\n');
+      });
+    } on ApiException catch (e) {
+      setState(() {
+        _sending = false;
+        _error = e.detail;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(TkRadius.sheet)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: scheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(widget.existing == null ? 'Ваше предложение' : 'Изменить предложение',
+                  style: TkText.h2),
+              const SizedBox(height: 4),
+              Text(
+                'Предложение — это обязательство выполнить работу за эту цену.',
+                style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: _KindButton(
+                      label: 'Принять ${tkMoney(widget.jobPrice, currency: widget.currency)}',
+                      selected: _kind == 'accept',
+                      onTap: () => setState(() {
+                        _kind = 'accept';
+                        _price.text = '${widget.jobPrice}';
+                      }),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _KindButton(
+                      label: 'Своя цена',
+                      selected: _kind == 'counter',
+                      onTap: () => setState(() => _kind = 'counter'),
+                    ),
+                  ),
+                ],
+              ),
+              if (_kind == 'counter') ...[
+                const SizedBox(height: 14),
+                TkTextField(
+                  label: 'Ваша цена, ֏',
+                  controller: _price,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onChanged: (_) => setState(() {}),
+                  helper: 'Цена задания: ${tkMoney(widget.jobPrice, currency: widget.currency)}',
+                ),
+              ],
+              const SizedBox(height: 14),
+              TkTextField(
+                label: 'Когда сможете',
+                controller: _eta,
+                hint: 'Например: завтра с утра',
+              ),
+              const SizedBox(height: 14),
+              TkTextField(
+                label: 'Комментарий',
+                controller: _comment,
+                hint: 'Что важно знать заказчику',
+                maxLines: 3,
+                maxLength: 200,
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: TkColors.error.withValues(alpha: 0.12),
+                    borderRadius: TkRadius.cardR,
+                  ),
+                  child: Text(_error!, style: TkText.caption.copyWith(color: TkColors.error)),
+                ),
+              ],
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: _sending || (_kind == 'counter' && _priceValue <= 0) ? null : _send,
+                child: _sending
+                    ? const SizedBox(
+                        width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text(widget.existing == null ? 'Отправить предложение' : 'Сохранить'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _KindButton extends StatelessWidget {
+  const _KindButton({required this.label, required this.selected, required this.onTap});
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: selected ? TkColors.primary.withValues(alpha: 0.12) : scheme.surface,
+      borderRadius: TkRadius.buttonR,
+      child: InkWell(
+        borderRadius: TkRadius.buttonR,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            borderRadius: TkRadius.buttonR,
+            border: Border.all(color: selected ? TkColors.primary : scheme.outlineVariant),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TkText.caption.copyWith(
+                color: selected ? TkColors.primary : scheme.onSurface,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
