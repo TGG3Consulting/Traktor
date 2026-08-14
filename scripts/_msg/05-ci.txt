@@ -1,0 +1,7 @@
+ci: Go 1.25, кэш модулей, -race и проверка актуальности go.mod
+
+Убраны допущения stdlib-only. Добавлены go mod verify, go build, go test -race
+и проверка, что go mod tidy не расходится с закоммиченными go.mod/go.sum.
+
+В .gitignore внесены логи скриптов проверки (scripts/_out) и архивы,
+оставшиеся от облачной сессии.
