@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  go:
+    name: Go · ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [identity, gateway]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Проверки (формат · vet · тесты)
+        working-directory: services/${{ matrix.service }}
+        run: |
+          test -z "$(gofmt -l .)" || (echo "Не отформатировано:"; gofmt -l .; exit 1)
+          go vet ./...
+          go test ./...
+
+  flutter:
+    name: Flutter · analyze · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Melos bootstrap
+        run: |
+          dart pub global activate melos
+          melos bootstrap
+      - name: Формат
+        run: melos run format
+      - name: Анализ
+        run: melos run analyze
+      - name: Тесты
+        run: melos run test
