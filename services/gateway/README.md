@@ -1,6 +1,8 @@
 # gateway
 
-Единая точка входа для клиентов Traktor. Проверяет JWT по JWKS сервиса `identity` (локально, без похода в identity на каждый запрос), ограничивает частоту, требует `Idempotency-Key` на мутациях (ТЗ §4.3), проксирует к сервисам. Только стандартная библиотека Go.
+Единая точка входа для клиентов Traktor. Проверяет JWT по JWKS сервиса `identity` (локально, без похода в identity на каждый запрос), ограничивает частоту, требует `Idempotency-Key` на мутациях (ТЗ §4.3), проксирует к сервисам.
+
+Библиотеки (правило 23): `go-chi/chi/v5` — роутер, `go-chi/httprate` — лимиты, `go-chi/cors` — CORS, `lestrrat-go/jwx/v2` — кэш JWKS, `golang-jwt/jwt/v5` — проверка подписи. Самописных лимитеров и разбора JWT нет.
 
 ## Цепочка обработки
 `CORS → rate-limit (на IP) → auth (Bearer, JWKS) → idempotency → reverse-proxy`

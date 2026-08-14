@@ -1,20 +1,19 @@
-// Package jwks — загрузка публичных ключей identity (JWKS) с кэшем и проверка
-// access-токенов ES256 локально, без похода в identity на каждый запрос.
+// Package jwks — проверка access-токенов на шлюзе по публичным ключам
+// identity, без похода в identity на каждый запрос.
+//
+// Правило 23: загрузка и кэш JWKS — lestrrat-go/jwx/v2 (jwk.Cache), разбор и
+// проверка подписи — golang-jwt/jwt/v5. Своей криптографии здесь нет.
 package jwks
 
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
-	"math/big"
-	"net/http"
-	"strings"
-	"sync"
+	"fmt"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 )
 
 var (
@@ -24,6 +23,10 @@ var (
 	ErrNoKey     = errors.New("jwks: key not found")
 )
 
+// alg — единственный допустимый алгоритм. Явный список закрывает атаку с
+// подменой алгоритма (alg=none, HS256 на публичном ключе).
+const alg = "ES256"
+
 // Claims — минимальный набор для авторизации на шлюзе.
 type Claims struct {
 	Sub        string   `json:"sub"`
@@ -32,128 +35,85 @@ type Claims struct {
 	Exp        int64    `json:"exp"`
 }
 
+// wire — те же данные в терминах golang-jwt (sub/exp — регистрируемые поля).
+type wire struct {
+	Roles      []string `json:"roles,omitempty"`
+	ActiveRole string   `json:"activeRole,omitempty"`
+	jwt.RegisteredClaims
+}
+
+// Cache держит JWKS в памяти и сам обновляет его в фоне.
 type Cache struct {
-	url    string
-	client *http.Client
-	ttl    time.Duration
-
-	mu        sync.RWMutex
-	keys      map[string]*ecdsa.PublicKey
-	fetchedAt time.Time
+	url   string
+	cache *jwk.Cache
 }
 
-func New(url string) *Cache {
-	return &Cache{
-		url:    url,
-		client: &http.Client{Timeout: 5 * time.Second},
-		ttl:    10 * time.Minute,
-		keys:   map[string]*ecdsa.PublicKey{},
+// New регистрирует URL набора ключей. Фоновое обновление живёт столько же,
+// сколько процесс шлюза. Ошибку регистрации не глушим: без ключей шлюз не
+// сможет проверить ни один токен, и об этом надо узнать на старте, а не в
+// первом же запросе пользователя.
+func New(url string) (*Cache, error) {
+	c := jwk.NewCache(context.Background())
+	// Только WithMinRefreshInterval: вместе с WithRefreshInterval jwx его не
+	// принимает (нижняя граница и жёсткий интервал взаимоисключающи).
+	if err := c.Register(url, jwk.WithMinRefreshInterval(5*time.Minute)); err != nil {
+		return nil, fmt.Errorf("jwks: регистрация %s: %w", url, err)
 	}
+	return &Cache{url: url, cache: c}, nil
 }
 
-func b64d(s string) ([]byte, error) { return base64.RawURLEncoding.DecodeString(s) }
+// keyfunc отдаёт публичный ключ по kid из заголовка токена.
+func (c *Cache) keyfunc(ctx context.Context) jwt.Keyfunc {
+	return func(t *jwt.Token) (any, error) {
+		kid, _ := t.Header["kid"].(string)
 
-func (c *Cache) refresh(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.url, nil)
-	if err != nil {
-		return err
-	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	var doc struct {
-		Keys []struct {
-			Kid string `json:"kid"`
-			Crv string `json:"crv"`
-			X   string `json:"x"`
-			Y   string `json:"y"`
-		} `json:"keys"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
-		return err
-	}
-	next := map[string]*ecdsa.PublicKey{}
-	for _, k := range doc.Keys {
-		if k.Crv != "P-256" {
-			continue
+		set, err := c.cache.Get(ctx, c.url)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrNoKey, err)
 		}
-		xb, err1 := b64d(k.X)
-		yb, err2 := b64d(k.Y)
-		if err1 != nil || err2 != nil {
-			continue
+		key, ok := set.LookupKeyID(kid)
+		if !ok {
+			// Ключ мог смениться только что — просим свежий набор и пробуем ещё раз.
+			set, err = c.cache.Refresh(ctx, c.url)
+			if err != nil {
+				return nil, fmt.Errorf("%w: %v", ErrNoKey, err)
+			}
+			key, ok = set.LookupKeyID(kid)
+			if !ok {
+				return nil, ErrNoKey
+			}
 		}
-		next[k.Kid] = &ecdsa.PublicKey{
-			Curve: elliptic.P256(),
-			X:     new(big.Int).SetBytes(xb),
-			Y:     new(big.Int).SetBytes(yb),
+		var pub ecdsa.PublicKey
+		if err := key.Raw(&pub); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrNoKey, err)
 		}
+		return &pub, nil
 	}
-	c.mu.Lock()
-	c.keys = next
-	c.fetchedAt = time.Now()
-	c.mu.Unlock()
-	return nil
 }
 
-func (c *Cache) key(ctx context.Context, kid string) (*ecdsa.PublicKey, error) {
-	c.mu.RLock()
-	k, ok := c.keys[kid]
-	stale := time.Since(c.fetchedAt) > c.ttl
-	c.mu.RUnlock()
-	if ok && !stale {
-		return k, nil
-	}
-	if err := c.refresh(ctx); err != nil && !ok {
-		return nil, err
-	}
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	if k, ok := c.keys[kid]; ok {
-		return k, nil
-	}
-	return nil, ErrNoKey
-}
-
-// Verify проверяет подпись и срок действия access-токена.
+// Verify проверяет подпись и срок действия access-токена на момент now.
 func (c *Cache) Verify(ctx context.Context, tok string, now time.Time) (*Claims, error) {
-	parts := strings.Split(tok, ".")
-	if len(parts) != 3 {
-		return nil, ErrMalformed
+	parser := jwt.NewParser(
+		jwt.WithValidMethods([]string{alg}),
+		jwt.WithExpirationRequired(),
+		jwt.WithTimeFunc(func() time.Time { return now }),
+	)
+	var w wire
+	if _, err := parser.ParseWithClaims(tok, &w, c.keyfunc(ctx)); err != nil {
+		switch {
+		case errors.Is(err, ErrNoKey):
+			return nil, ErrNoKey
+		case errors.Is(err, jwt.ErrTokenExpired), errors.Is(err, jwt.ErrTokenNotValidYet):
+			return nil, ErrExpired
+		case errors.Is(err, jwt.ErrTokenSignatureInvalid):
+			return nil, ErrSignature
+		default:
+			return nil, ErrMalformed
+		}
 	}
-	var hdr struct {
-		Alg string `json:"alg"`
-		Kid string `json:"kid"`
+	cl := &Claims{Sub: w.Subject, Roles: w.Roles, ActiveRole: w.ActiveRole}
+	if w.ExpiresAt != nil {
+		cl.Exp = w.ExpiresAt.Unix()
 	}
-	hb, err := b64d(parts[0])
-	if err != nil || json.Unmarshal(hb, &hdr) != nil || hdr.Alg != "ES256" {
-		return nil, ErrMalformed
-	}
-	pub, err := c.key(ctx, hdr.Kid)
-	if err != nil {
-		return nil, err
-	}
-	sig, err := b64d(parts[2])
-	if err != nil || len(sig) != 64 {
-		return nil, ErrMalformed
-	}
-	h := sha256.Sum256([]byte(parts[0] + "." + parts[1]))
-	r := new(big.Int).SetBytes(sig[:32])
-	s := new(big.Int).SetBytes(sig[32:])
-	if !ecdsa.Verify(pub, h[:], r, s) {
-		return nil, ErrSignature
-	}
-	pb, err := b64d(parts[1])
-	if err != nil {
-		return nil, ErrMalformed
-	}
-	var cl Claims
-	if json.Unmarshal(pb, &cl) != nil {
-		return nil, ErrMalformed
-	}
-	if now.Unix() >= cl.Exp {
-		return nil, ErrExpired
-	}
-	return &cl, nil
+	return cl, nil
 }

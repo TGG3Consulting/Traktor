@@ -31,12 +31,14 @@ func Router(routes []Route) (http.Handler, error) {
 		if err != nil {
 			return nil, err
 		}
-		rp := httputil.NewSingleHostReverseProxy(u)
-		// Прокидываем корректные заголовки; хост апстрима.
-		orig := rp.Director
-		rp.Director = func(req *http.Request) {
-			orig(req)
-			req.Host = u.Host
+		// Rewrite (а не устаревший Director): он сам ставит X-Forwarded-*
+		// и не даёт клиенту подделать эти заголовки.
+		rp := &httputil.ReverseProxy{
+			Rewrite: func(pr *httputil.ProxyRequest) {
+				pr.SetURL(u)
+				pr.Out.Host = u.Host
+				pr.SetXForwarded()
+			},
 		}
 		proxies = append(proxies, struct {
 			prefix string
