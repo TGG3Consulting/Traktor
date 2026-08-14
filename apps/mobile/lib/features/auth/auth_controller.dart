@@ -4,6 +4,7 @@ import 'package:api_client/api_client.dart';
 import '../../core/env.dart';
 import '../../core/app_settings.dart';
 import '../../core/notifications/push_service.dart';
+import '../../core/storage/session_store.dart';
 
 /// Стадии входа.
 enum AuthStage { signedOut, codeSent, needsProfile, signedIn }
@@ -72,8 +73,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return FakeAuthRepository();
 });
 
-/// Текущая сессия (токены + пользователь). Позже — персист в Drift + refresh.
-final sessionProvider = StateProvider<Session?>((ref) => null);
+/// Текущая сессия (токены + пользователь). При старте восстанавливается из
+/// локального хранилища — вход переживает перезапуск.
+final sessionProvider = StateProvider<Session?>((ref) => ref.read(sessionStoreProvider).load());
 
 class AuthController extends Notifier<AuthState> {
   @override
@@ -95,6 +97,7 @@ class AuthController extends Notifier<AuthState> {
     try {
       final session = await _repo.verifyOtp(phone, code);
       ref.read(sessionProvider.notifier).state = session;
+      unawaited(ref.read(sessionStoreProvider).save(session)); // персист входа
       // Регистрируем push-токен устройства (не блокирует вход).
       unawaited(_registerDeviceBestEffort(session));
       // Новый пользователь (без имени) → шаг профиля; иначе сразу внутрь.
@@ -144,12 +147,14 @@ class AuthController extends Notifier<AuthState> {
               city: (city != null && city.isNotEmpty) ? city : null,
               idempotencyKey: '${session.user.id}:profile',
             );
-        ref.read(sessionProvider.notifier).state = Session(
+        final refreshed = Session(
           accessToken: session.accessToken,
           refreshToken: session.refreshToken,
           expiresInSec: session.expiresInSec,
           user: updated,
         );
+        ref.read(sessionProvider.notifier).state = refreshed;
+        unawaited(ref.read(sessionStoreProvider).save(refreshed)); // персист профиля
       } on ApiException catch (e) {
         state = state.copyWith(error: e.detail);
         return false;
@@ -161,6 +166,29 @@ class AuthController extends Notifier<AuthState> {
 
   void completeProfile() => state = state.copyWith(stage: AuthStage.signedIn);
   void changeNumber() => state = state.copyWith(stage: AuthStage.signedOut, phone: null);
+
+  /// Выход из аккаунта: чистим локальную сессию и состояние входа. Токен
+  /// устройства снимаем best-effort (не блокирует выход).
+  Future<void> logout() async {
+    final session = ref.read(sessionProvider);
+    if (Env.useRealBackend && session != null) {
+      final push = ref.read(pushServiceProvider);
+      final token = await push.getToken();
+      if (token != null && token.isNotEmpty) {
+        try {
+          await ref.read(devicesApiProvider).unregister(
+                accessToken: session.accessToken,
+                token: token,
+              );
+        } catch (_) {
+          // выход не должен падать из-за снятия токена
+        }
+      }
+    }
+    await ref.read(sessionStoreProvider).clear();
+    ref.read(sessionProvider.notifier).state = null;
+    state = const AuthState();
+  }
 }
 
 final authControllerProvider = NotifierProvider<AuthController, AuthState>(AuthController.new);

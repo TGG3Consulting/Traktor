@@ -37,6 +37,19 @@ class ApiUser {
         ratingCount: j['ratingCount'] as int? ?? 0,
         verified: j['verified'] as bool? ?? false,
       );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'phone': phone,
+        'name': name,
+        'avatarUrl': avatarUrl,
+        'city': city,
+        'roles': roles,
+        'activeRole': activeRole,
+        'rating': rating,
+        'ratingCount': ratingCount,
+        'verified': verified,
+      };
 }
 
 class Session {
@@ -58,6 +71,13 @@ class Session {
         expiresInSec: j['expiresInSec'] as int? ?? 900,
         user: ApiUser.fromJson((j['user'] as Map).cast<String, dynamic>()),
       );
+
+  Map<String, dynamic> toJson() => {
+        'accessToken': accessToken,
+        'refreshToken': refreshToken,
+        'expiresInSec': expiresInSec,
+        'user': user.toJson(),
+      };
 }
 
 /// Ошибка API в формате problem+json (RFC 9457). `detail` — человекочитаемо,

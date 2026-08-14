@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:design_system/design_system.dart';
 import 'package:traktor_mobile/l10n/app_localizations.dart';
 import '../../core/app_settings.dart';
+import '../auth/auth_controller.dart';
 
 /// Каркас домашнего экрана: bottom-nav из 5 табов, набор зависит от роли
 /// (ТЗ §1.9). Реальные экраны лент/сделок/CRM навешиваются в следующих фазах.
@@ -122,6 +124,16 @@ class _ProfileTab extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 20),
+        // Выход из аккаунта: чистит локальную сессию, возвращает на онбординг.
+        TkButton(
+          label: 'Выйти',
+          kind: TkButtonKind.ghost,
+          onPressed: () async {
+            await ref.read(authControllerProvider.notifier).logout();
+            if (context.mounted) context.go('/onboarding/language');
+          },
         ),
       ],
     );

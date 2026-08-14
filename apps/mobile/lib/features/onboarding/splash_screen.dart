@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:design_system/design_system.dart';
 import 'package:traktor_mobile/l10n/app_localizations.dart';
+import '../auth/auth_controller.dart';
 
 /// §2.1 Splash. ≤2 сек: логотип + проверка сессии. Есть сессия → домашний экран
 /// роли; иначе → онбординг. Лого — марка брендбука (концепт B «T-балка»).
@@ -17,7 +18,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(milliseconds: 1200), () {
-      if (mounted) context.go('/onboarding/language');
+      if (!mounted) return;
+      // Есть сохранённая сессия → сразу домашний экран роли; иначе — онбординг.
+      final session = ref.read(sessionProvider);
+      context.go(session != null ? '/home' : '/onboarding/language');
     });
   }
 
