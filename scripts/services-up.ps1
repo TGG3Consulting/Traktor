@@ -85,7 +85,9 @@ Start-Process -FilePath "$bin\notifications.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-notifications.log" -RedirectStandardError "$out\svc-notifications.err" | Out-Null
 
 $env:PORT = '18080'
-$env:ALLOW_ORIGIN = 'https://app.homly.am'
+# Krome boevogo adresa razreshaem lokalnuyu razdachu: po ney idet otladka
+# s etogo kompyutera, poka domashniy router otdaet staryy adres homly.am.
+$env:ALLOW_ORIGIN = 'https://app.homly.am,https://app2.homly.am,http://localhost:18090,http://localhost:18091'
 $env:JWKS_URL = 'http://localhost:18081/.well-known/jwks.json'
 $env:IDENTITY_URL = 'http://localhost:18081'
 $env:NOTIFICATIONS_URL = 'http://localhost:18082'
