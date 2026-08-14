@@ -39,9 +39,10 @@ abstract class AuthRepository {
   Future<Session> verifyOtp(String phone, String code);
 }
 
-/// Fake: код всегда 482915, выдаёт правдоподобную сессию без сервера.
+/// Fake: код всегда 000000 (как и на сервере, пока SMS-провайдер не подключён),
+/// выдаёт правдоподобную сессию без сервера.
 class FakeAuthRepository implements AuthRepository {
-  static const testCode = '482915';
+  static const testCode = '000000';
 
   @override
   Future<void> startOtp(String phone) => Future.delayed(const Duration(milliseconds: 300));

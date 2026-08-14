@@ -6,7 +6,7 @@ import 'package:traktor_mobile/l10n/app_localizations.dart';
 import 'auth_controller.dart';
 
 /// §2.2 Вход · OTP. 6 ячеек, автопереход при вводе 6-й цифры, таймер повтора,
-/// «Изменить номер». 3 неверных → пауза (на бэке). Тест-код: 482915.
+/// «Изменить номер». 3 неверных → пауза (на бэке). Тест-код: 000000.
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({super.key});
   @override

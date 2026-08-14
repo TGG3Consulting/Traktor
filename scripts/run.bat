@@ -1,20 +1,31 @@
 @echo off
+REM Proverka posle pravok + kommit.
 call C:\Traktor\scripts\env.bat
-set MSG=C:\Traktor\scripts\_msg
-set LOG=%OUTDIR%\commit2.txt
+set LOG=%OUTDIR%\final2.txt
+
+> "%LOG%" echo === PROVERKA %DATE% %TIME% ===
+>> "%LOG%" echo --- identity: build + test ---
+cd /d C:\Traktor\services\identity
+go build ./... >> "%LOG%" 2>&1
+echo build exit %ERRORLEVEL% >> "%LOG%"
+go vet ./... >> "%LOG%" 2>&1
+echo vet exit %ERRORLEVEL% >> "%LOG%"
+go test -count=1 ./... >> "%LOG%" 2>&1
+echo test exit %ERRORLEVEL% >> "%LOG%"
+
+>> "%LOG%" echo.
+>> "%LOG%" echo --- mobile: analyze + test ---
+cd /d C:\Traktor\apps\mobile
+call "%FLUTTER_BAT%" analyze >> "%LOG%" 2>&1
+call "%FLUTTER_BAT%" test >> "%LOG%" 2>&1
+echo test exit %ERRORLEVEL% >> "%LOG%"
+
+>> "%LOG%" echo.
+>> "%LOG%" echo --- kommit ---
 cd /d C:\Traktor
-
-> "%LOG%" echo === KOMMIT 2 %DATE% %TIME% ===
-REM Imya fayla instruktsii na kirillitse - dobavlyaem vsyo srazu iz kornya.
 git add -A . >> "%LOG%" 2>&1
-git commit -F "%MSG%\09-launch.txt" >> "%LOG%" 2>&1
-
->> "%LOG%" echo.
->> "%LOG%" echo === PUSH ===
+git commit -F C:\Traktor\scripts\_msg\10-local-prod.txt >> "%LOG%" 2>&1
 git push origin main >> "%LOG%" 2>&1
-echo --- exit %ERRORLEVEL% --- >> "%LOG%"
->> "%LOG%" echo.
+echo push exit %ERRORLEVEL% >> "%LOG%"
 git log --oneline -3 >> "%LOG%" 2>&1
->> "%LOG%" echo --- ostalos nezakommichennym ---
-git status --short >> "%LOG%" 2>&1
 >> "%LOG%" echo === DONE ===

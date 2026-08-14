@@ -60,6 +60,11 @@ func run(log *slog.Logger) error {
 
 	signer := token.NewSigner(cfg.PrivKey, cfg.Kid)
 	auth := service.NewAuth(st, provider, signer, time.Now)
+	if cfg.OTPStaticCode != "" {
+		log.Warn("вход по фиксированному коду — только для разработки",
+			"code", cfg.OTPStaticCode)
+		auth = auth.WithStaticCode(cfg.OTPStaticCode)
+	}
 	api := httpapi.New(auth, &cfg.PrivKey.PublicKey, cfg.Kid)
 
 	srv := &http.Server{

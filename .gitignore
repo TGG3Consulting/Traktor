@@ -23,6 +23,8 @@ Thumbs.db
 # Secrets — НИКОГДА не коммитить (только Secret Manager)
 *.env
 *.env.*
+infra/local/.env
+!infra/local/.env.example
 **/service-account*.json
 **/*-key.json
 infra/terraform/**/*.tfvars

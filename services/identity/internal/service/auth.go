@@ -42,6 +42,11 @@ type Auth struct {
 	sms    sms.Provider
 	signer *token.Signer
 	now    Now
+
+	// staticCode — фиксированный код входа для разработки и демонстраций
+	// (например «000000»). Пустая строка означает боевое поведение: код
+	// случайный. Значение приходит из конфигурации, в коде не зашито.
+	staticCode string
 }
 
 func NewAuth(s store.Store, p sms.Provider, signer *token.Signer, now Now) *Auth {
@@ -49,6 +54,13 @@ func NewAuth(s store.Store, p sms.Provider, signer *token.Signer, now Now) *Auth
 		now = time.Now
 	}
 	return &Auth{store: s, sms: p, signer: signer, now: now}
+}
+
+// WithStaticCode включает фиксированный код входа (dev/демо). В проде не
+// вызывается: там код всегда случайный.
+func (a *Auth) WithStaticCode(code string) *Auth {
+	a.staticCode = code
+	return a
 }
 
 func hashStr(s string) string {
@@ -75,6 +87,9 @@ func randToken() string {
 // StartOTP генерирует код, сохраняет его хэш и отправляет через провайдера.
 func (a *Auth) StartOTP(ctx context.Context, phone string) (retryAfterSec int, channel string, err error) {
 	code := gen6()
+	if a.staticCode != "" {
+		code = a.staticCode
+	}
 	if err := a.store.UpsertOTP(ctx, store.OTP{
 		Phone:     phone,
 		CodeHash:  hashStr(code),

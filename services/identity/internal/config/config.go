@@ -25,6 +25,11 @@ type Config struct {
 	DatabaseURL string
 	PhoneEncKey string // ключ шифрования телефонов (pgcrypto)
 
+	// OTPStaticCode — фиксированный код входа, пока не подключён SMS-провайдер.
+	// Задаётся переменной OTP_STATIC_CODE; при TEST_MODE=1 по умолчанию «000000».
+	// Пустое значение = боевое поведение (код случайный).
+	OTPStaticCode string
+
 	// EphemeralKey = true означает, что ключ подписи сгенерирован при старте:
 	// после перезапуска все выданные токены станут недействительными.
 	EphemeralKey bool
@@ -39,6 +44,16 @@ func Load() (*Config, error) {
 		Kid:           getenv("JWT_KID", "dev"),
 		DatabaseURL:   os.Getenv("DATABASE_URL"),
 		PhoneEncKey:   os.Getenv("PHONE_ENC_KEY"),
+		OTPStaticCode: os.Getenv("OTP_STATIC_CODE"),
+	}
+
+	// Пока SMS-провайдер не подключён, вход идёт по фиксированному коду.
+	// Это включается только тест-режимом и никогда — в боевой конфигурации.
+	if c.TestMode && c.OTPStaticCode == "" {
+		c.OTPStaticCode = "000000"
+	}
+	if !c.TestMode && c.OTPStaticCode != "" {
+		return nil, errors.New("config: OTP_STATIC_CODE допустим только вместе с TEST_MODE=1")
 	}
 
 	pemStr := os.Getenv("JWT_EC_PRIVATE_KEY_PEM")

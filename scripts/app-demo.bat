@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================
 REM  TRAKTOR - prosto posmotret prilozhenie (bez servera).
-REM  Kod podtverzhdeniya pri vhode: 482915
+REM  Kod podtverzhdeniya pri vhode: 000000
 REM ============================================================
 title Traktor - demo rezhim
 call C:\Traktor\scripts\env.bat
@@ -9,7 +9,7 @@ call C:\Traktor\scripts\env.bat
 echo.
 echo   TRAKTOR - demo rezhim (bez servera)
 echo   ------------------------------------------------
-echo   KOD PODTVERZHDENIYA PRI VHODE:  482915
+echo   KOD PODTVERZHDENIYA PRI VHODE:  000000
 echo   Nomer telefona - lyuboy, naprimer +37491234567
 echo.
 echo   Seychas otkroetsya Chrome s prilozheniem.

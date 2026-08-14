@@ -62,7 +62,7 @@ paths:
               required: [phone, code]
               properties:
                 phone: { type: string }
-                code: { type: string, example: "482915" }
+                code: { type: string, example: "000000" }
       responses:
         "200":
           description: Успешный вход

@@ -1,0 +1,32 @@
+{
+  "//": "Локальная конфигурация Centrifugo. В облаке те же параметры приходят",
+  "//_": "переменными окружения из Secret Manager — файл не меняется.",
+
+  "token_hmac_secret_key": "traktor-local-centrifugo-secret",
+  "api_key": "traktor-local-centrifugo-api",
+
+  "allowed_origins": ["*"],
+
+  "presence": true,
+  "join_leave": true,
+  "history_size": 100,
+  "history_ttl": "300s",
+  "recovery": true,
+
+  "namespaces": [
+    {
+      "name": "job",
+      "presence": true,
+      "history_size": 200,
+      "history_ttl": "600s",
+      "recovery": true
+    },
+    {
+      "name": "chat",
+      "presence": true,
+      "history_size": 500,
+      "history_ttl": "86400s",
+      "recovery": true
+    }
+  ]
+}

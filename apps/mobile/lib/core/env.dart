@@ -6,7 +6,7 @@
 class Env {
   Env._();
 
-  /// false = локальный fake-вход (код 482915), не требует сервера.
+  /// false = локальный fake-вход (код 000000), не требует сервера.
   /// true  = реальный сервис identity по [apiBaseUrl].
   static const bool useRealBackend =
       bool.fromEnvironment('REAL_BACKEND', defaultValue: false);

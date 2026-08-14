@@ -8,7 +8,7 @@
 
 Проще всего — двойным кликом по скриптам (см. `КАК-ЗАПУСТИТЬ-ПРИЛОЖЕНИЕ.md` в корне):
 
-- `scripts\app-demo.bat` — без сервера, код подтверждения **482915**;
+- `scripts\app-demo.bat` — без сервера, код подтверждения **000000**;
 - `scripts\app-real.bat` — с локальным бэкендом (порт 18080), код виден в окне identity.
 
 Вручную:
@@ -16,7 +16,7 @@
 ```bash
 flutter pub get
 flutter gen-l10n
-flutter run -d chrome                     # демо-режим, код 482915
+flutter run -d chrome                     # демо-режим, код 000000
 flutter run -d chrome --dart-define=REAL_BACKEND=true \
                       --dart-define=API_BASE_URL=http://localhost:18080/v1
 ```
