@@ -132,8 +132,8 @@ class TkJobCard extends StatelessWidget {
               if (offersCount > 0 || viewsCount > 0) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '$offersCount ${_plural(offersCount, 'отклик', 'отклика', 'откликов')} · '
-                  '$viewsCount ${_plural(viewsCount, 'просмотр', 'просмотра', 'просмотров')}',
+                  '$offersCount ${tkPlural(offersCount, 'отклик', 'отклика', 'откликов')} · '
+                  '$viewsCount ${tkPlural(viewsCount, 'просмотр', 'просмотра', 'просмотров')}',
                   style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                 ),
               ],
@@ -145,16 +145,6 @@ class TkJobCard extends StatelessWidget {
   }
 }
 
-/// Русские окончания: 1 отклик, 2 отклика, 5 откликов.
-String _plural(int n, String one, String few, String many) {
-  final mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return many;
-  return switch (n % 10) {
-    1 => one,
-    2 || 3 || 4 => few,
-    _ => many,
-  };
-}
 
 class _WorkersBadge extends StatelessWidget {
   const _WorkersBadge({required this.count});

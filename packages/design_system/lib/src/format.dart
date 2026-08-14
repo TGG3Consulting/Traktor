@@ -69,3 +69,16 @@ String tkShortDate(DateTime? date, {DateTime? now}) {
   final base = '${date.day} ${months[date.month - 1]}';
   return date.year == today.year ? base : '$base ${date.year}';
 }
+
+/// Русское склонение после числа: 1 отклик, 2 отклика, 5 откликов.
+/// Живёт рядом с остальным форматированием: «1 откликов» в интерфейсе выглядит
+/// как недоделка, а склонение нужно в ленте, деталке и уведомлениях.
+String tkPlural(int n, String one, String few, String many) {
+  final mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return many;
+  return switch (n % 10) {
+    1 => one,
+    2 || 3 || 4 => few,
+    _ => many,
+  };
+}

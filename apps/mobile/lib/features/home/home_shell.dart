@@ -8,6 +8,7 @@ import '../auth/auth_controller.dart';
 import '../jobs/client_jobs_tab.dart';
 import '../jobs/create/wizard_controller.dart';
 import '../jobs/feed_tab.dart';
+import '../jobs/offers/my_offers_tab.dart';
 
 /// Каркас домашнего экрана: bottom-nav из 5 табов, набор зависит от роли
 /// (ТЗ §1.9). Реальные экраны лент/сделок/CRM навешиваются в следующих фазах.
@@ -50,7 +51,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           // Первая вкладка зависит от роли: заказчик ведёт свои задания,
           // исполнитель смотрит ленту (ТЗ §1.9).
           0 => isClient ? const ClientJobsTab() : const FeedTab(),
-          1 when isClient => const FeedTab(), // «Поиск» заказчика — та же лента
+          1 => isClient
+              // «Поиск» заказчика — та же лента; «Мои ставки» исполнителя —
+              // его предложения по чужим заданиям.
+              ? const FeedTab()
+              : const MyOffersTab(),
           3 => const _ProfileTab(),
           _ => _Placeholder(title: items[_tab].label),
         },

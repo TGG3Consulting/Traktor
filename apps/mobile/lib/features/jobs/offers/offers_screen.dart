@@ -18,6 +18,13 @@ class JobOffersScreen extends ConsumerWidget {
 
   final String jobId;
 
+  /// Заголовок с числом живых предложений: отклонённые в счётчике не нужны.
+  String _title(List<Offer>? offers) {
+    if (offers == null) return 'Отклики';
+    final live = offers.where((o) => o.isActive || o.isAccepted).length;
+    return 'Отклики · $live';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final offers = ref.watch(jobOffersProvider(jobId));
@@ -26,9 +33,7 @@ class JobOffersScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(offers.valueOrNull == null
-            ? 'Отклики'
-            : 'Отклики (${offers.value!.where((o) => o.isActive || o.isAccepted).length})'),
+        title: Text(_title(offers.valueOrNull)),
         leading: IconButton(
           tooltip: 'Назад',
           onPressed: () => context.canPop() ? context.pop() : context.go('/jobs/$jobId'),
@@ -134,7 +139,9 @@ class _OfferCard extends ConsumerWidget {
                   ),
               ],
             ),
-            if (offer.hasCounter) ...[
+            // Строка про ожидание ответа нужна только пока торг идёт: после
+            // выбора исполнителя она вводила бы в заблуждение.
+            if (offer.hasCounter && offer.status == 'counter_offered') ...[
               const SizedBox(height: 6),
               Text(
                 'Вы предложили ${tkMoney(offer.clientCounterPrice, currency: offer.currency)} — '

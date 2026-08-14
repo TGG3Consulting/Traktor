@@ -144,7 +144,9 @@ class _Content extends ConsumerWidget {
                   const SizedBox(width: 14),
                   TkIcon(TkIcons.chatCircle, size: 15, color: scheme.onSurfaceVariant),
                   const SizedBox(width: 5),
-                  Text('${job.offersCount} откликов',
+                  Text(
+                      '${job.offersCount} '
+                      '${tkPlural(job.offersCount, 'отклик', 'отклика', 'откликов')}',
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
                 ],
               ),
