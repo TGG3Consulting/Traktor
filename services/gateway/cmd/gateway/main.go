@@ -72,7 +72,13 @@ func run(log *slog.Logger) error {
 	public := func(path string) bool {
 		return path == "/healthz" ||
 			strings.HasPrefix(path, "/v1/auth/") ||
-			strings.HasPrefix(path, "/.well-known/")
+			strings.HasPrefix(path, "/.well-known/") ||
+			// Справочник и лента заданий открыты гостю: «просто посмотреть»
+			// из онбординга работает без входа (ТЗ §2.1, §4.2 web-паритет).
+			// Личные разделы (/v1/jobs/my, черновики) остаются под токеном:
+			// их сервис отдаёт только при заголовке X-User-Id от шлюза.
+			strings.HasPrefix(path, "/v1/categories") ||
+			publicJobsPath(path)
 	}
 
 	// Маршруты к сервисам (по мере появления сервисов список растёт).
@@ -81,6 +87,8 @@ func run(log *slog.Logger) error {
 		{Prefix: "/v1/auth/", Upstream: cfg.IdentityURL},
 		{Prefix: "/v1/me", Upstream: cfg.IdentityURL},
 		{Prefix: "/v1/devices", Upstream: cfg.NotificationsURL},
+		{Prefix: "/v1/categories", Upstream: cfg.CatalogURL},
+		{Prefix: "/v1/jobs", Upstream: cfg.OrdersURL},
 		{Prefix: "/.well-known/", Upstream: cfg.IdentityURL},
 	})
 	if err != nil {
@@ -121,7 +129,9 @@ func run(log *slog.Logger) error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		log.Info("gateway слушает", "addr", srv.Addr, "identity", cfg.IdentityURL, "notifications", cfg.NotificationsURL)
+		log.Info("gateway слушает", "addr", srv.Addr,
+			"identity", cfg.IdentityURL, "notifications", cfg.NotificationsURL,
+			"catalog", cfg.CatalogURL, "orders", cfg.OrdersURL)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}
@@ -135,5 +145,31 @@ func run(log *slog.Logger) error {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		return srv.Shutdown(shutdownCtx)
+	}
+}
+
+// publicJobsPath — какие пути заданий открыты без входа.
+//
+// Открыты только чтение ленты и деталка: гость из «просто посмотреть» видит,
+// что происходит на площадке. Личные разделы (/v1/jobs/my, черновики) и любые
+// изменения — под токеном. Метод здесь не проверяется намеренно: у сервиса
+// orders изменяющие маршруты сами требуют X-User-Id, который без валидного
+// токена шлюз не поставит, так что POST без входа получит 401 от сервиса.
+func publicJobsPath(path string) bool {
+	if !strings.HasPrefix(path, "/v1/jobs") {
+		return false
+	}
+	rest := strings.TrimPrefix(path, "/v1/jobs")
+	switch {
+	case rest == "" || rest == "/":
+		return true // лента
+	case strings.HasPrefix(rest, "/my"):
+		return false // мои задания и черновики
+	case strings.HasPrefix(rest, "/drafts"):
+		return false
+	case strings.Contains(strings.TrimPrefix(rest, "/"), "/"):
+		return false // действия вида /{id}/publish
+	default:
+		return true // деталка /{id}
 	}
 }

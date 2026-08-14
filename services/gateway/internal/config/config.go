@@ -13,6 +13,8 @@ type Config struct {
 	JWKSURL          string
 	IdentityURL      string
 	NotificationsURL string
+	CatalogURL       string
+	OrdersURL        string
 	RateLimit        int
 	RateWindow       time.Duration
 	AllowOrigin      string
@@ -24,6 +26,8 @@ func Load() *Config {
 		JWKSURL:          getenv("JWKS_URL", "http://localhost:8081/.well-known/jwks.json"),
 		IdentityURL:      getenv("IDENTITY_URL", "http://localhost:8081"),
 		NotificationsURL: getenv("NOTIFICATIONS_URL", "http://localhost:8082"),
+		CatalogURL:       getenv("CATALOG_URL", "http://localhost:8083"),
+		OrdersURL:        getenv("ORDERS_URL", "http://localhost:8084"),
 		RateLimit:        getenvInt("RATE_LIMIT", 100),
 		RateWindow:       time.Duration(getenvInt("RATE_WINDOW_SEC", 60)) * time.Second,
 		AllowOrigin:      getenv("ALLOW_ORIGIN", "*"),

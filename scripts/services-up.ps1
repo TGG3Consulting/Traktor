@@ -56,7 +56,7 @@ if (-not $pg) { Write-Output '  PROVAL: baza ne otvechaet'; exit 1 }
 Write-Output '  OK: baza gotova'
 
 Write-Output '--- 2. Sborka servisov ---'
-foreach ($svc in 'identity','notifications','gateway') {
+foreach ($svc in 'identity','notifications','catalog','orders','gateway') {
     Push-Location "C:\Traktor\services\$svc"
     & $go build -o "$bin\$svc.exe" "./cmd/$svc" 2>&1 | ForEach-Object { "    $_" }
     if ($LASTEXITCODE -ne 0) { Pop-Location; Write-Output "  PROVAL: sborka $svc"; exit 1 }
@@ -65,7 +65,7 @@ foreach ($svc in 'identity','notifications','gateway') {
 Write-Output '  OK: sobrany'
 
 Write-Output '--- 3. Gasim staroe ---'
-foreach ($n in 'identity','notifications','gateway') {
+foreach ($n in 'identity','notifications','catalog','orders','gateway') {
     Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 Start-Sleep -Seconds 1
@@ -84,17 +84,27 @@ $env:PORT = '18082'
 Start-Process -FilePath "$bin\notifications.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-notifications.log" -RedirectStandardError "$out\svc-notifications.err" | Out-Null
 
+$env:PORT = '18083'
+Start-Process -FilePath "$bin\catalog.exe" -WindowStyle Hidden `
+    -RedirectStandardOutput "$out\svc-catalog.log" -RedirectStandardError "$out\svc-catalog.err" | Out-Null
+
+$env:PORT = '18084'
+Start-Process -FilePath "$bin\orders.exe" -WindowStyle Hidden `
+    -RedirectStandardOutput "$out\svc-orders.log" -RedirectStandardError "$out\svc-orders.err" | Out-Null
+
 $env:PORT = '18080'
 # Krome boevogo adresa razreshaem lokalnuyu razdachu: po ney idet otladka
 # s etogo kompyutera, poka domashniy router otdaet staryy adres homly.am.
 $env:ALLOW_ORIGIN = 'https://app.homly.am,https://app2.homly.am,http://localhost:18090,http://localhost:18091'
-$env:JWKS_URL = 'http://localhost:18081/.well-known/jwks.json'
-$env:IDENTITY_URL = 'http://localhost:18081'
-$env:NOTIFICATIONS_URL = 'http://localhost:18082'
+$env:JWKS_URL = 'http://127.0.0.1:18081/.well-known/jwks.json'
+$env:IDENTITY_URL = 'http://127.0.0.1:18081'
+$env:NOTIFICATIONS_URL = 'http://127.0.0.1:18082'
+$env:CATALOG_URL = 'http://127.0.0.1:18083'
+$env:ORDERS_URL = 'http://127.0.0.1:18084'
 Start-Process -FilePath "$bin\gateway.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-gateway.log" -RedirectStandardError "$out\svc-gateway.err" | Out-Null
 
-foreach ($p in 18081, 18082, 18080) {
+foreach ($p in 18081, 18082, 18083, 18084, 18080) {
     $ok = $false
     foreach ($i in 1..40) {
         try { Invoke-WebRequest "http://127.0.0.1:$p/healthz" -TimeoutSec 2 -UseBasicParsing | Out-Null; $ok = $true; break }

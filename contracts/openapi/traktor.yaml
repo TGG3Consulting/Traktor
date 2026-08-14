@@ -17,6 +17,10 @@ tags:
     description: Регистрация и вход (OTP через Dexatel), сессии, профиль.
   - name: notifications
     description: Push-токены устройств и уведомления (FCM за интерфейсом).
+  - name: catalog
+    description: Справочник категорий работ и техники с шаблонами характеристик.
+  - name: orders
+    description: "Задания заказчика: черновики визарда, публикация, лента, деталка."
 
 paths:
   /auth/otp/start:
@@ -167,6 +171,256 @@ paths:
         "204": { description: Регистрация снята }
         "401": { $ref: "#/components/responses/Problem" }
 
+  /categories:
+    get:
+      tags: [catalog]
+      summary: Дерево категорий (работы и техника)
+      description: >
+        Открыто без входа: справочник нужен и гостю в режиме «просто посмотреть».
+        Названия приходят сразу на трёх языках — переключение языка в приложении
+        не требует нового запроса.
+      operationId: listCategories
+      parameters:
+        - name: kind
+          in: query
+          schema: { type: string, enum: [work, unit] }
+          description: work — виды работ (визард задания), unit — техника (визард техники)
+        - name: flat
+          in: query
+          schema: { type: string, enum: ["1"] }
+          description: "1 — плоский список вместо дерева (для поиска по названию)"
+      responses:
+        "200":
+          description: Категории
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Category" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /categories/{id}:
+    get:
+      tags: [catalog]
+      summary: Одна категория
+      operationId: getCategory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Категория
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /jobs:
+    get:
+      tags: [orders]
+      summary: Лента заданий (ТЗ §2.7)
+      description: >
+        Открыта без входа. Возвращает только задания, принимающие отклики.
+        При переданных lat/lng каждая карточка получает distanceM.
+      operationId: listJobs
+      parameters:
+        - name: lat
+          in: query
+          schema: { type: number, format: double }
+        - name: lng
+          in: query
+          schema: { type: number, format: double }
+        - name: radiusKm
+          in: query
+          schema: { type: number, format: double, example: 25 }
+        - name: categoryIds
+          in: query
+          schema: { type: string }
+          description: Идентификаторы категорий через запятую («Мои категории»)
+        - name: mode
+          in: query
+          schema: { type: string, enum: [fixed, auction] }
+        - name: q
+          in: query
+          schema: { type: string }
+          description: Поиск по названию и описанию
+        - name: sort
+          in: query
+          schema: { type: string, enum: [new, near, price, ending], default: new }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Задания
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Job" }
+        "400": { $ref: "#/components/responses/Problem" }
+
+  /jobs/my:
+    get:
+      tags: [orders]
+      summary: Мои задания и черновики (главная заказчика)
+      operationId: listMyJobs
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Задания заказчика, свежие сверху
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Job" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /jobs/drafts:
+    post:
+      tags: [orders]
+      summary: Создать черновик задания (шаг 1 визарда)
+      description: >
+        Черновик заводится сразу и автосохраняется после каждого шага (ТЗ §2.6),
+        поэтому заказчик может выйти и вернуться, ничего не потеряв.
+      operationId: createJobDraft
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JobDraft" }
+      responses:
+        "201":
+          description: Черновик создан
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /jobs/drafts/{id}:
+    patch:
+      tags: [orders]
+      summary: Сохранить очередной шаг визарда
+      description: >
+        Переданы только изменённые поля: отсутствующее поле не трогается, а не
+        обнуляется — сохранение шага 3 не стирает цену со шага 4.
+      operationId: updateJobDraft
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JobDraft" }
+      responses:
+        "200":
+          description: Черновик сохранён
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /jobs/{id}:
+    get:
+      tags: [orders]
+      summary: Деталка задания (ТЗ §2.8)
+      description: >
+        Резервная цена аукциона отдаётся только владельцу задания.
+        Просмотр засчитывается один раз на пользователя и не считается своим.
+      operationId: getJob
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Задание
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /jobs/{id}/publish:
+    post:
+      tags: [orders]
+      summary: Опубликовать задание (шаг 5 визарда)
+      description: >
+        Сервер проверяет полноту и сам считает время финиша аукциона.
+        При нехватке данных возвращает 422 со списком полей.
+      operationId: publishJob
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Опубликовано
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422":
+          description: Не хватает данных — поля перечислены в fields
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ValidationProblem" }
+
+  /jobs/{id}/cancel:
+    post:
+      tags: [orders]
+      summary: Отменить задание
+      operationId: cancelJob
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Отменено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -192,6 +446,120 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
   schemas:
+    Category:
+      type: object
+      required: [id, kind, slug, name, icon, specTemplate]
+      properties:
+        id: { type: string, format: uuid }
+        parentId: { type: string, format: uuid, nullable: true }
+        kind: { type: string, enum: [work, unit] }
+        slug: { type: string, example: work-earth }
+        name: { $ref: "#/components/schemas/LocalizedName" }
+        icon: { type: string, description: "Имя иконки Phosphor из design_system (эмодзи запрещены)" }
+        specTemplate:
+          type: array
+          items: { $ref: "#/components/schemas/SpecField" }
+        sortOrder: { type: integer }
+        children:
+          type: array
+          items: { $ref: "#/components/schemas/Category" }
+    LocalizedName:
+      type: object
+      required: [hy, ru, en]
+      properties:
+        hy: { type: string }
+        ru: { type: string }
+        en: { type: string }
+    SpecField:
+      type: object
+      required: [key, type]
+      description: Поле характеристик — из него клиент строит поле формы.
+      properties:
+        key: { type: string, example: bucket }
+        type: { type: string, enum: [number, text, select, bool] }
+        unit: { type: string, example: "м³" }
+        min: { type: number }
+        max: { type: number }
+        options:
+          type: array
+          items: { type: string }
+        label_hy: { type: string }
+        label_ru: { type: string }
+        label_en: { type: string }
+        required: { type: boolean }
+    Geo:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat: { type: number, format: double, example: 40.1872 }
+        lng: { type: number, format: double, example: 44.5152 }
+    Auction:
+      type: object
+      properties:
+        durationH: { type: integer, example: 24, description: "1 час … 7 суток" }
+        endsAt: { type: string, format: date-time, description: "Считает сервер при публикации" }
+        reserveAmount: { type: integer, format: int64, nullable: true, description: "Минимальная цена. Видна только заказчику" }
+        autoExtend: { type: boolean, default: true, description: "+10 мин при ставке в последние 5 минут" }
+        decisionWindowH: { type: integer, default: 12 }
+    JobStatus:
+      type: string
+      enum: [draft, published, collecting_offers, bidding, deal_pending, deciding,
+             confirmed, in_progress, work_done, completed, disputed, cancelled,
+             declined_all, expired, expired_no_bids]
+    JobDraft:
+      type: object
+      description: Поля визарда. Отсутствующее поле не изменяется.
+      properties:
+        orderType: { type: string, enum: [job, rental, transport, workers] }
+        categoryId: { type: string, format: uuid, nullable: true }
+        openToAny: { type: boolean, description: "«Опишу задачу — пусть исполнители предложат технику»" }
+        title: { type: string, maxLength: 80 }
+        description: { type: string, minLength: 20 }
+        params:
+          type: object
+          additionalProperties: true
+          description: Значения по specTemplate категории
+        photos:
+          type: array
+          maxItems: 6
+          items: { type: string, format: uri }
+        geo: { $ref: "#/components/schemas/Geo" }
+        address: { type: string }
+        access: { type: string, enum: ["yes", "no", "unknown"] }
+        dateMode: { type: string, enum: [asap, range, exact] }
+        dateStart: { type: string, format: date-time }
+        dateEnd: { type: string, format: date-time }
+        budgetAmount: { type: integer, format: int64, example: 120000 }
+        currency: { type: string, default: AMD }
+        mode: { type: string, enum: [fixed, auction] }
+        auction: { $ref: "#/components/schemas/Auction" }
+        workersCount: { type: integer, minimum: 0, description: "Разнорабочие в дополнение к технике (§5.5)" }
+        draftStep: { type: integer, minimum: 1, maximum: 5 }
+    Job:
+      allOf:
+        - $ref: "#/components/schemas/JobDraft"
+        - type: object
+          required: [id, clientId, status, currency, mode]
+          properties:
+            id: { type: string, format: uuid }
+            clientId: { type: string, format: uuid }
+            status: { $ref: "#/components/schemas/JobStatus" }
+            viewsCount: { type: integer }
+            offersCount: { type: integer }
+            winnerBidId: { type: string, format: uuid, nullable: true }
+            distanceM: { type: number, format: double, nullable: true, description: "Только в ленте, при переданных lat/lng" }
+            publishedAt: { type: string, format: date-time, nullable: true }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+    ValidationProblem:
+      allOf:
+        - $ref: "#/components/schemas/Problem"
+        - type: object
+          properties:
+            fields:
+              type: object
+              additionalProperties: { type: string }
+              description: "поле → что именно не так; экран подсвечивает их"
     Role:
       type: string
       enum: [client, owner]
