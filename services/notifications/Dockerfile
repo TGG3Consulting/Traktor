@@ -1,11 +1,12 @@
-# Сборка notifications → distroless (минимальный, без shell, меньше поверхность атаки).
-FROM golang:1.24 AS build
+# Сборка notifications → distroless (минимальный образ, без shell — меньше поверхность атаки).
+FROM golang:1.25 AS build
 WORKDIR /src
-COPY go.mod ./
+
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
-# Прод-сборка с Postgres (в CI доступна сеть для pgx):
-#   RUN CGO_ENABLED=0 go build -tags postgres -o /out/notifications ./cmd/notifications
-RUN CGO_ENABLED=0 go build -o /out/notifications ./cmd/notifications
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/notifications ./cmd/notifications
 
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /out/notifications /notifications

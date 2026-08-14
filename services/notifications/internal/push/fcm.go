@@ -1,165 +1,72 @@
 package push
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"sync"
-	"time"
+
+	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/messaging"
 )
 
-// FCM — провайдер поверх Firebase Cloud Messaging HTTP v1.
-// Только стандартная библиотека: авторизация — scoped access-token от
-// metadata-сервера Cloud Run (identity сервисного аккаунта), без файлов-ключей
-// в репозитории (инвариант §2.3.15 — секретов в коде нет).
+// FCM — провайдер поверх официального Firebase Admin SDK (правило 23: ручной
+// HTTP-клиент к FCM v1 заменён библиотекой Google).
+//
+// Авторизация — Application Default Credentials: на Cloud Run это сервисный
+// аккаунт ревизии, локально — GOOGLE_APPLICATION_CREDENTIALS. Файлов-ключей в
+// репозитории нет (инвариант §2.3.15).
 //
 // Включается только когда задан FCM_PROJECT_ID (см. config); иначе сервис
 // работает на fake-провайдере. «Путь эвакуации» (§2.3.14): при отказе от FCM
 // сюда встаёт APNs/веб-push без изменения service.Notify.
 type FCM struct {
-	projectID string
-	http      *http.Client
-	tokens    TokenSource
+	client *messaging.Client
 }
 
-// TokenSource выдаёт OAuth2 access-token со scope firebase.messaging.
-// В проде — MetadataTokenSource (сервисный аккаунт Cloud Run). В тестах
-// подменяется статической функцией.
-type TokenSource interface {
-	Token(ctx context.Context) (string, error)
-}
-
-func NewFCM(projectID string, ts TokenSource) *FCM {
-	return &FCM{
-		projectID: projectID,
-		http:      &http.Client{Timeout: 10 * time.Second},
-		tokens:    ts,
+// NewFCM поднимает клиента Firebase. Ошибка здесь означает, что учётные данные
+// недоступны — сервис должен об этом сообщить на старте, а не в момент первой
+// отправки.
+func NewFCM(ctx context.Context, projectID string) (*FCM, error) {
+	app, err := firebase.NewApp(ctx, &firebase.Config{ProjectID: projectID})
+	if err != nil {
+		return nil, fmt.Errorf("fcm: инициализация Firebase: %w", err)
 	}
+	client, err := app.Messaging(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fcm: клиент messaging: %w", err)
+	}
+	return &FCM{client: client}, nil
 }
 
 func (c *FCM) Name() string { return "fcm" }
 
-// Send отправляет сообщение через FCM v1. Токен, помеченный сервером как
-// UNREGISTERED/INVALID_ARGUMENT по токену, конвертируется в ErrTokenInvalid,
-// чтобы сервис очистил протухшую регистрацию.
+// Send отправляет одно сообщение. Токен, который FCM считает отозванным,
+// превращается в ErrTokenInvalid — сервис удалит протухшую регистрацию.
 func (c *FCM) Send(ctx context.Context, m Message) error {
-	access, err := c.tokens.Token(ctx)
-	if err != nil {
-		return fmt.Errorf("fcm: token: %w", err)
-	}
-
-	// Формат FCM HTTP v1: notification + data. Каналы/приоритеты платформ
-	// уточняются на Фазе 5 (push-матрица ТЗ §2.14).
-	payload := map[string]any{
-		"message": map[string]any{
-			"token": m.Token,
-			"notification": map[string]any{
-				"title": m.Title,
-				"body":  m.Body,
-			},
-			"data": m.Data,
+	msg := &messaging.Message{
+		Token: m.Token,
+		Notification: &messaging.Notification{
+			Title: m.Title,
+			Body:  m.Body,
 		},
+		Data: m.Data,
 	}
-	buf, _ := json.Marshal(payload)
-
-	url := fmt.Sprintf("https://fcm.googleapis.com/v1/projects/%s/messages:send", c.projectID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(buf))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+access)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return fmt.Errorf("fcm: send: %w", err)
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<16))
-
-	switch {
-	case resp.StatusCode == http.StatusOK:
-		return nil
-	case resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone:
-		// Токен больше не зарегистрирован — сервис его удалит.
-		return ErrTokenInvalid
-	case resp.StatusCode == http.StatusBadRequest && isInvalidToken(body):
-		return ErrTokenInvalid
-	default:
-		return fmt.Errorf("fcm: статус %d: %s", resp.StatusCode, string(body))
-	}
-}
-
-func isInvalidToken(body []byte) bool {
-	var e struct {
-		Error struct {
-			Status  string `json:"status"`
-			Details []struct {
-				ErrorCode string `json:"errorCode"`
-			} `json:"details"`
-		} `json:"error"`
-	}
-	if json.Unmarshal(body, &e) != nil {
-		return false
-	}
-	for _, d := range e.Error.Details {
-		if d.ErrorCode == "UNREGISTERED" || d.ErrorCode == "INVALID_ARGUMENT" {
-			return true
+	if _, err := c.client.Send(ctx, msg); err != nil {
+		if isTokenInvalid(err) {
+			return ErrTokenInvalid
 		}
+		return fmt.Errorf("fcm: отправка: %w", err)
 	}
-	return false
+	return nil
 }
 
-// MetadataTokenSource берёт scoped access-token у metadata-сервера GCP
-// (доступен на Cloud Run). Кэширует токен до истечения. Только stdlib.
-type MetadataTokenSource struct {
-	http *http.Client
-	mu   sync.Mutex
-	tok  string
-	exp  time.Time
-	now  func() time.Time
+// isTokenInvalid распознаёт ответы FCM про мёртвый токен: приложение удалено
+// или токен перевыпущен.
+func isTokenInvalid(err error) bool {
+	return messaging.IsUnregistered(err) ||
+		messaging.IsSenderIDMismatch(err) ||
+		errors.Is(err, ErrTokenInvalid)
 }
 
-func NewMetadataTokenSource() *MetadataTokenSource {
-	return &MetadataTokenSource{http: &http.Client{Timeout: 5 * time.Second}, now: time.Now}
-}
-
-const metadataTokenURL = "http://metadata.google.internal/computeMetadata/v1/" +
-	"instance/service-accounts/default/token?scopes=" +
-	"https://www.googleapis.com/auth/firebase.messaging"
-
-func (s *MetadataTokenSource) Token(ctx context.Context) (string, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.tok != "" && s.now().Before(s.exp) {
-		return s.tok, nil
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, metadataTokenURL, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Metadata-Flavor", "Google")
-	resp, err := s.http.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<12))
-		return "", fmt.Errorf("metadata: статус %d: %s", resp.StatusCode, string(b))
-	}
-	var t struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&t); err != nil {
-		return "", err
-	}
-	s.tok = t.AccessToken
-	// Обновляем за 60 с до истечения.
-	s.exp = s.now().Add(time.Duration(t.ExpiresIn-60) * time.Second)
-	return s.tok, nil
-}
+// Проверка контракта на этапе компиляции.
+var _ Provider = (*FCM)(nil)

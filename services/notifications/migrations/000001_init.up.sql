@@ -7,7 +7,7 @@ CREATE SCHEMA IF NOT EXISTS notifications;
 
 -- Реестр push-токенов устройств. Токен уникален (одно устройство = один токен
 -- FCM). Протухшие токены удаляются сервисом при ответе провайдера UNREGISTERED.
-CREATE TABLE notifications.devices (
+CREATE TABLE IF NOT EXISTS notifications.devices (
   token        text PRIMARY KEY,               -- регистрационный токен FCM
   user_id      uuid NOT NULL,                  -- владелец (из проверенного JWT)
   platform     text NOT NULL DEFAULT 'android' CHECK (platform IN ('android','ios','web')),
@@ -17,15 +17,15 @@ CREATE TABLE notifications.devices (
   last_seen_at timestamptz NOT NULL DEFAULT now()
 );
 -- Быстрый поиск всех устройств пользователя при рассылке.
-CREATE INDEX idx_devices_user ON notifications.devices(user_id);
+CREATE INDEX IF NOT EXISTS idx_devices_user ON notifications.devices(user_id);
 
 -- Transactional outbox: на Фазе 5 сюда пишутся события доставки/квитанции в
 -- одной транзакции с данными, релей публикует в Pub/Sub (ADR-5, §2.3.12).
-CREATE TABLE notifications.outbox (
+CREATE TABLE IF NOT EXISTS notifications.outbox (
   id           bigserial PRIMARY KEY,
   event_type   text NOT NULL,
   payload      jsonb NOT NULL,
   created_at   timestamptz NOT NULL DEFAULT now(),
   published_at timestamptz
 );
-CREATE INDEX idx_outbox_unpublished ON notifications.outbox(created_at) WHERE published_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_outbox_unpublished ON notifications.outbox(created_at) WHERE published_at IS NULL;

@@ -8,6 +8,10 @@ package httpapi
 import (
 	"encoding/json"
 	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
 
 	"traktor/notifications/internal/service"
 	"traktor/notifications/internal/store"
@@ -20,14 +24,21 @@ type Server struct {
 func New(svc *service.Notifier) *Server { return &Server{svc: svc} }
 
 func (s *Server) Routes() http.Handler {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
+	r.Use(
+		chimw.RequestID,
+		chimw.RealIP,
+		chimw.Recoverer,
+		chimw.Timeout(20*time.Second),
+	)
+
 	// Клиентские (через gateway, требуют X-User-Id).
-	mux.HandleFunc("POST /v1/devices", s.registerDevice)
-	mux.HandleFunc("DELETE /v1/devices/{token}", s.unregisterDevice)
+	r.Post("/v1/devices", s.registerDevice)
+	r.Delete("/v1/devices/{token}", s.unregisterDevice)
 	// Внутренние (сервис-сервис, не проксируются gateway наружу).
-	mux.HandleFunc("POST /internal/notify", s.notify)
-	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
-	return mux
+	r.Post("/internal/notify", s.notify)
+	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+	return r
 }
 
 // ── helpers ───────────────────────────────────────────────
@@ -89,7 +100,7 @@ func (s *Server) unregisterDevice(w http.ResponseWriter, r *http.Request) {
 		problem(w, http.StatusUnauthorized, "Требуется вход")
 		return
 	}
-	token := r.PathValue("token")
+	token := chi.URLParam(r, "token")
 	if token == "" {
 		problem(w, http.StatusBadRequest, "Не передан токен")
 		return
