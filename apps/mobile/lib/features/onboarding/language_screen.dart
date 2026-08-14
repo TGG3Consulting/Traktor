@@ -24,7 +24,8 @@ class LanguageScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Լեզու · Язык · Language', style: TkText.h2, textAlign: TextAlign.center),
+              const Text('Լեզու · Язык · Language',
+                  style: TkText.h2, textAlign: TextAlign.center),
               const SizedBox(height: 20),
               for (final (locale, name) in _langs) ...[
                 TkCard(

@@ -84,7 +84,7 @@ class _ProfileTab extends ConsumerWidget {
     return ListView(
       padding: TkSpace.screenMobile,
       children: [
-        Text('Профиль', style: TkText.h1),
+        const Text('Профиль', style: TkText.h1),
         const SizedBox(height: 16),
         // Переключатель роли (ТЗ §2.4) — мгновенно перестраивает таб-бар.
         SegmentedButton<bool>(
