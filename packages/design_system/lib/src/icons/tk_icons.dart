@@ -221,4 +221,103 @@ class TkIcons {
   static const String x =
       '<path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z"/>';
 
+  /// Стрелка «назад» (Phosphor arrow-left). В прототипе кнопки возврата
+  /// рисовались текстовой стрелкой, в приложении нужна иконка набора.
+  static const String arrowLeft =
+      '<path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"/>';
+
+  /// Уголок «влево» (Phosphor caret-left) — для компактных возвратов и списков.
+  static const String caretLeft =
+      '<path d="M165.66,202.34a8,8,0,0,1-11.32,11.32l-80-80a8,8,0,0,1,0-11.32l80-80a8,8,0,0,1,11.32,11.32L91.31,128Z"/>';
+
+  /// Уголок «вправо» — стрелка перехода в строках-ссылках.
+  static const String caretRight =
+      '<path d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"/>';
+
+  /// Минус (Phosphor minus) — парная кнопка к плюсу в счётчиках.
+  static const String minus =
+      '<path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128Z"/>';
+
+  /// Иконка по имени. Справочник категорий (сервис catalog) хранит имя
+  /// иконки Phosphor, а не путь: так добавление категории не требует правок
+  /// клиента. Неизвестное имя — гаечный ключ, экран не ломается.
+  static String byName(String name) => _byName[name] ?? wrench;
+
+  static final Map<String, String> _byName = {
+        'arrowDown': arrowDown,
+        'arrowLeft': arrowLeft,
+        'caretLeft': caretLeft,
+        'caretRight': caretRight,
+        'battery': battery,
+        'bell': bell,
+        'calendar': calendar,
+        'camera': camera,
+        'cash': cash,
+        'cellSignal': cellSignal,
+        'chartBar': chartBar,
+        'chartLineDown': chartLineDown,
+        'chartLineUp': chartLineUp,
+        'chatCircle': chatCircle,
+        'check': check,
+        'checkCircle': checkCircle,
+        'clipboardText': clipboardText,
+        'clock': clock,
+        'compass': compass,
+        'confetti': confetti,
+        'crane': crane,
+        'demolition': demolition,
+        'eye': eye,
+        'factory': factory,
+        'fileText': fileText,
+        'flag': flag,
+        'gear': gear,
+        'globe': globe,
+        'handshake': handshake,
+        'heart': heart,
+        'hourglass': hourglass,
+        'house': house,
+        'idCard': idCard,
+        'image': image,
+        'info': info,
+        'lifebuoy': lifebuoy,
+        'lightbulb': lightbulb,
+        'lightning': lightning,
+        'link': link,
+        'lock': lock,
+        'magnifyingGlass': magnifyingGlass,
+        'map': map,
+        'mapPin': mapPin,
+        'money': money,
+        'moon': moon,
+        'note': note,
+        'package': package,
+        'paperPlane': paperPlane,
+        'pencil': pencil,
+        'phone': phone,
+        'phoneOff': phoneOff,
+        'pickaxe': pickaxe,
+        'plant': plant,
+        'minus': minus,
+        'plus': plus,
+        'repeat': repeat,
+        'scales': scales,
+        'share': share,
+        'shield': shield,
+        'signOut': signOut,
+        'signal': signal,
+        'smileySad': smileySad,
+        'snowflake': snowflake,
+        'star': star,
+        'starFill': starFill,
+        'timer': timer,
+        'tractor': tractor,
+        'trash': trash,
+        'trophy': trophy,
+        'truck': truck,
+        'user': user,
+        'usersThree': usersThree,
+        'warning': warning,
+        'wrench': wrench,
+        'x': x,
+      };
 }

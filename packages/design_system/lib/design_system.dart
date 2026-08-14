@@ -7,6 +7,7 @@
 library design_system;
 
 export 'src/tokens.dart';
+export 'src/format.dart';
 export 'src/status.dart';
 export 'src/theme.dart';
 export 'src/components/tk_button.dart';
@@ -18,3 +19,5 @@ export 'src/icons/tk_icons.dart';
 export 'src/icons/tk_icon.dart';
 export 'src/components/tk_tab_bar.dart';
 export 'src/components/tk_order_type_sheet.dart';
+export 'src/components/tk_job_card.dart';
+export 'src/components/tk_wizard.dart';

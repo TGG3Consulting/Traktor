@@ -29,6 +29,37 @@ class TraktorApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: appRouter,
+      builder: (context, child) => _PhoneWidth(child: child),
+    );
+  }
+}
+
+/// Ограничение ширины на больших экранах (ТЗ §4.2, web-паритет).
+///
+/// Макет рисовался под телефон: растянутый на весь монитор он превращается в
+/// строчки длиной в экран и кнопки шириной 1500 пикселей. Держим колонку
+/// телефонной ширины по центру, а поля вокруг закрашиваем фоном.
+class _PhoneWidth extends StatelessWidget {
+  const _PhoneWidth({required this.child});
+
+  final Widget? child;
+
+  static const _maxWidth = 480.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = child ?? const SizedBox.shrink();
+    if (MediaQuery.sizeOf(context).width <= _maxWidth) return content;
+
+    final scheme = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: scheme.surfaceContainerHighest,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _maxWidth),
+          child: ClipRect(child: content),
+        ),
+      ),
     );
   }
 }

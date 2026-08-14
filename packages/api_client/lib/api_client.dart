@@ -3,6 +3,9 @@
 /// эндпоинты identity, чтобы приложение работало против реального сервиса).
 library api_client;
 
+export 'src/json_body.dart';
 export 'src/models.dart';
 export 'src/auth_api.dart';
 export 'src/devices_api.dart';
+export 'src/jobs_models.dart';
+export 'src/jobs_api.dart';

@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
+import 'json_body.dart';
 import 'models.dart';
 
 /// Клиент раздела notifications контракта: регистрация и снятие push-токена
@@ -49,9 +51,9 @@ class DevicesApi {
 
   void _ensureOk(http.Response resp) {
     if (resp.statusCode >= 300) {
-      final detail = resp.body.isEmpty
+      final detail = resp.bodyBytes.isEmpty
           ? 'Ошибка запроса'
-          : ((jsonDecode(resp.body) as Map)['detail'] as String? ?? 'Ошибка запроса');
+          : (decodeJsonBody(resp)['detail'] as String? ?? 'Ошибка запроса');
       throw ApiException(resp.statusCode, detail);
     }
   }

@@ -137,7 +137,7 @@ class _OrderTypeSheet extends StatelessWidget {
                 ],
               ),
             ),
-            TkIcon(TkIcons.arrowDown, size: 18, color: scheme.onSurfaceVariant),
+            TkIcon(TkIcons.caretRight, size: 18, color: scheme.onSurfaceVariant),
           ],
         ),
       ),

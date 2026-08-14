@@ -5,6 +5,9 @@ import 'package:design_system/design_system.dart';
 import 'package:traktor_mobile/l10n/app_localizations.dart';
 import '../../core/app_settings.dart';
 import '../auth/auth_controller.dart';
+import '../jobs/client_jobs_tab.dart';
+import '../jobs/create/wizard_controller.dart';
+import '../jobs/feed_tab.dart';
 
 /// Каркас домашнего экрана: bottom-nav из 5 табов, набор зависит от роли
 /// (ТЗ §1.9). Реальные экраны лент/сделок/CRM навешиваются в следующих фазах.
@@ -43,9 +46,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     return Scaffold(
       body: SafeArea(
-        child: _tab == 3
-            ? const _ProfileTab()
-            : _Placeholder(title: items[_tab].label),
+        child: switch (_tab) {
+          // Первая вкладка зависит от роли: заказчик ведёт свои задания,
+          // исполнитель смотрит ленту (ТЗ §1.9).
+          0 => isClient ? const ClientJobsTab() : const FeedTab(),
+          1 when isClient => const FeedTab(), // «Поиск» заказчика — та же лента
+          3 => const _ProfileTab(),
+          _ => _Placeholder(title: items[_tab].label),
+        },
       ),
       floatingActionButton: TkCreateButton(
         tooltip: isClient ? 'Создать заказ' : 'Добавить технику',
@@ -72,7 +80,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     if (type == null || !context.mounted) return;
     switch (type) {
       case TkOrderType.job:
-        _notReady(context, 'Создание задания');
+        // Начинаем новый визард: старый черновик остаётся на главной и
+        // открывается оттуда отдельно.
+        ref.read(wizardControllerProvider.notifier).startNew();
+        context.go('/jobs/create/1');
       case TkOrderType.rental:
         _notReady(context, 'Аренда техники');
       case TkOrderType.transport:

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'json_body.dart';
 import 'models.dart';
 
 /// Клиент раздела identity контракта. baseUrl — например
@@ -24,8 +25,7 @@ class AuthApi {
   }
 
   Map<String, dynamic> _handle(http.Response resp) {
-    final Map<String, dynamic> json =
-        resp.body.isEmpty ? {} : (jsonDecode(resp.body) as Map).cast<String, dynamic>();
+    final json = decodeJsonBody(resp);
     if (resp.statusCode >= 300) {
       throw ApiException(resp.statusCode, json['detail'] as String? ?? 'Ошибка запроса');
     }
