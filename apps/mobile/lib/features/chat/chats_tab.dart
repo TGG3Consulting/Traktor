@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import 'chat_providers.dart';
 
@@ -15,6 +16,7 @@ class ChatsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final chats = ref.watch(chatsProvider);
 
     // Заголовок вкладки рисует MessagesTab: здесь только список.
@@ -26,11 +28,11 @@ class ChatsTab extends ConsumerWidget {
       ),
       data: (list) {
         if (list.isEmpty) {
-          return const TkEmptyState(
+          return TkEmptyState(
             icon: TkIcons.chatCircle,
-            title: 'Переписок пока нет',
+            title: l.noChatsTitle,
             description:
-                'Напишите по заданию из отклика или деталки — переписка появится здесь',
+                l.noChatsDesc,
           );
         }
         return RefreshIndicator(
@@ -55,6 +57,7 @@ class _ChatRowTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     final unread = row.unread > 0;
 
     return InkWell(
@@ -94,7 +97,7 @@ class _ChatRowTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          row.lastText.isEmpty ? 'Переписка открыта' : row.lastText,
+                          row.lastText.isEmpty ? l.chatOpened : row.lastText,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TkText.caption.copyWith(

@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/realtime.dart';
 import '../../core/session_refresh.dart';
@@ -77,6 +78,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> _send() async {
+    final l = AppLocalizations.of(context);
     final text = _input.text.trim();
     if (text.isEmpty || _sending) return;
 
@@ -89,7 +91,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не отправилось: $e')),
+          SnackBar(content: Text(l.sendFailed('$e'))),
         );
       }
     } finally {
@@ -100,13 +102,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Мягкое предупреждение вместо блокировки (ТЗ §2.10): человек должен
   /// понимать, почему номер в его сообщении заменился точками.
   void _warnMasked() {
+    final l = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        duration: Duration(seconds: 6),
-        content: Text(
-          'Похоже на обмен контактами. До сделки это скрыто — так безопаснее '
-          'обеим сторонам. Номер откроется сразу после подтверждения.',
-        ),
+      SnackBar(
+        duration: const Duration(seconds: 6),
+        content: Text(l.contactsHidden),
       ),
     );
   }
@@ -125,6 +125,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final chat = ref.watch(chatProvider(widget.chatId));
     final messages = ref.watch(messagesProvider(widget.chatId));
@@ -134,17 +135,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       appBar: AppBar(
         titleSpacing: 0,
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(row?.peerName ?? 'Переписка', style: TkText.h3),
+            Text(row?.peerName ?? l.chatTitle, style: TkText.h3),
             if (row != null)
               Text(
-                row.isDeal ? 'Чат сделки · контакты открыты' : 'До сделки · контакты скрыты',
+                row.isDeal ? l.chatDealOpen : l.chatBeforeDeal,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
           ],
@@ -152,7 +153,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         actions: [
           if (row != null && row.jobId.isNotEmpty)
             IconButton(
-              tooltip: 'Задание',
+              tooltip: l.jobTitle,
               onPressed: () => context.push('/jobs/${row.jobId}'),
               icon: TkIcon(TkIcons.clipboardText, size: 20, color: scheme.onSurface),
             ),
@@ -176,9 +177,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   // chat_precontract). В сделке напоминание не нужно.
                   if (i == 0) {
                     if (row == null || row.isDeal) return const SizedBox.shrink();
-                    return const _SystemLine(
-                      text: 'Это чат до сделки. Телефоны откроются после подтверждения.',
-                    );
+                    return _SystemLine(text: l.chatHint);
                   }
                   final msg = list[i - 1];
                   if (msg.isSystem) return _SystemLine(text: msg.text);
@@ -294,6 +293,7 @@ class _Composer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     return SafeArea(
       top: false,
       child: Container(
@@ -314,7 +314,7 @@ class _Composer extends StatelessWidget {
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSend(),
                 decoration: InputDecoration(
-                  hintText: 'Сообщение…',
+                  hintText: l.messageHint,
                   counterText: '',
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
@@ -347,7 +347,7 @@ class _SendButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Semantics(
         button: true,
-        label: 'Отправить',
+        label: AppLocalizations.of(context).sendAction,
         child: InkWell(
           onTap: sending ? null : onPressed,
           borderRadius: const BorderRadius.all(Radius.circular(21)),

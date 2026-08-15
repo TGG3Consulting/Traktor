@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import 'review_providers.dart';
 
@@ -18,14 +19,15 @@ class ReviewScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final form = ref.watch(reviewFormProvider(dealId));
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Оценка сделки'),
+        title: Text(l.reviewTitle),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/deals/$dealId'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -39,10 +41,10 @@ class ReviewScreen extends ConsumerWidget {
         data: (f) {
           if (f.alreadyLeft) return _Left(form: f);
           if (!f.canReview) {
-            return const TkEmptyState(
+            return TkEmptyState(
               icon: TkIcons.hourglass,
-              title: 'Оценка пока недоступна',
-              description: 'Оценить работу можно после того, как сделка завершена',
+              title: l.reviewNotYet,
+              description: l.reviewAfterDeal,
             );
           }
           return _Form(dealId: dealId, form: f);
@@ -60,6 +62,7 @@ class _Left extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final mine = form.mine!;
 
@@ -82,9 +85,8 @@ class _Left extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           mine.published
-              ? 'Отзыв опубликован.'
-              : 'Отзыв скрыт, пока не оценит вторая сторона. Он откроется '
-                  'автоматически — сразу после её оценки или через неделю.',
+              ? l.reviewPublished
+              : l.reviewHiddenHint,
           textAlign: TextAlign.center,
           style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
         ),
@@ -122,6 +124,7 @@ class _FormState extends ConsumerState<_Form> {
   bool get _asksIssue => _stars > 0 && _stars < 3;
 
   Future<void> _send() async {
+    final l = AppLocalizations.of(context);
     if (_stars == 0 || _busy) return;
     setState(() => _busy = true);
     try {
@@ -136,15 +139,15 @@ class _FormState extends ConsumerState<_Form> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.published
-              ? 'Спасибо! Отзыв опубликован'
-              : 'Спасибо! Отзыв откроется после оценки второй стороны'),
+              ? l.thanksPublished
+              : l.thanksHidden),
         ),
       );
       context.go('/home');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Оценка не отправилась: $e')),
+          SnackBar(content: Text(l.reviewFailed('$e'))),
         );
       }
     } finally {
@@ -155,11 +158,12 @@ class _FormState extends ConsumerState<_Form> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     final f = widget.form;
-    final name = f.targetName.isEmpty ? 'вторую сторону' : f.targetName;
+    final name = f.targetName.isEmpty ? l.theOtherSide : f.targetName;
     final title = f.authorRole == 'owner'
-        ? 'Как вам работалось с $name?'
-        : 'Как отработал $name?';
+        ? l.howWasWorkClient(name)
+        : l.howWasWorkOwner(name);
 
     return Column(
       children: [
@@ -195,8 +199,8 @@ class _FormState extends ConsumerState<_Form> {
               const SizedBox(height: 20),
               TkTextField(
                 controller: _text,
-                label: 'Отзыв (необязательно)',
-                hint: 'Расскажите, как всё прошло — это поможет другим',
+                label: l.reviewOptional,
+                hint: l.reviewHint,
                 maxLines: 3,
                 maxLength: 500,
               ),
@@ -204,15 +208,15 @@ class _FormState extends ConsumerState<_Form> {
                 const SizedBox(height: 12),
                 TkTextField(
                   controller: _issue,
-                  label: 'Что пошло не так? (необязательно)',
-                  hint: 'Видит только модерация, в отзыве это не появится',
+                  label: l.whatWentWrong,
+                  hint: l.onlyModerationSees,
                   maxLines: 2,
                   maxLength: 500,
                 ),
               ],
               const SizedBox(height: 12),
               Text(
-                'Отзывы публикуются одновременно после обеих оценок либо через неделю',
+                l.reviewsPublishTogether,
                 textAlign: TextAlign.center,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
@@ -235,7 +239,7 @@ class _FormState extends ConsumerState<_Form> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
-                      'Поставьте оценку от 1 до 5 звёзд',
+                      l.putStars,
                       textAlign: TextAlign.center,
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                     ),
@@ -248,7 +252,7 @@ class _FormState extends ConsumerState<_Form> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Отправить оценку'),
+                      : Text(l.sendReview),
                 ),
               ],
             ),
