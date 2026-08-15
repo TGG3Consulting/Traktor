@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/session_refresh.dart';
 import '../jobs/jobs_providers.dart';
@@ -44,15 +45,16 @@ class _ExportButtonState extends ConsumerState<ExportButton> {
       await Clipboard.setData(ClipboardData(text: String.fromCharCodes(bytes)));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Отчёт скопирован — вставьте в Excel или отправьте бухгалтеру'),
-          duration: Duration(seconds: 4),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).reportCopied),
+          duration: const Duration(seconds: 4),
         ),
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Не выгрузилось: $e')));
+            .showSnackBar(SnackBar(
+                content: Text(AppLocalizations.of(context).exportFailed('$e'))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -61,13 +63,14 @@ class _ExportButtonState extends ConsumerState<ExportButton> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return OutlinedButton.icon(
       onPressed: _busy ? null : _export,
       icon: _busy
           ? const SizedBox(
               width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
           : const TkIcon(TkIcons.fileText, size: 18),
-      label: const Text('Отчёт за период'),
+      label: Text(l.reportForPeriod),
     );
   }
 }

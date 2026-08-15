@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/app_settings.dart';
 import '../../core/session_refresh.dart';
@@ -31,25 +32,27 @@ class SpendingScreen extends ConsumerStatefulWidget {
 class _SpendingScreenState extends ConsumerState<SpendingScreen> {
   String _period = 'month';
 
-  static const _periods = {
-    'week': 'Неделя',
-    'month': 'Месяц',
-    'quarter': 'Квартал',
-    'year': 'Год',
-    'all': 'Всё время',
-  };
+  /// Периоды отчёта. Собираются на месте: подписи зависят от языка.
+  Map<String, String> _periods(AppLocalizations l) => {
+        'week': l.periodWeek,
+        'month': l.periodMonth,
+        'quarter': l.periodQuarter,
+        'year': l.periodYear,
+        'all': l.periodAll,
+      };
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final data = ref.watch(spendingProvider(_period));
     final lang = (ref.watch(appSettingsProvider).locale ?? const Locale('ru')).languageCode;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Мои расходы'),
+        title: Text(l.mySpending),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -62,7 +65,7 @@ class _SpendingScreenState extends ConsumerState<SpendingScreen> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
             child: Row(
               children: [
-                for (final entry in _periods.entries) ...[
+                for (final entry in _periods(l).entries) ...[
                   TkChip(
                     label: entry.value,
                     selected: _period == entry.key,
@@ -116,6 +119,7 @@ class _SpentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     // У расходов рост — не всегда хорошо, поэтому цвет обратный доходу:
     // выросли траты — красный, снизились — зелёный.
@@ -125,7 +129,7 @@ class _SpentCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Потрачено', style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
+          Text(l.spentLabel, style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
           const SizedBox(height: 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -152,11 +156,11 @@ class _SpentCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _Metric(label: 'Заданий', value: '${spending.deals}'),
+                child: _Metric(label: l.jobsLabel, value: '${spending.deals}'),
               ),
               Expanded(
                 child: _Metric(
-                  label: 'Средний чек',
+                  label: l.avgCheckLabel,
                   value: tkMoney(spending.average, currency: spending.currency),
                 ),
               ),
@@ -176,6 +180,7 @@ class _SavedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -191,12 +196,12 @@ class _SavedCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Аукцион сэкономил ${tkMoney(spending.saved, currency: spending.currency)}',
+                  l.auctionSaved(tkMoney(spending.saved, currency: spending.currency)),
                   style: TkText.body.copyWith(
                       fontWeight: FontWeight.w600, color: TkColors.success),
                 ),
                 Text(
-                  'Разница между стартовой ценой заданий и той, по которой закрылись сделки',
+                  l.auctionSavedHint,
                   style: TkText.caption.copyWith(color: TkColors.success),
                 ),
               ],
@@ -218,6 +223,7 @@ class _CategoriesCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final total = spending.byCategory.fold<int>(0, (sum, c) => sum + c.total);
 
@@ -225,7 +231,7 @@ class _CategoriesCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('На что уходят деньги', style: TkText.h3),
+          Text(l.whereMoneyGoes, style: TkText.h3),
           const SizedBox(height: 10),
           for (final c in spending.byCategory) ...[
             Builder(builder: (context) {
@@ -240,7 +246,7 @@ class _CategoriesCard extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            category?.name.forLang(lang) ?? 'Другое',
+                            category?.name.forLang(lang) ?? l.otherCategory,
                             style: TkText.body,
                           ),
                         ),
@@ -279,18 +285,18 @@ class _OwnersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
 
     return TkCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Исполнители', style: TkText.h3),
+          Text(l.contractorsTitle, style: TkText.h3),
           const SizedBox(height: 8),
           if (spending.owners.isEmpty)
             Text(
-              'Пока пусто. После первой завершённой работы исполнитель появится '
-              'здесь — можно будет позвать его снова.',
+              l.contractorsEmpty,
               style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
             )
           else
@@ -309,7 +315,7 @@ class _OwnersCard extends StatelessWidget {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    o.name.isEmpty ? 'Исполнитель' : o.name,
+                                    o.name.isEmpty ? l.contractorWord : o.name,
                                     style: TkText.body
                                         .copyWith(fontWeight: FontWeight.w600),
                                     overflow: TextOverflow.ellipsis,
@@ -324,15 +330,15 @@ class _OwnersCard extends StatelessWidget {
                                       color: TkColors.success,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Text('Постоянный',
-                                        style: TextStyle(
+                                    child: Text(l.regularMark,
+                                        style: const TextStyle(
                                             fontSize: 10, color: Colors.white)),
                                   ),
                                 ],
                               ],
                             ),
                             Text(
-                              '${o.deals} ${tkPlural(o.deals, 'работа', 'работы', 'работ')}'
+                              '${l.worksPlural(o.deals)}'
                               '${o.last != null ? ' · ${tkShortDate(o.last)}' : ''}',
                               style: TkText.caption
                                   .copyWith(color: scheme.onSurfaceVariant),

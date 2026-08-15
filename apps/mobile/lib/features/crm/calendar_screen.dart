@@ -1,8 +1,10 @@
 import 'package:api_client/api_client.dart';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/session_refresh.dart';
 import '../jobs/jobs_providers.dart';
@@ -32,11 +34,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   late DateTime _month;
   bool _busy = false;
 
-  static const _weekdays = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-  static const _months = [
-    'январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
-    'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь',
-  ];
+  /// Названия месяцев и дней недели берём из intl по языку приложения:
+  /// свой список пришлось бы переводить руками и держать в трёх местах.
+  List<String> _weekdays(String lang) {
+    final base = DateTime(2024, 1, 1); // понедельник
+    return List.generate(
+      7,
+      (i) => DateFormat.E(lang).format(base.add(Duration(days: i))).toLowerCase(),
+    );
+  }
+
+  String _monthName(DateTime m, String lang) =>
+      DateFormat.yMMMM(lang).format(m);
 
   @override
   void initState() {
@@ -76,7 +85,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Не сохранилось: $e')));
+            .showSnackBar(SnackBar(
+                content: Text(AppLocalizations.of(context).saveFailed('$e'))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -85,14 +95,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final lang = Localizations.localeOf(context).languageCode;
     final scheme = Theme.of(context).colorScheme;
     final days = ref.watch(calendarProvider(_monthKey));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Занятость'),
+        title: Text(l.calendarTitle),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -111,20 +123,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               Row(
                 children: [
                   IconButton(
-                    tooltip: 'Прошлый месяц',
+                    tooltip: l.prevMonth,
                     onPressed: () => setState(
                         () => _month = DateTime(_month.year, _month.month - 1)),
                     icon: TkIcon(TkIcons.caretLeft, size: 18, color: scheme.onSurface),
                   ),
                   Expanded(
                     child: Text(
-                      '${_months[_month.month - 1]} ${_month.year}',
+                      _monthName(_month, lang),
                       textAlign: TextAlign.center,
                       style: TkText.h3,
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Следующий месяц',
+                    tooltip: l.nextMonth,
                     onPressed: () => setState(
                         () => _month = DateTime(_month.year, _month.month + 1)),
                     icon: TkIcon(TkIcons.caretRight, size: 18, color: scheme.onSurface),
@@ -134,7 +146,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  for (final w in _weekdays)
+                  for (final w in _weekdays(lang))
                     Expanded(
                       child: Text(
                         w,
@@ -154,21 +166,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const _Legend(color: TkColors.primary, label: 'Сделка'),
+                  _Legend(color: TkColors.primary, label: l.dealMark),
                   const SizedBox(width: 16),
-                  _Legend(color: scheme.outline, label: 'Не работаю'),
+                  _Legend(color: scheme.outline, label: l.dayOff),
                 ],
               ),
               const SizedBox(height: 12),
               Text(
-                'Нажмите на свободный день, чтобы отметить «не работаю». Такие дни '
-                'учитываются, когда вы делаете ставку: площадка предупредит, если '
-                'дата уже занята. День со сделкой открывает саму сделку.',
+                l.calendarHint,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
               if (items.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text('Занятые дни', style: TkText.h3),
+                Text(l.busyDays, style: TkText.h3),
                 const SizedBox(height: 8),
                 for (final d in items)
                   Padding(
@@ -187,7 +197,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         Expanded(
                           child: Text(
                             '${tkShortDate(d.day)} — '
-                            '${d.fromDeal ? (d.title.isEmpty ? 'сделка' : d.title) : (d.note.isEmpty ? 'не работаю' : d.note)}',
+                            '${d.fromDeal ? (d.title.isEmpty ? l.dealMark : d.title) : (d.note.isEmpty ? l.dayOff : d.note)}',
                             style: TkText.caption,
                           ),
                         ),

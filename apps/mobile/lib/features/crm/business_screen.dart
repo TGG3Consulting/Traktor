@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/session_refresh.dart';
 import '../jobs/jobs_providers.dart';
@@ -31,24 +32,26 @@ class BusinessScreen extends ConsumerStatefulWidget {
 class _BusinessScreenState extends ConsumerState<BusinessScreen> {
   String _period = 'month';
 
-  static const _periods = {
-    'week': 'Неделя',
-    'month': 'Месяц',
-    'quarter': 'Квартал',
-    'year': 'Год',
-    'all': 'Всё время',
-  };
+  /// Периоды отчёта. Собираются на месте: подписи зависят от языка.
+  Map<String, String> _periods(AppLocalizations l) => {
+        'week': l.periodWeek,
+        'month': l.periodMonth,
+        'quarter': l.periodQuarter,
+        'year': l.periodYear,
+        'all': l.periodAll,
+      };
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final data = ref.watch(businessProvider(_period));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Мой бизнес'),
+        title: Text(l.myBusiness),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -61,7 +64,7 @@ class _BusinessScreenState extends ConsumerState<BusinessScreen> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
             child: Row(
               children: [
-                for (final entry in _periods.entries) ...[
+                for (final entry in _periods(l).entries) ...[
                   TkChip(
                     label: entry.value,
                     selected: _period == entry.key,
@@ -111,6 +114,7 @@ class _IncomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final grew = business.delta >= 0;
 
@@ -118,7 +122,7 @@ class _IncomeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Доход', style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
+          Text(l.incomeLabel, style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
           const SizedBox(height: 4),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -146,13 +150,13 @@ class _IncomeCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _Metric(
-                  label: 'Сделок',
+                  label: l.dealsLabel,
                   value: '${business.deals}',
                 ),
               ),
               Expanded(
                 child: _Metric(
-                  label: 'Средний чек',
+                  label: l.avgCheckLabel,
                   value: tkMoney(business.average, currency: business.currency),
                 ),
               ),
@@ -173,6 +177,7 @@ class _FunnelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final percent = (business.winRate * 100).round();
 
@@ -180,18 +185,17 @@ class _FunnelCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Воронка', style: TkText.h3),
+          Text(l.funnelTitle, style: TkText.h3),
           const SizedBox(height: 10),
-          _Step(label: 'Откликнулся', value: business.offers, total: business.offers),
-          _Step(label: 'Выбрали', value: business.won, total: business.offers),
-          _Step(label: 'Завершил', value: business.completed, total: business.offers),
+          _Step(label: l.funnelResponded, value: business.offers, total: business.offers),
+          _Step(label: l.funnelChosen, value: business.won, total: business.offers),
+          _Step(label: l.funnelDone, value: business.completed, total: business.offers),
           if (business.offers > 0) ...[
             const SizedBox(height: 10),
             Text(
               percent >= 15
-                  ? 'Вы выигрываете $percent% откликов — это хороший результат.'
-                  : 'Вы выигрываете $percent% откликов. Помогают фотографии техники, '
-                      'быстрый отклик и отзывы: заказчик выбирает по ним.',
+                  ? l.winRateGood(percent)
+                  : l.winRateHint(percent),
               style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
@@ -248,18 +252,18 @@ class _ClientsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
 
     return TkCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Клиенты', style: TkText.h3),
+          Text(l.clientsTitle, style: TkText.h3),
           const SizedBox(height: 8),
           if (business.clients.isEmpty)
             Text(
-              'Пока пусто. После первой завершённой сделки заказчик появится здесь — '
-              'вместе с суммой и датой.',
+              l.clientsEmpty,
               style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
             )
           else
@@ -278,7 +282,7 @@ class _ClientsCard extends StatelessWidget {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    c.name.isEmpty ? 'Заказчик' : c.name,
+                                    c.name.isEmpty ? l.clientWord : c.name,
                                     style: TkText.body.copyWith(fontWeight: FontWeight.w600),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -292,15 +296,15 @@ class _ClientsCard extends StatelessWidget {
                                       color: TkColors.success,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: const Text('Постоянный',
-                                        style: TextStyle(
+                                    child: Text(l.regularMark,
+                                        style: const TextStyle(
                                             fontSize: 10, color: Colors.white)),
                                   ),
                                 ],
                               ],
                             ),
                             Text(
-                              '${c.deals} ${tkPlural(c.deals, 'сделка', 'сделки', 'сделок')}'
+                              '${l.dealsPlural(c.deals)}'
                               '${c.last != null ? ' · ${tkShortDate(c.last)}' : ''}',
                               style: TkText.caption
                                   .copyWith(color: scheme.onSurfaceVariant),
