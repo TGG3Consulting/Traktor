@@ -34,29 +34,31 @@ class TraktorApp extends ConsumerWidget {
   }
 }
 
-/// Ограничение ширины на больших экранах (ТЗ §4.2, web-паритет).
+/// Ограничение ширины на больших экранах (ТЗ §1.8, §4.2).
 ///
-/// Макет рисовался под телефон: растянутый на весь монитор он превращается в
-/// строчки длиной в экран и кнопки шириной 1500 пикселей. Держим колонку
-/// телефонной ширины по центру, а поля вокруг закрашиваем фоном.
+/// Макет рисовался под телефон: растянутый на весь монитор он превращается
+/// в строки длиной в экран. Но и сжимать всё до телефонной колонки нельзя —
+/// на десктопе половина экрана оставалась пустой, а лента листалась по одному
+/// заданию. Поэтому предел ширины зависит от того, что показывает экран:
+/// двухколоночные экраны сами занимают доступное место, остальные держат
+/// колонку чтения.
 class _PhoneWidth extends StatelessWidget {
   const _PhoneWidth({required this.child});
 
   final Widget? child;
 
-  static const _maxWidth = 480.0;
-
   @override
   Widget build(BuildContext context) {
     final content = child ?? const SizedBox.shrink();
-    if (MediaQuery.sizeOf(context).width <= _maxWidth) return content;
+    final width = MediaQuery.sizeOf(context).width;
+    if (width <= TkLayout.readable) return content;
 
     final scheme = Theme.of(context).colorScheme;
     return ColoredBox(
       color: scheme.surfaceContainerHighest,
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: _maxWidth),
+          constraints: const BoxConstraints(maxWidth: TkLayout.contentMax),
           child: ClipRect(child: content),
         ),
       ),

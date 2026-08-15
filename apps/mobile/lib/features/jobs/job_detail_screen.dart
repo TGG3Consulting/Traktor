@@ -23,9 +23,13 @@ import 'spec_labels.dart';
 /// исполнитель — условия и кнопку отклика. Резервную цену аукциона сервер
 /// исполнителю не отдаёт вовсе, поэтому её нельзя показать по ошибке.
 class JobDetailScreen extends ConsumerWidget {
-  const JobDetailScreen({super.key, required this.jobId});
+  const JobDetailScreen({super.key, required this.jobId, this.embedded = false});
 
   final String jobId;
+
+  /// Встроенный режим — правая колонка ленты на десктопе (ТЗ §4.2). Кнопки
+  /// «назад» там нет: экран не открывался, а сменил содержимое.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,12 +39,15 @@ class JobDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Задание'),
-        leading: IconButton(
-          tooltip: 'Назад',
-          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
-          icon: TkIcon(TkIcons.arrowLeft, size: 20,
-              color: Theme.of(context).colorScheme.onSurface),
-        ),
+        automaticallyImplyLeading: false,
+        leading: embedded
+            ? null
+            : IconButton(
+                tooltip: 'Назад',
+                onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+                icon: TkIcon(TkIcons.arrowLeft, size: 20,
+                    color: Theme.of(context).colorScheme.onSurface),
+              ),
         actions: [
           // Ссылками на задание делятся в мессенджерах — это основной канал
           // сарафана (ТЗ §4.2).

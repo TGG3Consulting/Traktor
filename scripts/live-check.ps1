@@ -46,5 +46,26 @@ Check ($app -match 'Traktor') 'app.homly.am otdaet prilozhenie'
 $rt = Fetch 'rt.homly.am' '/health' @('-o', 'NUL', '-w', '%{http_code}')
 Check ($rt -eq '200') "rt.homly.am (realtime) -> $rt"
 
+# 5. DNS chistyy: adresa domenov vedut tolko na tunnel Cloudflare.
+#
+# Ostavshayasya A-zapis parkovki lomaet sayt cherez raz - brauzer vybiraet
+# lyuboy iz adresov, i chelovek popadaet na "Welcome to app.homly.am".
+# Nashi proverki vyshe hodyat s yavnym ukazaniem adresa Cloudflare i etogo
+# ne zamechayut, poetomu sveryaem spisok otdelno.
+Write-Output "`n--- 5. DNS: tolko adresa tunnelya ---"
+foreach ($name in @('api.homly.am', 'app.homly.am', 'rt.homly.am')) {
+    $ips = @()
+    try {
+        $ips = (Resolve-DnsName -Name $name -Type A -ErrorAction Stop |
+                Where-Object { $_.IPAddress } | ForEach-Object { $_.IPAddress })
+    } catch { }
+    # Cloudflare otdaet adresa iz svoih diapazonov 104.x i 172.6x.
+    $strangers = @($ips | Where-Object { $_ -notmatch '^(104\.|172\.6[4-9]\.|172\.7[0-1]\.)' })
+    Check ($strangers.Count -eq 0) "$name -> $($ips -join ', ')"
+    if ($strangers.Count -gt 0) {
+        Write-Output "    lishnie zapisi: $($strangers -join ', ') - udalite ih v zone domena"
+    }
+}
+
 Write-Output "`n=================================="
 if ($failed) { Write-Output 'ITOG: EST PROVALY'; exit 1 } else { Write-Output 'ITOG: VSE RABOTAET SNARUZHI'; exit 0 }

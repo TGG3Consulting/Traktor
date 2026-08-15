@@ -7,6 +7,7 @@
 library design_system;
 
 export 'src/tokens.dart';
+export 'src/layout.dart';
 export 'src/format.dart';
 export 'src/status.dart';
 export 'src/theme.dart';

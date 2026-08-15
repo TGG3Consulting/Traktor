@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'job_detail_screen.dart';
 import 'jobs_providers.dart';
+
+/// Выбранное задание в двухколоночной раскладке (ТЗ §4.2). На телефоне не
+/// используется: там карточка открывает отдельный экран.
+final selectedJobProvider = StateProvider<String?>((ref) => null);
 
 /// Лента заданий — главный экран исполнителя (ТЗ §2.7, прототип `feed`).
 ///
@@ -12,6 +17,23 @@ import 'jobs_providers.dart';
 /// обновление) — обязательное требование §1.11.
 class FeedTab extends ConsumerWidget {
   const FeedTab({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // На широком экране лента и деталка стоят рядом: иначе половина монитора
+    // пустая, а задания листаются по одному (ТЗ §4.2).
+    if (TkLayout.isDesktop(context)) return const _TwoPane();
+    return const _FeedList();
+  }
+}
+
+/// Список заданий — он же левая колонка на десктопе.
+class _FeedList extends ConsumerWidget {
+  const _FeedList({this.compact = false});
+
+  /// В двухколоночной раскладке карточка не уводит на другой экран, а меняет
+  /// содержимое правой колонки.
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,13 +105,45 @@ class FeedTab extends ConsumerWidget {
                       viewsCount: j.viewsCount,
                       workersCount: j.workersCount,
                       hasPhoto: j.photos.isNotEmpty,
-                      onTap: () => context.go('/jobs/${j.id}'),
+                      onTap: () => compact
+                          ? ref.read(selectedJobProvider.notifier).state = j.id
+                          : context.go('/jobs/${j.id}'),
                     );
                   },
                 ),
               );
             },
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Двухколоночная лента для десктопа (ТЗ §4.2): список слева, выбранное
+/// задание справа. Так исполнитель просматривает десяток заданий, не теряя
+/// позицию в списке.
+class _TwoPane extends ConsumerWidget {
+  const _TwoPane();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final selected = ref.watch(selectedJobProvider);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(width: TkLayout.listPane, child: _FeedList(compact: true)),
+        VerticalDivider(width: 1, color: scheme.outlineVariant),
+        Expanded(
+          child: selected == null
+              ? const TkEmptyState(
+                  icon: TkIcons.clipboardText,
+                  title: 'Выберите задание',
+                  description: 'Слева — лента, справа откроется карточка',
+                )
+              : JobDetailScreen(key: ValueKey(selected), jobId: selected, embedded: true),
         ),
       ],
     );

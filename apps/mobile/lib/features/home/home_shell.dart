@@ -47,8 +47,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             const TkTabItem(icon: TkIcons.user, label: 'Профиль'),
           ];
 
-    return Scaffold(
-      body: SafeArea(
+    // На широком экране навигация уезжает вбок (ТЗ §1.8): нижняя панель на
+    // мониторе стоит в тридцати сантиметрах от глаз и от курсора, а левый
+    // край — там же, где взгляд начинает читать.
+    final wide = !TkLayout.isPhone(context);
+
+    final content = SafeArea(
         child: switch (_tab) {
           // Первая вкладка зависит от роли: заказчик ведёт свои задания,
           // исполнитель смотрит ленту (ТЗ §1.9).
@@ -62,7 +66,40 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           3 => const _ProfileTab(),
           _ => _Placeholder(title: items[_tab].label),
         },
-      ),
+      );
+
+    if (wide) {
+      return Scaffold(
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: _tab,
+              onDestinationSelected: (i) => setState(() => _tab = i),
+              labelType: NavigationRailLabelType.all,
+              leading: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: TkCreateButton(
+                  tooltip: isClient ? 'Создать заказ' : 'Добавить технику',
+                  onPressed: () => _onCreate(context, isClient),
+                ),
+              ),
+              destinations: [
+                for (final it in items)
+                  NavigationRailDestination(
+                    icon: TkIcon(it.icon, size: 22),
+                    label: Text(it.label),
+                  ),
+              ],
+            ),
+            VerticalDivider(width: 1, color: Theme.of(context).colorScheme.outlineVariant),
+            Expanded(child: content),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: content,
       floatingActionButton: TkCreateButton(
         tooltip: isClient ? 'Создать заказ' : 'Добавить технику',
         onPressed: () => _onCreate(context, isClient),
