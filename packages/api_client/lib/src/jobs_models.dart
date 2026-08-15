@@ -925,3 +925,92 @@ class PublicProfile {
         createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
       );
 }
+
+/// Сводка «Мой бизнес» исполнителя (ТЗ §3.1). Цифры копятся сами из сделок.
+class Business {
+  const Business({
+    this.period = 'month',
+    this.income = 0,
+    this.deals = 0,
+    this.average = 0,
+    this.currency = 'AMD',
+    this.prevIncome = 0,
+    this.delta = 0,
+    this.deltaComparable = false,
+    this.offers = 0,
+    this.won = 0,
+    this.completed = 0,
+    this.winRate = 0,
+    this.clients = const [],
+  });
+
+  final String period;
+  final int income;
+  final int deals;
+  final int average;
+  final String currency;
+  final int prevIncome;
+
+  /// Изменение дохода к прошлому периоду в процентах.
+  final int delta;
+
+  /// С нулём сравнивать нечего — тогда дельту не показываем.
+  final bool deltaComparable;
+
+  final int offers;
+  final int won;
+  final int completed;
+  final double winRate;
+  final List<BusinessClient> clients;
+
+  factory Business.fromJson(Map<String, dynamic> j) {
+    final funnel = (j['funnel'] as Map?)?.cast<String, dynamic>() ?? const {};
+    return Business(
+      period: j['period'] as String? ?? 'month',
+      income: (j['income'] as num?)?.toInt() ?? 0,
+      deals: j['deals'] as int? ?? 0,
+      average: (j['average'] as num?)?.toInt() ?? 0,
+      currency: j['currency'] as String? ?? 'AMD',
+      prevIncome: (j['prevIncome'] as num?)?.toInt() ?? 0,
+      delta: j['delta'] as int? ?? 0,
+      deltaComparable: j['deltaComparable'] as bool? ?? false,
+      offers: funnel['offers'] as int? ?? 0,
+      won: funnel['won'] as int? ?? 0,
+      completed: funnel['completed'] as int? ?? 0,
+      winRate: (funnel['winRate'] as num?)?.toDouble() ?? 0,
+      clients: ((j['clients'] as List?) ?? const [])
+          .map((e) => BusinessClient.fromJson((e as Map).cast<String, dynamic>()))
+          .toList(),
+    );
+  }
+}
+
+/// Строка клиентской базы.
+class BusinessClient {
+  const BusinessClient({
+    required this.userId,
+    this.name = '',
+    this.deals = 0,
+    this.total = 0,
+    this.last,
+    this.regular = false,
+  });
+
+  final String userId;
+  final String name;
+  final int deals;
+  final int total;
+  final DateTime? last;
+
+  /// Три сделки и больше.
+  final bool regular;
+
+  factory BusinessClient.fromJson(Map<String, dynamic> j) => BusinessClient(
+        userId: j['userId'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+        deals: j['deals'] as int? ?? 0,
+        total: (j['total'] as num?)?.toInt() ?? 0,
+        last: DateTime.tryParse(j['last'] as String? ?? '')?.toLocal(),
+        regular: j['regular'] as bool? ?? false,
+      );
+}

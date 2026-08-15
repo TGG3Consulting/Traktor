@@ -114,6 +114,12 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/{chatId}/realtime-token", s.chatRealtimeToken)
 	})
 
+	// CRM исполнителя (ТЗ §3.1).
+	r.Route("/v1/crm", func(r chi.Router) {
+		r.Use(s.requireUser)
+		r.Get("/business", s.business)
+	})
+
 	// Ставки исполнителя и решения заказчика по ним.
 	r.Route("/v1/bids", func(r chi.Router) {
 		r.Use(s.requireUser)

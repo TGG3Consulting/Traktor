@@ -15,6 +15,7 @@ import '../features/jobs/auction/auction_screen.dart';
 import '../features/jobs/deal/deal_screen.dart';
 import '../features/jobs/job_detail_screen.dart';
 import '../features/jobs/offers/offers_screen.dart';
+import '../features/crm/business_screen.dart';
 import '../features/equipment/equipment_list_screen.dart';
 import '../features/equipment/equipment_new_screen.dart';
 import '../features/equipment/equipment_wizard_screen.dart';
@@ -76,6 +77,9 @@ final appRouter = GoRouter(
       path: '/users/:id',
       builder: (_, state) => PublicProfileScreen(userId: state.pathParameters['id']!),
     ),
+
+    // CRM исполнителя (ТЗ §3.1).
+    GoRoute(path: '/crm/business', builder: (_, __) => const BusinessScreen()),
 
     // Техника исполнителя (ТЗ §2.5): список и визард из четырёх шагов.
     GoRoute(path: '/equipment', builder: (_, __) => const EquipmentListScreen()),

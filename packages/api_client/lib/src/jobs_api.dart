@@ -333,6 +333,15 @@ class JobsApi {
     return _handle(resp)['token'] as String? ?? '';
   }
 
+  /// GET /crm/business — сводка «Мой бизнес» (ТЗ §3.1).
+  Future<Business> business(String token, {String period = 'month'}) async {
+    final resp = await _http.get(
+      _u('/crm/business', {'period': period}),
+      headers: _headers(token),
+    );
+    return Business.fromJson(_handle(resp));
+  }
+
   // ── публичная карточка человека (ТЗ §2.3) ──────────────────────────────────
 
   /// GET /users/{id} — имя, город, отметка проверки. Работает без входа:

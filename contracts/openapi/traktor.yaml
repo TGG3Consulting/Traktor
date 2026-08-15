@@ -1594,6 +1594,61 @@ paths:
         "503":
           description: Живые обновления выключены на этом стенде
 
+  /crm/business:
+    get:
+      tags: [orders]
+      summary: Сводка «Мой бизнес» исполнителя (ТЗ §3.1)
+      description: >
+        Доход за период с изменением к прошлому такому же отрезку, воронка
+        (отклики → выбрали → завершил) и клиентская база. Всё считается из
+        завершённых сделок — человек ничего не заполняет руками.
+      operationId: businessSummary
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [week, month, quarter, year, all]
+            default: month
+      responses:
+        "200":
+          description: Сводка
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  period: { type: string }
+                  income: { type: integer, format: int64 }
+                  deals: { type: integer }
+                  average: { type: integer, format: int64 }
+                  currency: { type: string }
+                  prevIncome: { type: integer, format: int64 }
+                  delta: { type: integer, description: "изменение дохода, %" }
+                  deltaComparable:
+                    type: boolean
+                    description: "с нулевым прошлым доходом процент не считается"
+                  funnel:
+                    type: object
+                    properties:
+                      offers: { type: integer }
+                      won: { type: integer }
+                      completed: { type: integer }
+                      winRate: { type: number }
+                      finishRate: { type: number }
+                  clients:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId: { type: string, format: uuid }
+                        name: { type: string }
+                        deals: { type: integer }
+                        total: { type: integer, format: int64 }
+                        last: { type: string, format: date-time }
+                        regular: { type: boolean, description: "три сделки и больше" }
+
 components:
   securitySchemes:
     bearerAuth:

@@ -157,6 +157,13 @@ class _ProfileTab extends ConsumerWidget {
               // «Моя техника» — вход исполнителя в свой парк (ТЗ §2.5).
               if (!isClient) ...[
                 ListTile(
+                  leading: const TkIcon(TkIcons.chartBar),
+                  title: const Text('Мой бизнес'),
+                  trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                  onTap: () => context.push('/crm/business'),
+                ),
+                const Divider(height: 1),
+                ListTile(
                   leading: const TkIcon(TkIcons.wrench),
                   title: const Text('Моя техника'),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),

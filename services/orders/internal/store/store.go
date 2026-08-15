@@ -65,6 +65,13 @@ type Store interface {
 	DealByJob(ctx context.Context, jobID string) (*job.Deal, error)
 	DealsByUser(ctx context.Context, userID string, limit, offset int) ([]job.Deal, error)
 
+	// ── CRM исполнителя (ТЗ §3.1) ────────────────────────────────────────────
+	// Считаем в базе: тянуть все сделки за год на телефон ради одной суммы
+	// бессмысленно.
+	IncomeOf(ctx context.Context, ownerID string, from, to time.Time) (int64, int, error)
+	FunnelOf(ctx context.Context, ownerID string, from, to time.Time) (job.Funnel, error)
+	ClientsOf(ctx context.Context, ownerID string, from, to time.Time, limit int) ([]job.Client, error)
+
 	// ── ставки аукциона (ТЗ §2.9) ────────────────────────────────────────────
 	CreateBid(ctx context.Context, b *job.Bid) error
 	UpdateBid(ctx context.Context, b *job.Bid) error
