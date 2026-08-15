@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_settings.dart';
@@ -128,7 +129,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не сохранилось: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).saveFailed('$e'))),
         );
       }
       return false;
@@ -162,7 +163,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Фото не загрузилось: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).photoFailed('$e'))),
         );
       }
     } finally {
@@ -191,7 +192,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Документ не загрузился: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).docFailed('$e'))),
         );
       }
     } finally {
@@ -209,8 +210,8 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.isPending
-              ? 'Отправлено на проверку — ответ придёт в течение суток'
-              : 'Опубликовано со статусом «Без проверки»'),
+              ? AppLocalizations.of(context).sentToReview
+              : AppLocalizations.of(context).publishedUnverified),
         ),
       );
       context.go('/equipment');
@@ -225,7 +226,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не отправилось: $e')),
+        SnackBar(content: Text(AppLocalizations.of(context).sendFailed('$e'))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -241,14 +242,15 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final step = widget.step.clamp(1, 4);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Добавление техники'),
+        title: Text(l.addEquipmentTitle),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/equipment'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -263,30 +265,30 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
                   child: Row(
                     children: [
                       Text(
-                        'Шаг $step из 4 · ${_stepTitle(step)}',
+                        l.eqWizardStep(step, _stepTitle(step, l)),
                         style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                       ),
                       const Spacer(),
                       if (_item != null && !_item!.isDraft)
                         Text(
-                          'черновик сохранён',
+                          l.draftSaved,
                           style: TkText.caption.copyWith(color: TkColors.success),
                         ),
                     ],
                   ),
                 ),
                 Expanded(child: _body(step)),
-                _footer(step),
+                _footer(step, l),
               ],
             ),
     );
   }
 
-  static String _stepTitle(int step) => switch (step) {
-        1 => 'Категория',
-        2 => 'Данные машины',
-        3 => 'Фото',
-        _ => 'Документы',
+  static String _stepTitle(int step, AppLocalizations l) => switch (step) {
+        1 => l.eqStepCategory,
+        2 => l.eqStepData,
+        3 => l.eqStepPhotos,
+        _ => l.eqStepDocs,
       };
 
   Widget _body(int step) => switch (step) {
@@ -303,6 +305,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
 
   /// Шаг 2: марка, модель, год, характеристики категории и тарифы аренды.
   Widget _dataStep(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final lang = (ref.watch(appSettingsProvider).locale ?? const Locale('ru')).languageCode;
     final category = ref.watch(unitCategoryByIdProvider(_categoryId));
@@ -313,8 +316,8 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
       children: [
         TkTextField(
           controller: _brand,
-          label: 'Марка',
-          hint: 'JCB, CAT, КамАЗ…',
+          label: l.brandLabel,
+          hint: l.brandHint,
           error: _errors['brand'],
         ),
         const SizedBox(height: 8),
@@ -337,7 +340,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
             Expanded(
               child: TkTextField(
                 controller: _model,
-                label: 'Модель',
+                label: l.modelLabel,
                 hint: '3CX',
                 error: _errors['model'],
               ),
@@ -347,7 +350,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
               width: 110,
               child: TkTextField(
                 controller: _year,
-                label: 'Год',
+                label: l.yearLabel,
                 hint: '2019',
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -359,7 +362,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
         ),
         if (specs.isNotEmpty) ...[
           const SizedBox(height: 16),
-          const Text('Характеристики', style: TkText.h3),
+          Text(l.specsTitle, style: TkText.h3),
           const SizedBox(height: 8),
           for (final field in specs) ...[
             TkTextField(
@@ -374,27 +377,27 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
           ],
         ],
         const SizedBox(height: 8),
-        const Text('Тарифы аренды', style: TkText.h3),
+        Text(l.rentTitle, style: TkText.h3),
         Text(
-          'Чтобы технику можно было взять почасово. Не сдаёте в аренду — оставьте пустым.',
+          l.rentHint,
           style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 10),
         Row(
           children: [
-            Expanded(child: _money(_hour, '֏/час')),
+            Expanded(child: _money(_hour, l.perHour)),
             const SizedBox(width: 10),
-            Expanded(child: _money(_shift, '֏/смена')),
+            Expanded(child: _money(_shift, l.perShift)),
             const SizedBox(width: 10),
-            Expanded(child: _money(_day, '֏/сутки')),
+            Expanded(child: _money(_day, l.perDay)),
           ],
         ),
         const SizedBox(height: 10),
         Row(
           children: [
-            Expanded(child: _money(_minHours, 'Мин. заказ, ч')),
+            Expanded(child: _money(_minHours, l.minOrderH)),
             const SizedBox(width: 10),
-            Expanded(flex: 2, child: _money(_delivery, 'Подача на объект, ֏')),
+            Expanded(flex: 2, child: _money(_delivery, l.deliveryFee)),
           ],
         ),
         const SizedBox(height: 14),
@@ -405,7 +408,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
                 children: [
                   const TkIcon(TkIcons.user, size: 20),
                   const SizedBox(width: 10),
-                  const Expanded(child: Text('Есть бригада рабочих', style: TkText.body)),
+                  Expanded(child: Text(l.hasCrew, style: TkText.body)),
                   Switch(
                     value: _crewSize > 0,
                     onChanged: (v) => setState(() => _crewSize = v ? 2 : 0),
@@ -420,7 +423,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Человек: $_crewSize', style: TkText.caption),
+                          Text(l.crewSize(_crewSize), style: TkText.caption),
                           Slider(
                             value: _crewSize.toDouble(),
                             min: 1,
@@ -434,7 +437,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Expanded(child: _money(_crewPrice, '֏/чел/час')),
+                    Expanded(child: _money(_crewPrice, l.perPersonHour)),
                   ],
                 ),
               ],
@@ -455,6 +458,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
 
   /// Шаг 3: фотографии. Первая — обложка в ленте откликов.
   Widget _photoStep(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -467,8 +471,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
         ),
         const SizedBox(height: 14),
         Text(
-          'Первое фото видят в ленте откликов — снимите технику сбоку при дневном '
-          'свете. Чужие снимки из интернета проверку не проходят.',
+          l.photoHint,
           style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
         ),
       ],
@@ -477,11 +480,12 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
 
   /// Шаг 4: документы. Развилка объясняет последствия обоих вариантов честно.
   Widget _docsStep(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
-        const Text('Техпаспорт или свидетельство о регистрации', style: TkText.body),
+        Text(l.docTitle, style: TkText.body),
         const SizedBox(height: 8),
         TkPhotoGrid(
           photos: _docs,
@@ -503,7 +507,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Документы видит только модерация — в профиле они не публикуются',
+                l.docPrivacy,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
             ),
@@ -514,17 +518,16 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  TkIcon(TkIcons.checkCircle, size: 18, color: TkColors.success),
-                  SizedBox(width: 8),
-                  Text('С документами', style: TkText.h3),
+                  const TkIcon(TkIcons.checkCircle, size: 18, color: TkColors.success),
+                  const SizedBox(width: 8),
+                  Text(l.withDocs, style: TkText.h3),
                 ],
               ),
               const SizedBox(height: 6),
               Text(
-                'Проверка занимает до суток. После неё появляется бейдж «Проверен» — '
-                'такие карточки получают заметно больше заказов и бонус в скоринге.',
+                l.withDocsHint,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
@@ -535,11 +538,10 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Пропустить пока', style: TkText.h3),
+              Text(l.skipForNow, style: TkText.h3),
               const SizedBox(height: 6),
               Text(
-                'Техника публикуется сразу со статусом «Без проверки»: ставки делать '
-                'можно, но в скоринге она ниже. Документы добавляются в любой момент.',
+                l.skipHint,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
@@ -549,7 +551,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
     );
   }
 
-  Widget _footer(int step) {
+  Widget _footer(int step, AppLocalizations l) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -567,7 +569,7 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'Выберите вид техники — от него зависят характеристики',
+                  l.pickEqCategory,
                   textAlign: TextAlign.center,
                   style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                 ),
@@ -579,17 +581,17 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
                     ? const SizedBox(
                         width: 20, height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Далее'),
+                    : Text(l.nextStep),
               )
             else ...[
               FilledButton(
                 onPressed: _busy || _docs.isEmpty ? null : () => _submit(withDocs: true),
-                child: const Text('Отправить на проверку'),
+                child: Text(l.sendToReview),
               ),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: _busy ? null : () => _submit(withDocs: false),
-                child: const Text('Пропустить и опубликовать'),
+                child: Text(l.skipAndPublish),
               ),
             ],
           ],
@@ -608,6 +610,7 @@ class _CategoryStep extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final lang = (ref.watch(appSettingsProvider).locale ?? const Locale('ru')).languageCode;
     final cats = ref.watch(unitCategoriesProvider);
@@ -620,10 +623,10 @@ class _CategoryStep extends ConsumerWidget {
       ),
       data: (list) {
         if (list.isEmpty) {
-          return const TkEmptyState(
+          return TkEmptyState(
             icon: TkIcons.wrench,
-            title: 'Справочник техники пуст',
-            description: 'Категории появятся после обновления каталога',
+            title: l.eqCatalogEmpty,
+            description: l.eqCatalogEmptyDesc,
           );
         }
         // Виды без подкатегорий показываем одним блоком: заголовок, под
@@ -669,8 +672,7 @@ class _CategoryStep extends ConsumerWidget {
             ],
             const SizedBox(height: 16),
             Text(
-              'От категории зависят характеристики на следующем шаге: у экскаватора '
-              'спросим ковш и глубину, у самосвала — тоннаж и кузов.',
+              l.eqCategoryHint,
               style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
