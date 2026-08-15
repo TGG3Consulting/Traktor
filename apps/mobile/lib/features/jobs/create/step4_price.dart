@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'wizard_controller.dart';
@@ -54,14 +55,13 @@ class _CreateStep4State extends ConsumerState<CreateStep4> {
 
   /// Резерв выше стартовой цены делает торг невозможным — ловим это до
   /// отправки, чтобы человек не получил отказ на последнем шаге.
-  String? get _reserveError {
+  bool get _reserveTooHigh {
     final r = _reserveValue, b = _budgetValue;
-    if (_mode != 'auction' || r == null || b == null) return null;
-    return r > b ? 'Выше стартовой цены — тогда ни одна ставка не пройдёт' : null;
+    if (_mode != 'auction' || r == null || b == null) return false;
+    return r > b;
   }
 
-  bool get _valid =>
-      (_budgetValue ?? 0) > 0 && _reserveError == null;
+  bool get _valid => (_budgetValue ?? 0) > 0 && !_reserveTooHigh;
 
   Future<void> _next() async {
     final ok = await ref.read(wizardControllerProvider.notifier).save(
@@ -89,27 +89,28 @@ class _CreateStep4State extends ConsumerState<CreateStep4> {
   Widget build(BuildContext context) {
     final state = ref.watch(wizardControllerProvider);
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
 
     return WizardScaffold(
       step: 4,
-      subtitle: 'Цена и режим',
+      subtitle: l.step4Title,
       onBack: () => context.go('/jobs/create/3'),
       error: state.error,
       saving: state.saving,
-      primaryLabel: 'Далее',
+      primaryLabel: l.nextStep,
       onPrimary: _valid ? _next : null,
-      hint: 'Укажите цену — без неё исполнителям не на что ориентироваться',
+      hint: l.step4Hint,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         children: [
           TkTextField(
-            label: _mode == 'auction' ? 'Стартовая цена, ֏' : 'Цена, ֏',
+            label: _mode == 'auction' ? l.startPriceField : l.priceField,
             controller: _budget,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             onChanged: (_) => setState(() {}),
             helper: _budgetValue == null
-                ? 'Подсказка по похожим заданиям появится, когда наберётся статистика'
+                ? l.priceHintSoon
                 : tkMoney(_budgetValue),
           ),
           const SizedBox(height: 18),
@@ -123,12 +124,12 @@ class _CreateStep4State extends ConsumerState<CreateStep4> {
               child: Column(
                 children: [
                   _Row(
-                    title: 'Длительность',
+                    title: l.durationLabel,
                     child: Wrap(
                       spacing: 6,
                       children: [6, 12, 24, 48]
                           .map((h) => TkChip(
-                                label: '$h ч',
+                                label: l.hoursShort(h),
                                 selected: _durationH == h,
                                 onTap: () => setState(() => _durationH = h),
                               ))
@@ -140,20 +141,20 @@ class _CreateStep4State extends ConsumerState<CreateStep4> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TkTextField(
-                        label: 'Минимальная цена (необязательно), ֏',
+                        label: l.reserveField,
                         controller: _reserve,
                         keyboardType: TextInputType.number,
                         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        error: _reserveError,
+                        error: _reserveTooHigh ? l.reserveAboveStart : null,
                         onChanged: (_) => setState(() {}),
-                        helper: 'Скрыта от исполнителей. Ставки ниже неё не рассматриваются.',
+                        helper: l.reserveHint,
                       ),
                     ],
                   ),
                   const Divider(height: 20),
                   _Row(
-                    title: 'Автопродление +10 минут',
-                    subtitle: 'при ставке в последние 5 минут',
+                    title: l.autoExtend,
+                    subtitle: l.autoExtendHint,
                     child: Switch(
                       value: _autoExtend,
                       onChanged: (v) => setState(() => _autoExtend = v),
@@ -161,13 +162,13 @@ class _CreateStep4State extends ConsumerState<CreateStep4> {
                   ),
                   const Divider(height: 20),
                   _Row(
-                    title: 'Окно моего решения',
-                    subtitle: 'сколько у вас будет времени выбрать победителя',
+                    title: l.decisionWindow,
+                    subtitle: l.decisionWindowHint,
                     child: Wrap(
                       spacing: 6,
                       children: [6, 12, 24]
                           .map((h) => TkChip(
-                                label: '$h ч',
+                                label: l.hoursShort(h),
                                 selected: _decisionWindowH == h,
                                 onTap: () => setState(() => _decisionWindowH = h),
                               ))
@@ -190,8 +191,7 @@ class _CreateStep4State extends ConsumerState<CreateStep4> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Исполнители соревнуются, снижая цену. Вы выбираете победителя сами — '
-                      'платформа лишь советует лучшего по цене, рейтингу и близости.',
+                      l.auctionExplain,
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                     ),
                   ),
@@ -202,20 +202,20 @@ class _CreateStep4State extends ConsumerState<CreateStep4> {
           const SizedBox(height: 18),
           TkCard(
             child: _Row(
-              title: 'Нужны разнорабочие',
-              subtitle: 'в дополнение к технике',
+              title: l.needWorkers,
+              subtitle: l.needWorkersHint,
               child: Row(
                 children: [
                   IconButton(
                     onPressed: _workers > 0 ? () => setState(() => _workers--) : null,
                     icon: TkIcon(TkIcons.minus, size: 14, color: scheme.onSurfaceVariant),
-                    tooltip: 'Меньше',
+                    tooltip: l.less,
                   ),
                   Text('$_workers', style: TkText.h3),
                   IconButton(
                     onPressed: _workers < 20 ? () => setState(() => _workers++) : null,
                     icon: TkIcon(TkIcons.plus, size: 14, color: scheme.onSurfaceVariant),
-                    tooltip: 'Больше',
+                    tooltip: l.more,
                   ),
                 ],
               ),
@@ -237,6 +237,7 @@ class _ModeSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     Widget item(String value, String label, String icon) {
       final selected = mode == value;
       return Expanded(
@@ -276,9 +277,9 @@ class _ModeSwitch extends StatelessWidget {
       ),
       child: Row(
         children: [
-          item('fixed', 'Фиксированная', TkIcons.money),
+          item('fixed', l.modeFixed, TkIcons.money),
           const SizedBox(width: 4),
-          item('auction', 'Аукцион', TkIcons.lightning),
+          item('auction', l.modeAuction, TkIcons.lightning),
         ],
       ),
     );

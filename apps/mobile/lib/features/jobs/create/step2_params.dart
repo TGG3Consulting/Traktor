@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../equipment/photo_picker.dart';
@@ -71,44 +72,43 @@ class _CreateStep2State extends ConsumerState<CreateStep2> {
     final state = ref.watch(wizardControllerProvider);
     final category = ref.watch(categoryByIdProvider(state.job?.categoryId));
     final lang = Localizations.localeOf(context).languageCode;
+    final l = AppLocalizations.of(context);
     final left = _minDescription - _description.text.trim().length;
 
     return WizardScaffold(
       step: 2,
-      subtitle: 'Параметры',
+      subtitle: l.step2Title,
       onBack: () => context.go('/jobs/create/1'),
       error: state.error,
       saving: state.saving,
-      primaryLabel: 'Далее',
+      primaryLabel: l.nextStep,
       onPrimary: _valid ? _next : null,
-      hint: _title.text.trim().isEmpty
-          ? 'Назовите задание — это первое, что видит исполнитель'
-          : 'Добавьте ещё $left ${_charsWord(left)} описания',
+      hint: _title.text.trim().isEmpty ? l.step2Hint : l.addMoreChars(left),
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         children: [
           TkTextField(
-            label: 'Название',
+            label: l.titleLabel,
             controller: _title,
-            hint: 'Например: выкопать траншею 40 м под водопровод',
+            hint: l.titleHint,
             maxLength: 80,
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 14),
           TkTextField(
-            label: 'Что нужно сделать',
+            label: l.descLabel,
             controller: _description,
-            hint: _hintFor(category),
+            hint: _hintFor(category, l),
             maxLines: 5,
             onChanged: (_) => setState(() {}),
-            helper: 'Чем подробнее, тем точнее цены. Минимум $_minDescription символов.',
+            helper: l.descHelper(_minDescription),
           ),
           if (category != null && category.specTemplate.isNotEmpty) ...[
             const SizedBox(height: 18),
-            const Text('Параметры работы', style: TkText.h3),
+            Text(l.paramsTitle, style: TkText.h3),
             const SizedBox(height: 4),
             Text(
-              'Необязательно, но с ними исполнители точнее считают цену',
+              l.paramsHint,
               style: TkText.caption
                   .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
@@ -127,11 +127,10 @@ class _CreateStep2State extends ConsumerState<CreateStep2> {
                 )),
           ],
           const SizedBox(height: 18),
-          const Text('Фотографии места', style: TkText.h3),
+          Text(l.photosTitle, style: TkText.h3),
           const SizedBox(height: 4),
           Text(
-            'Необязательно, но с фото откликов заметно больше: исполнитель видит '
-            'подъезд и объём работы, а не догадывается о них.',
+            l.photosHint,
             style: TkText.caption
                 .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
@@ -162,7 +161,7 @@ class _CreateStep2State extends ConsumerState<CreateStep2> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Фото не загрузилось: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context).photoFailed('$e'))),
         );
       }
     } finally {
@@ -171,25 +170,17 @@ class _CreateStep2State extends ConsumerState<CreateStep2> {
   }
 
   /// Подсказка-шаблон по категории (ТЗ §2.6 шаг 2).
-  String _hintFor(Category? c) => switch (c?.slug) {
-        'work-earth' => 'Длина и глубина траншеи, тип грунта, есть ли подъезд для техники',
-        'work-transport' => 'Что везём, вес и объём, откуда и куда, нужна ли погрузка',
-        'work-crane' => 'Что поднимаем, вес, высота, сколько часов нужна техника',
-        'work-demolition' => 'Что сносим, площадь и этажность, нужен ли вывоз мусора',
-        'work-agro' => 'Площадь участка, вид работ, состояние поля',
-        'work-clearing' => 'Площадь, что убрать, вывозить с участка или нет',
-        _ => 'Опишите работу: объём, сроки, особенности участка',
+  /// Подсказка зависит от вида работ: «опишите работу» ничего не подсказывает,
+  /// а «длина и глубина траншеи» — подсказывает.
+  String _hintFor(Category? c, AppLocalizations l) => switch (c?.slug) {
+        'work-earth' => l.hintEarth,
+        'work-transport' => l.hintTransport,
+        'work-crane' => l.hintCrane,
+        'work-demolition' => l.hintDemolition,
+        'work-agro' => l.hintAgro,
+        'work-clearing' => l.hintClearing,
+        _ => l.hintOther,
       };
-
-  String _charsWord(int n) {
-    final mod100 = n % 100;
-    if (mod100 >= 11 && mod100 <= 14) return 'символов';
-    return switch (n % 10) {
-      1 => 'символ',
-      2 || 3 || 4 => 'символа',
-      _ => 'символов',
-    };
-  }
 }
 
 /// Поле характеристик по описанию из справочника.

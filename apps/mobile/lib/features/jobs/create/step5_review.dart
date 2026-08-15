@@ -1,6 +1,7 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../jobs_providers.dart';
@@ -27,20 +28,21 @@ class CreateStep5 extends ConsumerWidget {
     final category = ref.watch(categoryByIdProvider(job?.categoryId));
     final lang = Localizations.localeOf(context).languageCode;
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
 
     return WizardScaffold(
       step: 5,
-      subtitle: 'Проверьте — так задание увидят исполнители',
+      subtitle: l.step5Title,
       onBack: () => context.go('/jobs/create/4'),
       error: state.error,
       saving: state.saving,
-      primaryLabel: 'Опубликовать',
+      primaryLabel: l.publish,
       onPrimary: job == null ? null : () => _publish(context, ref),
       child: job == null
-          ? const TkEmptyState(
+          ? TkEmptyState(
               icon: TkIcons.clipboardText,
-              title: 'Черновик пуст',
-              description: 'Вернитесь на первый шаг и выберите вид работ',
+              title: l.draftEmpty,
+              description: l.draftEmptyDesc,
             )
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -49,7 +51,7 @@ class CreateStep5 extends ConsumerWidget {
                   title: job.title,
                   icon: TkIcons.byName(category?.icon ?? 'wrench'),
                   city: job.address,
-                  needBy: _needBy(job.dateMode, job.dateStart, job.dateEnd),
+                  needBy: _needBy(job.dateMode, job.dateStart, job.dateEnd, l),
                   price: job.budgetAmount,
                   // Зачёркнутая стартовая появится, когда пойдут ставки:
                   // до этого она равна текущей цене и выглядит опечаткой.
@@ -64,34 +66,39 @@ class CreateStep5 extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _Line(label: 'Категория', value: category?.name.forLang(lang) ??
-                          (job.openToAny ? 'Пусть предложат сами' : '—')),
-                      _Line(label: 'Описание', value: job.description),
-                      _Line(label: 'Место', value: job.address),
-                      _Line(label: 'Подъезд', value: switch (job.access) {
-                        'yes' => 'Есть',
-                        'no' => 'Нет',
-                        _ => 'Не знаю',
+                      _Line(
+                          label: l.category,
+                          value: category?.name.forLang(lang) ??
+                              (job.openToAny ? l.letThemSuggest : '—')),
+                      _Line(label: l.descriptionLabel, value: job.description),
+                      _Line(label: l.place, value: job.address),
+                      _Line(label: l.access, value: switch (job.access) {
+                        'yes' => l.accessYes,
+                        'no' => l.accessNo,
+                        _ => l.accessUnknown,
                       }),
                       _Line(
-                        label: 'Когда',
-                        value: _needBy(job.dateMode, job.dateStart, job.dateEnd),
+                        label: l.when,
+                        value: _needBy(job.dateMode, job.dateStart, job.dateEnd, l),
                       ),
                       _Line(
-                        label: job.isAuction ? 'Стартовая цена' : 'Цена',
+                        label: job.isAuction ? l.startPriceLabel : l.priceLabel,
                         value: tkMoney(job.budgetAmount, currency: job.currency),
                       ),
                       if (job.isAuction)
                         _Line(
-                          label: 'Аукцион',
-                          value: '${job.auction?.durationH ?? 24} ч · '
-                              'решение ${job.auction?.decisionWindowH ?? 12} ч'
-                              '${job.auction?.reserveAmount != null ? ' · мин. '
-                                  '${tkMoney(job.auction!.reserveAmount, currency: job.currency)}' : ''}',
+                          label: l.modeAuction,
+                          value: l.auctionSummary(job.auction?.durationH ?? 24,
+                                  job.auction?.decisionWindowH ?? 12) +
+                              (job.auction?.reserveAmount != null
+                                  ? l.minSuffix +
+                                      tkMoney(job.auction!.reserveAmount,
+                                          currency: job.currency)
+                                  : ''),
                         ),
                       if (job.workersCount > 0)
-                        _Line(label: 'Разнорабочие', value: '${job.workersCount} чел.'),
-                      const _Line(label: 'Просмотры', value: '—', last: true),
+                        _Line(label: l.workers, value: l.workersCount(job.workersCount)),
+                      _Line(label: l.viewsLabel, value: '—', last: true),
                     ],
                   ),
                 ),
@@ -108,7 +115,7 @@ class CreateStep5 extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Что-то поправить? Вернитесь назад — черновик сохранён.',
+                          l.fixSomething,
                           style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                         ),
                       ),
@@ -120,10 +127,11 @@ class CreateStep5 extends ConsumerWidget {
     );
   }
 
-  String _needBy(String mode, DateTime? start, DateTime? end) => switch (mode) {
+  String _needBy(String mode, DateTime? start, DateTime? end, AppLocalizations l) =>
+      switch (mode) {
         'exact' => tkShortDate(start),
         'range' => '${tkShortDate(start)} – ${tkShortDate(end)}',
-        _ => 'Как можно скорее',
+        _ => l.asap,
       };
 }
 
@@ -132,23 +140,26 @@ class _Problems extends StatelessWidget {
   const _Problems({required this.fields});
   final Map<String, String> fields;
 
-  static const _titles = {
-    'categoryId': 'Категория',
-    'title': 'Название',
-    'description': 'Описание',
-    'photos': 'Фотографии',
-    'geo': 'Место',
-    'dates': 'Даты',
-    'budgetAmount': 'Цена',
-    'currency': 'Валюта',
-    'auction': 'Аукцион',
-    'auction.durationH': 'Длительность аукциона',
-    'auction.decisionWindowH': 'Окно решения',
-    'auction.reserveAmount': 'Минимальная цена',
-  };
+  /// Названия полей на языке приложения: «geo: обязательно» человек не поймёт.
+  Map<String, String> _titles(AppLocalizations l) => {
+        'categoryId': l.category,
+        'title': l.titleLabel,
+        'description': l.descriptionLabel,
+        'photos': l.photosLabel,
+        'geo': l.place,
+        'dates': l.datesLabel,
+        'budgetAmount': l.priceLabel,
+        'currency': l.currencyLabel,
+        'auction': l.modeAuction,
+        'auction.durationH': l.auctionDurationLabel,
+        'auction.decisionWindowH': l.decisionWindowLabel,
+        'auction.reserveAmount': l.reserveLabel,
+      };
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final titles = _titles(l);
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Container(
@@ -160,12 +171,12 @@ class _Problems extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Чего не хватает', style: TkText.h3.copyWith(color: TkColors.error)),
+            Text(l.missingTitle, style: TkText.h3.copyWith(color: TkColors.error)),
             const SizedBox(height: 8),
             ...fields.entries.map((e) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
-                    '${_titles[e.key] ?? e.key}: ${e.value}',
+                    '${titles[e.key] ?? e.key}: ${e.value}',
                     style: TkText.caption.copyWith(color: TkColors.error),
                   ),
                 )),

@@ -2,6 +2,7 @@ import 'package:api_client/api_client.dart';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'wizard_controller.dart';
@@ -106,22 +107,23 @@ class _CreateStep3State extends ConsumerState<CreateStep3> {
   Widget build(BuildContext context) {
     final state = ref.watch(wizardControllerProvider);
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
 
     return WizardScaffold(
       step: 3,
-      subtitle: 'Где и когда',
+      subtitle: l.step3Title,
       onBack: () => context.go('/jobs/create/2'),
       error: state.error,
       saving: state.saving,
-      primaryLabel: 'Далее',
+      primaryLabel: l.nextStep,
       onPrimary: _valid ? _next : null,
       hint: _address.text.trim().isEmpty
-          ? 'Укажите адрес — исполнители ищут работу рядом с собой'
-          : 'Укажите даты',
+          ? l.step3HintAddress
+          : l.step3HintDates,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         children: [
-          const Text('Где', style: TkText.h3),
+          Text(l.whereTitle, style: TkText.h3),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -139,55 +141,55 @@ class _CreateStep3State extends ConsumerState<CreateStep3> {
           ),
           const SizedBox(height: 14),
           TkTextField(
-            label: 'Адрес или ориентир',
+            label: l.addressLabel,
             controller: _address,
-            hint: 'Улица, дом, ориентир',
+            hint: l.addressHint,
             onChanged: (_) => setState(() {}),
             helper: 'Точный адрес увидит только выбранный исполнитель — '
                 'до сделки в ленте видна примерная зона.',
           ),
           const SizedBox(height: 16),
-          const Text('Подъезд для техники', style: TkText.h3),
+          Text(l.accessTitle, style: TkText.h3),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             children: [
               TkChip(
-                label: 'Есть',
+                label: l.accessYes,
                 selected: _access == 'yes',
                 onTap: () => setState(() => _access = 'yes'),
               ),
               TkChip(
-                label: 'Нет',
+                label: l.accessNo,
                 selected: _access == 'no',
                 onTap: () => setState(() => _access = 'no'),
               ),
               TkChip(
-                label: 'Не знаю',
+                label: l.accessUnknown,
                 selected: _access == 'unknown',
                 onTap: () => setState(() => _access = 'unknown'),
               ),
             ],
           ),
           const SizedBox(height: 20),
-          const Text('Когда', style: TkText.h3),
+          Text(l.whenTitle, style: TkText.h3),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               TkChip(
-                label: 'Как можно скорее',
+                label: l.asap,
                 selected: _dateMode == 'asap',
                 onTap: () => setState(() => _dateMode = 'asap'),
               ),
               TkChip(
-                label: 'Диапазон дат',
+                label: l.dateRange,
                 selected: _dateMode == 'range',
                 onTap: () => setState(() => _dateMode = 'range'),
               ),
               TkChip(
-                label: 'Точная дата',
+                label: l.exactDate,
                 selected: _dateMode == 'exact',
                 onTap: () => setState(() => _dateMode = 'exact'),
               ),
@@ -208,7 +210,7 @@ class _CreateStep3State extends ConsumerState<CreateStep3> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _DateButton(
-                      label: 'Конец',
+                      label: l.dateEnd,
                       value: _end,
                       onTap: () => _pickDate(isStart: false),
                     ),
