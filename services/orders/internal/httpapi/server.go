@@ -122,6 +122,7 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/calendar", s.calendar)
 		r.Post("/calendar", s.markBusy)
 		r.Delete("/calendar/{day}", s.unmarkBusy)
+		r.Get("/export", s.exportDeals)
 	})
 
 	// Ставки исполнителя и решения заказчика по ним.
@@ -291,6 +292,20 @@ func (s *Server) view(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fail(w, err)
 		return
+	}
+
+	// Предупреждение о занятой дате (ТЗ §3.1): не запрет, а подсказка. Человек
+	// сам решит — может, он успеет и то, и другое, — но знать об этом должен
+	// до ставки, а не после выбора.
+	if viewer != "" && viewer != j.ClientID && j.DateStart != nil {
+		if busy, err := s.svc.BusyOn(r.Context(), viewer, *j.DateStart); err == nil && busy {
+			raw, _ := json.Marshal(j)
+			out := map[string]any{}
+			_ = json.Unmarshal(raw, &out)
+			out["youAreBusy"] = true
+			writeJSON(w, http.StatusOK, out)
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, j)
 }

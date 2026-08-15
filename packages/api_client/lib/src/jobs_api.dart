@@ -351,6 +351,24 @@ class JobsApi {
     return Spending.fromJson(_handle(resp));
   }
 
+  /// Адрес выгрузки сделок в таблицу (ТЗ §3.1 п.7). Отдаём ссылку, а не
+  /// байты: файл открывает система, а приложение не держит его в памяти.
+  Uri exportUrl({required String period, required bool asOwner}) =>
+      _u('/crm/export', {'period': period, 'role': asOwner ? 'owner' : 'client'});
+
+  /// GET /crm/export — сделки за период таблицей (CSV, открывается в Excel).
+  Future<List<int>> exportDeals(String token,
+      {required String period, required bool asOwner}) async {
+    final resp = await _http.get(
+      exportUrl(period: period, asOwner: asOwner),
+      headers: _headers(token),
+    );
+    if (resp.statusCode >= 300) {
+      throw ApiException(resp.statusCode, 'Не удалось выгрузить отчёт');
+    }
+    return resp.bodyBytes;
+  }
+
   /// GET /crm/calendar — занятость на месяц (ТЗ §3.1).
   Future<List<BusyDay>> calendar(String token, {required String month}) async {
     final resp = await _http.get(

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_settings.dart';
 import '../../core/session_refresh.dart';
 import '../jobs/jobs_providers.dart';
+import 'export_button.dart';
 
 /// «Мои расходы» — CRM заказчика (ТЗ §3.2, прототип `crm_client`).
 ///
@@ -95,6 +96,8 @@ class _SpendingScreenState extends ConsumerState<SpendingScreen> {
                     ],
                     const SizedBox(height: 12),
                     _OwnersCard(spending: s),
+                    const SizedBox(height: 16),
+                    ExportButton(period: _period, asOwner: false),
                   ],
                 ),
               ),

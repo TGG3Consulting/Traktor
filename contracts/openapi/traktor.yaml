@@ -1800,6 +1800,32 @@ paths:
         "204":
           description: Отметка снята
 
+  /crm/export:
+    get:
+      tags: [orders]
+      summary: Выгрузка сделок за период (ТЗ §3.1 п.7, §3.2 п.6)
+      description: >
+        Таблица со сделками для бухгалтерии и налоговой: дата, задание, вторая
+        сторона, сумма, статус. Формат — CSV с точкой с запятой и меткой
+        кодировки: Excel открывает такой файл двойным щелчком и не ломает
+        кириллицу.
+      operationId: exportDeals
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: period
+          in: query
+          schema: { type: string, enum: [week, month, quarter, year, all], default: year }
+        - name: role
+          in: query
+          description: "owner — доходы исполнителя, client — расходы заказчика"
+          schema: { type: string, enum: [owner, client], default: owner }
+      responses:
+        "200":
+          description: Файл отчёта
+          content:
+            text/csv:
+              schema: { type: string }
+
 components:
   securitySchemes:
     bearerAuth:

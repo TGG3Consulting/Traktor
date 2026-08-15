@@ -155,3 +155,50 @@ func (s *Service) BusyOn(ctx context.Context, ownerID string, day time.Time) (bo
 	}
 	return len(manual) > 0, nil
 }
+
+// DealsForExport — сделки за период для выгрузки (ТЗ §3.1 п.7, §3.2 п.6).
+//
+// Берём все состояния, а не только завершённые: в отчёте для бухгалтерии
+// важно видеть и отменённые — иначе непонятно, куда делась работа.
+func (s *Service) DealsForExport(ctx context.Context, userID string, period job.Period, asOwner bool) ([]job.Deal, error) {
+	r := job.RangeOf(period, s.now().UTC())
+
+	// Постранично: за «всё время» у активного исполнителя сделок может быть
+	// много, и тянуть их одним запросом без предела — плохая идея.
+	const page = 200
+	out := []job.Deal{}
+	for offset := 0; offset < 5000; offset += page {
+		batch, err := s.st.DealsByUser(ctx, userID, page, offset)
+		if err != nil {
+			return nil, err
+		}
+		if len(batch) == 0 {
+			break
+		}
+		for _, d := range batch {
+			if asOwner && d.OwnerID != userID {
+				continue
+			}
+			if !asOwner && d.ClientID != userID {
+				continue
+			}
+			day := d.CreatedAt
+			if d.ClosedAt != nil {
+				day = *d.ClosedAt
+			}
+			if day.Before(r.From) || day.After(r.To) {
+				continue
+			}
+			if j, err := s.st.ByID(ctx, d.JobID); err == nil {
+				d.JobTitle = j.Title
+			}
+			out = append(out, d)
+		}
+		if len(batch) < page {
+			break
+		}
+	}
+
+	sort.Slice(out, func(i, k int) bool { return out[i].CreatedAt.After(out[k].CreatedAt) })
+	return out, nil
+}

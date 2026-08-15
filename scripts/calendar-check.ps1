@@ -87,7 +87,12 @@ $same = @($cal.items | Where-Object { $_.day -eq $workDay })
 Check ($same.Count -eq 1) "na den odna otmetka: $($same.Count)"
 Check ($same[0].source -eq 'deal') "sdelka vazhnee: $($same[0].source)"
 
-Write-Output "`n--- 7. V baze ---"
+Write-Output "`n--- 7. Otchet za period ---"
+$report = curl.exe -s -H "Authorization: Bearer $($owner.accessToken)" "$base/v1/crm/export?period=month&role=owner"
+Check ($report -match 'Дата') 'v otchete est zagolovok'
+Check ($report -match 'Rabota dlya kalendarya') 'v otchete vidno zadanie'
+
+Write-Output "`n--- 8. V baze ---"
 $row = docker exec traktor-postgres psql -U traktor -d traktor -t -A -c `
     "SELECT count(*) FROM orders.busy_days WHERE owner_id='$($owner.user.id)'"
 Check ([int]$row -eq 1) "svoih otmetok v baze: $row"

@@ -51,6 +51,10 @@ type Deal struct {
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
 	ClosedAt  *time.Time `json:"closedAt,omitempty"`
+
+	// JobTitle подмешивается там, где сделку показывают списком: в отчёте
+	// «Планировка участка» понятнее, чем идентификатор задания.
+	JobTitle string `json:"jobTitle,omitempty"`
 }
 
 // AcceptanceWindow — сколько у заказчика есть на приёмку (ТЗ §2.11).

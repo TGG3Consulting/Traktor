@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/session_refresh.dart';
 import '../jobs/jobs_providers.dart';
+import 'export_button.dart';
 
 /// «Мой бизнес» — CRM исполнителя (ТЗ §3.1, прототип `crm_owner`).
 ///
@@ -88,6 +89,8 @@ class _BusinessScreenState extends ConsumerState<BusinessScreen> {
                     _FunnelCard(business: b),
                     const SizedBox(height: 12),
                     _ClientsCard(business: b),
+                    const SizedBox(height: 16),
+                    ExportButton(period: _period, asOwner: true),
                   ],
                 ),
               ),
