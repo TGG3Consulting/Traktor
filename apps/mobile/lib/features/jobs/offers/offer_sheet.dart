@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../equipment/equipment_providers.dart';
 import 'offers_providers.dart';
@@ -111,6 +112,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    final l = AppLocalizations.of(context);
 
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
@@ -136,11 +138,11 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text(widget.existing == null ? 'Ваше предложение' : 'Изменить предложение',
+              Text(widget.existing == null ? l.offerSheetTitle : l.offerSheetEdit,
                   style: TkText.h2),
               const SizedBox(height: 4),
               Text(
-                'Предложение — это обязательство выполнить работу за эту цену.',
+                l.offerCommitment,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 14),
@@ -148,7 +150,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                 children: [
                   Expanded(
                     child: _KindButton(
-                      label: 'Принять ${tkMoney(widget.jobPrice, currency: widget.currency)}',
+                      label: l.acceptPrice(tkMoney(widget.jobPrice, currency: widget.currency)),
                       selected: _kind == 'accept',
                       onTap: () => setState(() {
                         _kind = 'accept';
@@ -159,7 +161,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _KindButton(
-                      label: 'Своя цена',
+                      label: l.ownPrice,
                       selected: _kind == 'counter',
                       onTap: () => setState(() => _kind = 'counter'),
                     ),
@@ -169,12 +171,12 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
               if (_kind == 'counter') ...[
                 const SizedBox(height: 14),
                 TkTextField(
-                  label: 'Ваша цена, ֏',
+                  label: l.yourPriceField,
                   controller: _price,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (_) => setState(() {}),
-                  helper: 'Цена задания: ${tkMoney(widget.jobPrice, currency: widget.currency)}',
+                  helper: l.jobPriceIs(tkMoney(widget.jobPrice, currency: widget.currency)),
                 ),
               ],
               // Чем откликаемся: заказчику важно видеть машину, а нам —
@@ -185,15 +187,15 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
               ),
               const SizedBox(height: 14),
               TkTextField(
-                label: 'Когда сможете',
+                label: l.whenCan,
                 controller: _eta,
-                hint: 'Например: завтра с утра',
+                hint: l.whenCanHint,
               ),
               const SizedBox(height: 14),
               TkTextField(
-                label: 'Комментарий',
+                label: l.commentLabel,
                 controller: _comment,
-                hint: 'Что важно знать заказчику',
+                hint: l.commentHint,
                 maxLines: 3,
                 maxLength: 200,
               ),
@@ -214,7 +216,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                 child: _sending
                     ? const SizedBox(
                         width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text(widget.existing == null ? 'Отправить предложение' : 'Сохранить'),
+                    : Text(widget.existing == null ? l.sendOffer : l.save),
               ),
             ],
           ),
@@ -274,6 +276,7 @@ class _UnitPicker extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     final all = ref.watch(myEquipmentProvider).valueOrNull ?? const <Equipment>[];
     final active = all.where((e) => e.isActive).toList();
     if (active.isEmpty) return const SizedBox.shrink();
@@ -282,7 +285,7 @@ class _UnitPicker extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 14),
-        Text('Чем выполните', style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
+        Text(l.withWhat, style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
         const SizedBox(height: 6),
         Wrap(
           spacing: 8,

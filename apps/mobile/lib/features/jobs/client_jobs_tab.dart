@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import 'create/wizard_controller.dart';
 import 'jobs_providers.dart';
@@ -18,6 +19,7 @@ class ClientJobsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final jobs = ref.watch(myJobsProvider);
+    final l = AppLocalizations.of(context);
 
     return jobs.when(
       loading: () => const TkSkeletonList(),
@@ -29,9 +31,9 @@ class ClientJobsTab extends ConsumerWidget {
         if (list.isEmpty) {
           return TkEmptyState(
             icon: TkIcons.clipboardText,
-            title: 'Заданий пока нет',
-            description: 'Опишите, что нужно сделать — исполнители предложат цену',
-            actionLabel: 'Создать задание',
+            title: l.myJobsEmptyTitle,
+            description: l.myJobsEmptyDesc,
+            actionLabel: l.createJob,
             onAction: () {
               ref.read(wizardControllerProvider.notifier).startNew();
               context.go('/jobs/create/1');
@@ -60,6 +62,7 @@ class _MyJobCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     final status = _status(job.status);
 
     return TkCard(
@@ -79,19 +82,19 @@ class _MyJobCard extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  job.title.isEmpty ? 'Без названия' : job.title,
+                  job.title.isEmpty ? l.untitled : job.title,
                   style: TkText.h3,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
-              TkStatusBadge(status: status, label: _statusLabel(job.status)),
+              TkStatusBadge(status: status, label: _statusLabel(job.status, l)),
             ],
           ),
           const SizedBox(height: 6),
           Text(
-            _subtitle(job),
+            _subtitle(job, l),
             style: TkText.caption.copyWith(
               color: job.isDraft ? TkColors.primary : scheme.onSurfaceVariant,
               fontWeight: job.isDraft ? FontWeight.w600 : FontWeight.w400,
@@ -102,13 +105,13 @@ class _MyJobCard extends ConsumerWidget {
     );
   }
 
-  String _subtitle(Job j) {
-    if (j.isDraft) return 'Черновик · шаг ${j.draftStep} из 5 · продолжить';
+  String _subtitle(Job j, AppLocalizations l) {
+    if (j.isDraft) return l.draftStep(j.draftStep);
     final price = tkMoney(j.budgetAmount, currency: j.currency);
-    final counters = '${j.offersCount} откл. · ${j.viewsCount} просм.';
+    final counters = l.countersShort(j.offersCount, j.viewsCount);
     if (j.isAuction && j.auction?.endsAt != null) {
       final left = j.auction!.endsAt!.difference(DateTime.now());
-      return '$price · до финиша ${tkTimeLeft(left)} · $counters';
+      return '$price · ${l.auctionEndsIn(tkTimeLeft(left))} · $counters';
     }
     return '$price · $counters';
   }
@@ -127,21 +130,21 @@ class _MyJobCard extends ConsumerWidget {
         _ => TkStatus.cancelled,
       };
 
-  String _statusLabel(String s) => switch (s) {
-        JobStatus.draft => 'Черновик',
-        JobStatus.published => 'Опубликовано',
-        JobStatus.collectingOffers => 'Сбор откликов',
-        JobStatus.bidding => 'Идёт торг',
-        JobStatus.dealPending => 'Выбор исполнителя',
-        JobStatus.deciding => 'Ваше решение',
-        JobStatus.confirmed => 'Подтверждено',
-        JobStatus.inProgress => 'В работе',
-        JobStatus.workDone => 'Ожидает приёмки',
-        JobStatus.completed => 'Завершено',
-        JobStatus.disputed => 'Спор',
-        JobStatus.cancelled => 'Отменено',
-        JobStatus.declinedAll => 'Все отклонены',
-        JobStatus.expiredNoBids => 'Без ставок',
-        _ => 'Истекло',
+  String _statusLabel(String s, AppLocalizations l) => switch (s) {
+        JobStatus.draft => l.statusDraft,
+        JobStatus.published => l.statusPublished,
+        JobStatus.collectingOffers => l.statusCollecting,
+        JobStatus.bidding => l.statusBidding,
+        JobStatus.dealPending => l.statusDeciding,
+        JobStatus.deciding => l.statusDecidingClient,
+        JobStatus.confirmed => l.statusConfirmed,
+        JobStatus.inProgress => l.statusInProgress,
+        JobStatus.workDone => l.statusAcceptance,
+        JobStatus.completed => l.statusCompleted,
+        JobStatus.disputed => l.statusDispute,
+        JobStatus.cancelled => l.statusCancelled,
+        JobStatus.declinedAll => l.statusDeclinedAll,
+        JobStatus.expiredNoBids => l.statusNoBids,
+        _ => l.statusExpired,
       };
 }
