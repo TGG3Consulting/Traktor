@@ -92,7 +92,15 @@ Check ($c.deals -eq 2) "sdelok s nim: $($c.deals)"
 Check ($c.total -eq 160000) "summa: $($c.total)"
 Check ($c.regular -eq $false) 'postoyannym stanovitsya s tretey sdelki'
 
-Write-Output "`n--- 6. Chuzhaya svodka nedostupna ---"
+Write-Output "`n--- 6. Svodka zakazchika: rashody ---"
+$sp = Invoke-RestMethod "$base/v1/crm/spending?period=month" -Headers (Bearer $client.accessToken)
+Check ($sp.spent -eq 160000) "potracheno: $($sp.spent)"
+Check ($sp.deals -eq 2) "zadaniy: $($sp.deals)"
+Check (@($sp.byCategory).Count -ge 1) "kategoriy rashodov: $(@($sp.byCategory).Count)"
+Check (@($sp.owners).Count -eq 1) "ispolniteley: $(@($sp.owners).Count)"
+Check ($sp.saved -eq 0) "na fiks-cene ekonomii net: $($sp.saved)"
+
+Write-Output "`n--- 7. Chuzhaya svodka nedostupna ---"
 $foreign = Invoke-RestMethod "$base/v1/crm/business?period=month" -Headers (Bearer $client.accessToken)
 Check ($foreign.income -eq 0) "u zakazchika svoya svodka ispolnitelya pustaya: $($foreign.income)"
 

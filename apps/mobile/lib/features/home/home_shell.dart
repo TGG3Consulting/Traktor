@@ -154,6 +154,16 @@ class _ProfileTab extends ConsumerWidget {
                 ),
               ),
               const Divider(height: 1),
+              // Заказчику — свои расходы, исполнителю — свой бизнес (ТЗ §3).
+              if (isClient) ...[
+                ListTile(
+                  leading: const TkIcon(TkIcons.chartBar),
+                  title: const Text('Мои расходы'),
+                  trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                  onTap: () => context.push('/crm/spending'),
+                ),
+                const Divider(height: 1),
+              ],
               // «Моя техника» — вход исполнителя в свой парк (ТЗ §2.5).
               if (!isClient) ...[
                 ListTile(

@@ -1014,3 +1014,68 @@ class BusinessClient {
         regular: j['regular'] as bool? ?? false,
       );
 }
+
+/// Сводка «Мои расходы» заказчика (ТЗ §3.2).
+class Spending {
+  const Spending({
+    this.period = 'month',
+    this.spent = 0,
+    this.deals = 0,
+    this.average = 0,
+    this.currency = 'AMD',
+    this.delta = 0,
+    this.deltaComparable = false,
+    this.byCategory = const [],
+    this.owners = const [],
+    this.saved = 0,
+  });
+
+  final String period;
+  final int spent;
+  final int deals;
+  final int average;
+  final String currency;
+  final int delta;
+  final bool deltaComparable;
+
+  /// На что уходят деньги: земляные, перевозка, кран.
+  final List<CategorySpend> byCategory;
+
+  /// Исполнители, с которыми работал.
+  final List<BusinessClient> owners;
+
+  /// Сколько сэкономил торг: стартовая цена минус итоговая.
+  final int saved;
+
+  factory Spending.fromJson(Map<String, dynamic> j) => Spending(
+        period: j['period'] as String? ?? 'month',
+        spent: (j['spent'] as num?)?.toInt() ?? 0,
+        deals: j['deals'] as int? ?? 0,
+        average: (j['average'] as num?)?.toInt() ?? 0,
+        currency: j['currency'] as String? ?? 'AMD',
+        delta: j['delta'] as int? ?? 0,
+        deltaComparable: j['deltaComparable'] as bool? ?? false,
+        byCategory: ((j['byCategory'] as List?) ?? const [])
+            .map((e) => CategorySpend.fromJson((e as Map).cast<String, dynamic>()))
+            .toList(),
+        owners: ((j['owners'] as List?) ?? const [])
+            .map((e) => BusinessClient.fromJson((e as Map).cast<String, dynamic>()))
+            .toList(),
+        saved: (j['saved'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Расходы по одному виду работ.
+class CategorySpend {
+  const CategorySpend({this.categoryId = '', this.total = 0, this.deals = 0});
+
+  final String categoryId;
+  final int total;
+  final int deals;
+
+  factory CategorySpend.fromJson(Map<String, dynamic> j) => CategorySpend(
+        categoryId: j['categoryId'] as String? ?? '',
+        total: (j['total'] as num?)?.toInt() ?? 0,
+        deals: j['deals'] as int? ?? 0,
+      );
+}

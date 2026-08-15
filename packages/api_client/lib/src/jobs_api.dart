@@ -342,6 +342,15 @@ class JobsApi {
     return Business.fromJson(_handle(resp));
   }
 
+  /// GET /crm/spending — сводка «Мои расходы» заказчика (ТЗ §3.2).
+  Future<Spending> spending(String token, {String period = 'month'}) async {
+    final resp = await _http.get(
+      _u('/crm/spending', {'period': period}),
+      headers: _headers(token),
+    );
+    return Spending.fromJson(_handle(resp));
+  }
+
   // ── публичная карточка человека (ТЗ §2.3) ──────────────────────────────────
 
   /// GET /users/{id} — имя, город, отметка проверки. Работает без входа:

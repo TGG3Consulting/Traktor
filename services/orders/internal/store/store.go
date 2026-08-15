@@ -72,6 +72,13 @@ type Store interface {
 	FunnelOf(ctx context.Context, ownerID string, from, to time.Time) (job.Funnel, error)
 	ClientsOf(ctx context.Context, ownerID string, from, to time.Time, limit int) ([]job.Client, error)
 
+	// CRM заказчика (ТЗ §3.2).
+	SpendingOf(ctx context.Context, clientID string, from, to time.Time) (int64, int, error)
+	SpendingByCategory(ctx context.Context, clientID string, from, to time.Time) ([]job.CategorySpend, error)
+	OwnersOf(ctx context.Context, clientID string, from, to time.Time, limit int) ([]job.Client, error)
+	// SavedOnAuctions — разница между стартовой и итоговой ценой по аукционам.
+	SavedOnAuctions(ctx context.Context, clientID string, from, to time.Time) (int64, error)
+
 	// ── ставки аукциона (ТЗ §2.9) ────────────────────────────────────────────
 	CreateBid(ctx context.Context, b *job.Bid) error
 	UpdateBid(ctx context.Context, b *job.Bid) error

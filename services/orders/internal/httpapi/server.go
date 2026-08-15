@@ -118,6 +118,7 @@ func (s *Server) Routes() http.Handler {
 	r.Route("/v1/crm", func(r chi.Router) {
 		r.Use(s.requireUser)
 		r.Get("/business", s.business)
+		r.Get("/spending", s.spending)
 	})
 
 	// Ставки исполнителя и решения заказчика по ним.

@@ -133,3 +133,37 @@ func AverageCheck(income int64, deals int) int64 {
 	}
 	return income / int64(deals)
 }
+
+// Spending — сводка «Мои расходы» заказчика (ТЗ §3.2).
+type Spending struct {
+	Period   Period `json:"period"`
+	Spent    int64  `json:"spent"`
+	Deals    int    `json:"deals"`
+	Average  int64  `json:"average"`
+	Currency string `json:"currency"`
+
+	PrevSpent int64 `json:"prevSpent"`
+
+	// ByCategory — на что уходят деньги: земляные, перевозка, кран.
+	ByCategory []CategorySpend `json:"byCategory"`
+	// Owners — исполнители, с которыми работал.
+	Owners []Client `json:"owners"`
+	// Saved — сколько сэкономил аукцион: стартовая цена минус итоговая.
+	Saved int64 `json:"saved"`
+}
+
+// CategorySpend — расходы по одному виду работ.
+type CategorySpend struct {
+	CategoryID string `json:"categoryId"`
+	Total      int64  `json:"total"`
+	Deals      int    `json:"deals"`
+}
+
+// Delta — изменение расходов к прошлому периоду.
+func (s Spending) Delta() (percent int, comparable bool) {
+	if s.PrevSpent <= 0 {
+		return 0, false
+	}
+	diff := float64(s.Spent-s.PrevSpent) / float64(s.PrevSpent) * 100
+	return int(diff), true
+}
