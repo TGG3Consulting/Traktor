@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../job_detail_screen.dart';
+import '../../chat/open_chat.dart';
 import '../jobs_providers.dart';
 import 'deal_providers.dart';
 
@@ -255,14 +256,14 @@ class _Step extends StatelessWidget {
 
 /// Контакты сторон. Телефоны раскрываются только в сделке (ТЗ §2.11) — до неё
 /// площадка их прячет, чтобы договорённости не уходили мимо.
-class _Contacts extends StatelessWidget {
+class _Contacts extends ConsumerWidget {
   const _Contacts({required this.deal, required this.isOwner});
 
   final Deal deal;
   final bool isOwner;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     return TkCard(
       child: Row(
@@ -285,7 +286,14 @@ class _Contacts extends StatelessWidget {
               ],
             ),
           ),
-          TkIcon(TkIcons.phone, size: 20, color: scheme.onSurfaceVariant),
+          // В сделке переписка уже без маскировки — это основной канал
+          // связи по ходу работы (ТЗ §2.11, прототип: кнопка «Чат»).
+          IconButton(
+            tooltip: 'Написать',
+            onPressed: () => openChatAndGo(context, ref, deal.jobId,
+                ownerId: isOwner ? null : deal.ownerId),
+            icon: TkIcon(TkIcons.chatCircle, size: 20, color: scheme.onSurfaceVariant),
+          ),
         ],
       ),
     );

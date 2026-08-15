@@ -70,6 +70,31 @@ String tkShortDate(DateTime? date, {DateTime? now}) {
   return date.year == today.year ? base : '$base ${date.year}';
 }
 
+/// Время сообщения: «09:02». Часы и минуты всегда двумя цифрами, иначе в
+/// ленте переписки время «9:2» съезжает и читается как опечатка.
+String tkClock(DateTime? at) {
+  if (at == null) return '';
+  return '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+}
+
+/// Отметка времени в списке чатов: сегодня — часы, вчера — «вчера»,
+/// на этой неделе — день недели, дальше — дата (как в мессенджерах).
+String tkChatStamp(DateTime? at, {DateTime? now}) {
+  if (at == null) return '';
+  final today = now ?? DateTime.now();
+  final startOfToday = DateTime(today.year, today.month, today.day);
+  final day = DateTime(at.year, at.month, at.day);
+  final diff = startOfToday.difference(day).inDays;
+
+  if (diff <= 0) return tkClock(at);
+  if (diff == 1) return 'вчера';
+  if (diff < 7) {
+    const week = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+    return week[at.weekday - 1];
+  }
+  return tkShortDate(at, now: today);
+}
+
 /// Русское склонение после числа: 1 отклик, 2 отклика, 5 откликов.
 /// Живёт рядом с остальным форматированием: «1 откликов» в интерфейсе выглядит
 /// как недоделка, а склонение нужно в ленте, деталке и уведомлениях.

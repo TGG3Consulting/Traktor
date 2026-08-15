@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/otp_screen.dart';
+import '../features/chat/chat_screen.dart';
 import '../features/auth/phone_screen.dart';
 import '../features/auth/profile_setup_screen.dart';
 import '../features/home/home_shell.dart';
@@ -43,6 +44,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/jobs/published/:id',
       builder: (_, state) => JobPublishedScreen(jobId: state.pathParameters['id']!),
+    ),
+
+    // Переписка (ТЗ §2.12). Список чатов живёт вкладкой домашнего экрана,
+    // отдельная ветка — конкретный чат: на него ведут уведомления.
+    GoRoute(
+      path: '/chats/:id',
+      builder: (_, state) => ChatScreen(chatId: state.pathParameters['id']!),
     ),
 
     // Аукцион (ТЗ §2.9) — лента торга и ставки.

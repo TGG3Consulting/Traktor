@@ -58,6 +58,9 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/{id}/deal", s.confirmDeal)
 			r.Get("/{id}/deal", s.dealByJob)
 
+			// Переписка по заданию (ТЗ §2.12).
+			r.Post("/{id}/chat", s.openChat)
+
 			// Аукцион (ТЗ §2.9).
 			r.Post("/{id}/bids", s.placeBid)
 			r.Get("/{id}/bids/my", s.myBidForJob)
@@ -77,6 +80,15 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/{dealId}", s.deal)
 		r.Post("/{dealId}/step", s.advanceDeal)
 		r.Post("/{dealId}/cancel", s.cancelDeal)
+	})
+
+	// Чаты и сообщения.
+	r.Route("/v1/chats", func(r chi.Router) {
+		r.Use(s.requireUser)
+		r.Get("/", s.myChats)
+		r.Get("/{chatId}", s.chat)
+		r.Get("/{chatId}/messages", s.messages)
+		r.Post("/{chatId}/messages", s.sendMessage)
 	})
 
 	// Ставки исполнителя и решения заказчика по ним.

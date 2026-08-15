@@ -14,6 +14,12 @@ final accessTokenProvider = Provider<String>((ref) {
   return ref.watch(sessionProvider)?.accessToken ?? '';
 });
 
+/// Идентификатор текущего пользователя: по нему экран переписки отличает свои
+/// сообщения от чужих. У гостя пусто — и ни одно сообщение своим не считается.
+final userIdProvider = Provider<String>((ref) {
+  return ref.watch(sessionProvider)?.user.id ?? '';
+});
+
 /// Справочник видов работ (шаг 1 визарда). Держим в одном месте и кэшируем:
 /// он нужен и в визарде, и в фильтрах ленты, и для подписи категории в карточке.
 final workCategoriesProvider = FutureProvider<List<Category>>((ref) async {

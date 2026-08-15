@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/session_refresh.dart';
 import '../auth/auth_controller.dart';
 import 'deal/deal_providers.dart';
+import '../chat/open_chat.dart';
 import 'jobs_providers.dart';
 import 'offers/offer_sheet.dart';
 import 'offers/offers_providers.dart';
@@ -301,12 +302,17 @@ class _Actions extends ConsumerWidget {
       );
     }
     if (job.isAuction) {
-      return SizedBox(
-        width: double.infinity,
-        child: FilledButton(
-          onPressed: () => context.go('/jobs/${job.id}/bids'),
-          child: const Text('Перейти к торгу'),
-        ),
+      return Row(
+        children: [
+          TkChatIconButton(jobId: job.id),
+          const SizedBox(width: 10),
+          Expanded(
+            child: FilledButton(
+              onPressed: () => context.go('/jobs/${job.id}/bids'),
+              child: const Text('Перейти к торгу'),
+            ),
+          ),
+        ],
       );
     }
 
@@ -347,12 +353,19 @@ class _Actions extends ConsumerWidget {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton(
-        onPressed: () => _openOfferSheet(context),
-        child: Text('Откликнуться · ${tkMoney(job.budgetAmount, currency: job.currency)}'),
-      ),
+    // Вопрос заказчику до отклика — обычное дело: «влезет ли техника во
+    // двор» решает, стоит ли вообще откликаться (ТЗ §2.12).
+    return Row(
+      children: [
+        TkChatIconButton(jobId: job.id),
+        const SizedBox(width: 10),
+        Expanded(
+          child: FilledButton(
+            onPressed: () => _openOfferSheet(context),
+            child: Text('Откликнуться · ${tkMoney(job.budgetAmount, currency: job.currency)}'),
+          ),
+        ),
+      ],
     );
   }
 

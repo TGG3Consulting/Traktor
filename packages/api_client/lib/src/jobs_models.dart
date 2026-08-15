@@ -588,3 +588,84 @@ class BidRow {
         createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
       );
 }
+
+/// Строка списка чатов (ТЗ §2.12).
+class ChatRow {
+  const ChatRow({
+    required this.id,
+    required this.jobId,
+    this.jobTitle = '',
+    this.peerName = 'Собеседник',
+    this.kind = 'pre_deal',
+    this.lastText = '',
+    this.lastMessageAt,
+    this.unread = 0,
+  });
+
+  final String id;
+  final String jobId;
+  final String jobTitle;
+  final String peerName;
+
+  /// pre_deal — до сделки (контакты маскируются), deal — чат сделки.
+  final String kind;
+  final String lastText;
+  final DateTime? lastMessageAt;
+  final int unread;
+
+  bool get isDeal => kind == 'deal';
+
+  factory ChatRow.fromJson(Map<String, dynamic> j) => ChatRow(
+        id: j['id'] as String? ?? '',
+        jobId: j['jobId'] as String? ?? '',
+        jobTitle: j['jobTitle'] as String? ?? '',
+        peerName: (j['peerName'] as String?)?.trim().isNotEmpty == true
+            ? j['peerName'] as String
+            : 'Собеседник',
+        kind: j['kind'] as String? ?? 'pre_deal',
+        lastText: j['lastText'] as String? ?? '',
+        lastMessageAt: DateTime.tryParse(j['lastMessageAt'] as String? ?? '')?.toLocal(),
+        unread: j['unread'] as int? ?? 0,
+      );
+}
+
+/// Сообщение чата.
+class ChatMessage {
+  const ChatMessage({
+    required this.id,
+    required this.chatId,
+    required this.text,
+    required this.createdAt,
+    this.senderId,
+    this.kind = 'text',
+  });
+
+  final String id;
+  final String chatId;
+  final String? senderId;
+
+  /// text | photo | system
+  final String kind;
+  final String text;
+  final DateTime createdAt;
+
+  bool get isSystem => kind == 'system';
+
+  factory ChatMessage.fromJson(Map<String, dynamic> j) => ChatMessage(
+        id: j['id'] as String? ?? '',
+        chatId: j['chatId'] as String? ?? '',
+        senderId: j['senderId'] as String?,
+        kind: j['kind'] as String? ?? 'text',
+        text: j['text'] as String? ?? '',
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal() ??
+            DateTime.now(),
+      );
+}
+
+/// Результат отправки: сообщение и признак, что контакты были скрыты.
+class SentMessage {
+  const SentMessage({required this.message, required this.contactsMasked});
+
+  final ChatMessage message;
+  final bool contactsMasked;
+}

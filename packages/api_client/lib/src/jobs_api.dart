@@ -317,6 +317,64 @@ class JobsApi {
     return Job.fromJson(_handle(resp));
   }
 
+  // ── чаты (ТЗ §2.12) ────────────────────────────────────────────────────────
+
+  /// POST /jobs/{id}/chat — открыть переписку по заданию.
+  /// Заказчик указывает исполнителя, исполнитель — нет.
+  Future<ChatRow> openChat(String token, String jobId,
+      {String? ownerId, required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/jobs/$jobId/chat'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({if (ownerId != null) 'ownerId': ownerId}),
+    );
+    return ChatRow.fromJson(_handle(resp));
+  }
+
+  /// GET /chats — список моих переписок.
+  Future<List<ChatRow>> chats(String token, {int limit = 20, int offset = 0}) async {
+    final resp = await _http.get(
+      _u('/chats', {'limit': '$limit', 'offset': '$offset'}),
+      headers: _headers(token),
+    );
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => ChatRow.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// GET /chats/{id} — карточка переписки.
+  Future<ChatRow> chat(String token, String chatId) async {
+    final resp = await _http.get(_u('/chats/$chatId'), headers: _headers(token));
+    return ChatRow.fromJson(_handle(resp));
+  }
+
+  /// GET /chats/{id}/messages — история; открытие считается прочтением.
+  Future<List<ChatMessage>> messages(String token, String chatId,
+      {int limit = 50, int offset = 0}) async {
+    final resp = await _http.get(
+      _u('/chats/$chatId/messages', {'limit': '$limit', 'offset': '$offset'}),
+      headers: _headers(token),
+    );
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => ChatMessage.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// POST /chats/{id}/messages — отправить сообщение.
+  Future<SentMessage> sendMessage(String token, String chatId, String text,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/chats/$chatId/messages'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'text': text}),
+    );
+    final json = _handle(resp);
+    return SentMessage(
+      message: ChatMessage.fromJson((json['message'] as Map).cast<String, dynamic>()),
+      contactsMasked: json['contactsMasked'] as bool? ?? false,
+    );
+  }
+
   // ── сделки (ТЗ §2.11) ──────────────────────────────────────────────────────
 
   /// POST /jobs/{id}/deal — подтвердить выбор и открыть сделку.

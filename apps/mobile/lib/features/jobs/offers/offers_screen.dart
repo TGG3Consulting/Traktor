@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../chat/open_chat.dart';
 import '../jobs_providers.dart';
 import 'offers_providers.dart';
 
@@ -127,6 +128,14 @@ class _OfferCard extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
+                // «Вопрос» доступен всегда, в том числе по решённому отклику:
+                // уточнить детали после выбора — обычное дело (прототип §2.10).
+                IconButton(
+                  tooltip: 'Написать',
+                  onPressed: () =>
+                      openChatAndGo(context, ref, jobId, ownerId: offer.ownerId),
+                  icon: TkIcon(TkIcons.chatCircle, size: 20, color: scheme.onSurfaceVariant),
                 ),
                 _StatusChip(offer: offer),
               ],

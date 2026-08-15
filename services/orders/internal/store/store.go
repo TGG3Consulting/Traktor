@@ -75,6 +75,17 @@ type Store interface {
 	BestBid(ctx context.Context, jobID string) (*job.Bid, error)
 	MyBidForJob(ctx context.Context, jobID, ownerID string) (*job.Bid, error)
 
+	// ── чаты (ТЗ §2.12) ──────────────────────────────────────────────────────
+	CreateChat(ctx context.Context, c *job.Chat) error
+	UpdateChat(ctx context.Context, c *job.Chat) error
+	ChatByID(ctx context.Context, id string) (*job.Chat, error)
+	// ChatByJobOwner — чат по паре «задание + исполнитель»: он всегда один.
+	ChatByJobOwner(ctx context.Context, jobID, ownerID string) (*job.Chat, error)
+	ChatsByUser(ctx context.Context, userID string, limit, offset int) ([]job.Chat, error)
+	CreateMessage(ctx context.Context, m *job.Message) error
+	Messages(ctx context.Context, chatID string, limit, offset int) ([]job.Message, error)
+	MarkRead(ctx context.Context, chatID, userID string) error
+
 	// DueJobs — задания, у которых истёк срок: финиш аукциона, окно решения
 	// заказчика или срок приёмки работы. По ним работает фоновый обработчик.
 	DueJobs(ctx context.Context, now time.Time) ([]job.Job, error)

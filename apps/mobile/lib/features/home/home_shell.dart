@@ -5,6 +5,7 @@ import 'package:design_system/design_system.dart';
 import 'package:traktor_mobile/l10n/app_localizations.dart';
 import '../../core/app_settings.dart';
 import '../auth/auth_controller.dart';
+import '../chat/chats_tab.dart';
 import '../jobs/client_jobs_tab.dart';
 import '../jobs/create/wizard_controller.dart';
 import '../jobs/feed_tab.dart';
@@ -56,6 +57,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               // его предложения по чужим заданиям.
               ? const FeedTab()
               : const MyOffersTab(),
+          2 => const ChatsTab(),
           3 => const _ProfileTab(),
           _ => _Placeholder(title: items[_tab].label),
         },
