@@ -87,7 +87,9 @@ Check ($published.status -eq 'bidding') "posle publikatsii status: $($published.
 Check ($null -ne $published.auction.endsAt) 'server poschital vremya finisha auktsiona'
 
 Write-Output "`n--- 6. Lenta ispolnitelya ---"
-$feed = Invoke-RestMethod "$base/v1/jobs?lat=40.18&lng=44.51&radiusKm=25&sort=near" `
+# sort=new i bolshoy limit: za mesyatsy proverok v odnoy tochke nakopilis
+# desyatki zadaniy, i svezhee prosto ne popadalo v pervuyu stranitsu.
+$feed = Invoke-RestMethod "$base/v1/jobs?lat=40.18&lng=44.51&radiusKm=25&sort=new&limit=50" `
     -Headers @{ Authorization = "Bearer $($owner.accessToken)" }
 $mine = $feed.items | Where-Object { $_.id -eq $draft.id } | Select-Object -First 1
 Check ($null -ne $mine) 'zadanie vidno v lente'
