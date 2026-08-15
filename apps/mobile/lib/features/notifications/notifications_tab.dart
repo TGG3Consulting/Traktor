@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import 'notifications_providers.dart';
 
@@ -16,6 +17,7 @@ class NotificationsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final page = ref.watch(notificationsProvider);
     final unread = page.valueOrNull?.unread ?? 0;
 
@@ -30,7 +32,7 @@ class NotificationsTab extends ConsumerWidget {
               children: [
                 TextButton(
                   onPressed: () => ref.read(notificationActionsProvider).markRead(),
-                  child: const Text('Прочитать все'),
+                  child: Text(l.readAll),
                 ),
               ],
             ),
@@ -44,12 +46,10 @@ class NotificationsTab extends ConsumerWidget {
             ),
             data: (data) {
               if (data.items.isEmpty) {
-                return const TkEmptyState(
+                return TkEmptyState(
                   icon: TkIcons.bell,
-                  title: 'Уведомлений пока нет',
-                  description:
-                      'Здесь появятся отклики, ставки, шаги сделки и сообщения — '
-                      'даже если push не дошёл',
+                  title: l.noNotifTitle,
+                  description: l.noNotifDesc,
                 );
               }
               return RefreshIndicator(

@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/session_refresh.dart';
 import '../jobs/jobs_providers.dart';
@@ -52,7 +53,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Настройка не сохранилась: $e')),
+          SnackBar(
+              content: Text(AppLocalizations.of(context).settingFailed('$e'))),
         );
       }
     }
@@ -60,14 +62,15 @@ class NotificationSettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final prefs = ref.watch(notificationPrefsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Уведомления'),
+        title: Text(l.notifications),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -86,40 +89,40 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 children: [
                   _Row(
                     icon: TkIcons.chartBar,
-                    title: 'Аукционы',
-                    subtitle: 'Ставки, продления, итоги торга',
+                    title: l.grpAuctions,
+                    subtitle: l.grpAuctionsHint,
                     value: p.auctions,
                     onChanged: (v) => _save(context, ref, auctions: v),
                   ),
                   const Divider(height: 1),
                   _Row(
                     icon: TkIcons.handshake,
-                    title: 'Сделки',
-                    subtitle: 'Отклики, выбор исполнителя, шаги работы',
+                    title: l.grpDeals,
+                    subtitle: l.grpDealsHint,
                     value: p.deals,
                     onChanged: (v) => _save(context, ref, deals: v),
                   ),
                   const Divider(height: 1),
                   _Row(
                     icon: TkIcons.chatCircle,
-                    title: 'Сообщения',
-                    subtitle: 'Новые сообщения в переписке',
+                    title: l.grpMessages,
+                    subtitle: l.grpMessagesHint,
                     value: p.chat,
                     onChanged: (v) => _save(context, ref, chat: v),
                   ),
                   const Divider(height: 1),
                   _Row(
                     icon: TkIcons.clipboardText,
-                    title: 'Новые задания',
-                    subtitle: 'Подходящие задания рядом',
+                    title: l.grpNewJobs,
+                    subtitle: l.grpNewJobsHint,
                     value: p.newJobs,
                     onChanged: (v) => _save(context, ref, newJobs: v),
                   ),
                   const Divider(height: 1),
                   _Row(
                     icon: TkIcons.bell,
-                    title: 'Новости площадки',
-                    subtitle: 'Акции и полезные новости — по желанию',
+                    title: l.grpNews,
+                    subtitle: l.grpNewsHint,
                     value: p.marketing,
                     onChanged: (v) => _save(context, ref, marketing: v),
                   ),
@@ -132,18 +135,16 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 children: [
                   _Row(
                     icon: TkIcons.moon,
-                    title: 'Тихие часы',
-                    subtitle:
-                        'С ${p.quietFrom}:00 до ${p.quietTo}:00 телефон не звенит. '
-                        'События всё равно ждут в уведомлениях',
+                    title: l.quietHours,
+                    subtitle: l.quietHoursHint(p.quietFrom, p.quietTo),
                     value: p.quietHours,
                     onChanged: (v) => _save(context, ref, quietHours: v),
                   ),
                   const Divider(height: 1),
                   _Row(
                     icon: TkIcons.lightning,
-                    title: 'Будить, если перебили ставку',
-                    subtitle: 'На аукционе минуты решают — исключение из тишины',
+                    title: l.wakeOnOutbid,
+                    subtitle: l.wakeOnOutbidHint,
                     value: p.outbidAlways,
                     enabled: p.quietHours,
                     onChanged: (v) => _save(context, ref, outbidAlways: v),
@@ -153,8 +154,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Выключенная группа отключает только push. Само событие всё равно '
-              'попадёт в центр уведомлений — ничего не потеряется.',
+              l.pushOnlyHint,
               style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
             ),
           ],
