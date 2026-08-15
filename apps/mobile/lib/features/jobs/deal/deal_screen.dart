@@ -277,7 +277,7 @@ class _Contacts extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(isOwner ? 'Заказчик' : 'Исполнитель', style: TkText.h3),
+                Text(isOwner ? deal.clientName : deal.ownerName, style: TkText.h3),
                 Text(
                   'Телефон появится здесь вместе с профилями сторон',
                   style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),

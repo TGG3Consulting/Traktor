@@ -103,10 +103,24 @@ class _OfferCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Имя исполнителя появится вместе с профилями (сервис
-                      // identity отдаёт их отдельным запросом) — пока честно
-                      // показываем, что это разные люди, но без имён.
-                      const Text('Исполнитель', style: TkText.h3),
+                      Row(
+                        children: [
+                          Text(offer.ownerName, style: TkText.h3),
+                          if (offer.ownerVerified) ...[
+                            const SizedBox(width: 4),
+                            const TkIcon(TkIcons.checkCircle, size: 14, color: TkColors.success),
+                          ],
+                          if (offer.ownerRatingCount > 0) ...[
+                            const SizedBox(width: 6),
+                            const TkIcon(TkIcons.starFill, size: 12, color: TkColors.warning),
+                            const SizedBox(width: 2),
+                            Text(
+                              offer.ownerRating.toStringAsFixed(1).replaceAll('.', ','),
+                              style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ],
+                      ),
                       Text(
                         offer.eta.isEmpty ? _when(offer) : 'Сможет: ${offer.eta}',
                         style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),

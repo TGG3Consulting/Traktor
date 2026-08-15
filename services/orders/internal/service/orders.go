@@ -15,15 +15,17 @@ import (
 
 	"traktor/orders/internal/job"
 	"traktor/orders/internal/notify"
+	"traktor/orders/internal/profiles"
 	"traktor/orders/internal/store"
 )
 
 type Service struct {
 	// Планировщик в этом же пакете обращается к хранилищу напрямую: ему нужны
 	// выборки по времени, которые незачем выносить в публичный API сервиса.
-	st     store.Store
-	now    func() time.Time
-	notify notify.Notifier
+	st       store.Store
+	now      func() time.Time
+	notify   notify.Notifier
+	profiles profiles.Client
 }
 
 func New(st store.Store, now func() time.Time) *Service {
@@ -32,13 +34,28 @@ func New(st store.Store, now func() time.Time) *Service {
 
 // NewWithNotifier — то же самое, но с уведомлениями о событиях заданий.
 func NewWithNotifier(st store.Store, now func() time.Time, n notify.Notifier) *Service {
+	return NewFull(st, now, n, profiles.Noop{})
+}
+
+// NewFull — сервис со всеми зависимостями: хранилище, часы, уведомления и
+// карточки пользователей из identity.
+func NewFull(st store.Store, now func() time.Time, n notify.Notifier, p profiles.Client) *Service {
 	if now == nil {
 		now = time.Now
 	}
 	if n == nil {
 		n = notify.Noop{}
 	}
-	return &Service{st: st, now: now, notify: n}
+	if p == nil {
+		p = profiles.Noop{}
+	}
+	return &Service{st: st, now: now, notify: n, profiles: p}
+}
+
+// Profiles отдаёт карточки участников по идентификаторам — HTTP-слой
+// подмешивает их в списки откликов, ставок и сделок.
+func (s *Service) Profiles(ctx context.Context, ids []string) map[string]profiles.Profile {
+	return s.profiles.ByIDs(ctx, ids)
 }
 
 // DraftInput — поля визарда. Все указатели: nil означает «шаг не трогали»,

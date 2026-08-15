@@ -142,8 +142,11 @@ func TestUpdateProfile(t *testing.T) {
 	if u.Name != "Тигран" || u.City != "Ереван" || u.ActiveRole != "owner" {
 		t.Fatalf("профиль не обновился: %+v", u)
 	}
-	if !u.Verified {
-		t.Fatal("профиль с именем должен стать verified")
+	// Отметка «Проверен» — это результат модерации документов (ТЗ §2.5), а не
+	// награда за заполненное имя: обещать доверие, которого никто не проверял,
+	// нельзя.
+	if u.Verified {
+		t.Fatal("заполнение имени не должно делать профиль проверенным")
 	}
 	if !contains(u.Roles, "owner") || !contains(u.Roles, "client") {
 		t.Fatalf("должны быть обе роли: %v", u.Roles)

@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"traktor/orders/internal/job"
+	"traktor/orders/internal/profiles"
 	"traktor/orders/internal/service"
 )
 
@@ -85,7 +86,53 @@ func (s *Server) jobOffers(w http.ResponseWriter, r *http.Request) {
 		failOffer(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+
+	// Имя исполнителя живёт в identity: подмешиваем его здесь, одним запросом
+	// на весь список — заказчику нужно видеть, кому он отвечает.
+	ids := make([]string, 0, len(items))
+	for _, o := range items {
+		ids = append(ids, o.OwnerID)
+	}
+	people := s.svc.Profiles(r.Context(), ids)
+
+	out := make([]map[string]any, 0, len(items))
+	for _, o := range items {
+		row := offerRow(o)
+		if p, ok := people[o.OwnerID]; ok {
+			row["ownerName"] = profiles.DisplayName(p, "Исполнитель")
+			row["ownerCity"] = p.City
+			row["ownerRating"] = p.Rating
+			row["ownerRatingCount"] = p.RatingCount
+			row["ownerVerified"] = p.Verified
+		}
+		out = append(out, row)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": out})
+}
+
+// offerRow — предложение в виде, пригодном для дополнения карточкой человека.
+func offerRow(o job.Offer) map[string]any {
+	row := map[string]any{
+		"id":            o.ID,
+		"jobId":         o.JobID,
+		"ownerId":       o.OwnerID,
+		"kind":          o.Kind,
+		"price":         o.Price,
+		"currency":      o.Currency,
+		"comment":       o.Comment,
+		"eta":           o.ETA,
+		"status":        o.Status,
+		"declineReason": o.DeclineReason,
+		"createdAt":     o.CreatedAt,
+		"updatedAt":     o.UpdatedAt,
+	}
+	if o.ClientCounterPrice != nil {
+		row["clientCounterPrice"] = *o.ClientCounterPrice
+	}
+	if o.ClientCounterAt != nil {
+		row["clientCounterAt"] = *o.ClientCounterAt
+	}
+	return row
 }
 
 func (s *Server) withdrawOffer(w http.ResponseWriter, r *http.Request) {

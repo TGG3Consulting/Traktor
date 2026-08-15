@@ -18,6 +18,7 @@ import (
 	"traktor/orders/internal/config"
 	"traktor/orders/internal/httpapi"
 	"traktor/orders/internal/notify"
+	"traktor/orders/internal/profiles"
 	"traktor/orders/internal/service"
 	"traktor/orders/internal/store"
 )
@@ -52,7 +53,15 @@ func run(log *slog.Logger) error {
 		log.Warn("NOTIFICATIONS_URL не задан: уведомления о заданиях не отправляются")
 	}
 
-	svc := service.NewWithNotifier(st, time.Now, notifier)
+	var people profiles.Client = profiles.Noop{}
+	if cfg.IdentityURL != "" {
+		people = profiles.NewHTTP(cfg.IdentityURL)
+		log.Info("карточки участников включены", "identity", cfg.IdentityURL)
+	} else {
+		log.Warn("IDENTITY_URL не задан: в списках будут обезличенные подписи")
+	}
+
+	svc := service.NewFull(st, time.Now, notifier, people)
 
 	// Фоновый обработчик доводит до конца то, что зависит от времени: финиш
 	// аукциона, окно решения заказчика, автоприёмка работы.

@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"traktor/orders/internal/job"
+	"traktor/orders/internal/profiles"
 )
 
 type dealStepBody struct {
@@ -49,7 +51,26 @@ func (s *Server) deal(w http.ResponseWriter, r *http.Request) {
 		failDeal(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, deal)
+	writeJSON(w, http.StatusOK, s.dealWithNames(r, deal))
+}
+
+// dealWithNames добавляет к сделке имена сторон: на этом экране люди уже
+// договорились и должны видеть, с кем имеют дело.
+func (s *Server) dealWithNames(r *http.Request, d *job.Deal) map[string]any {
+	people := s.svc.Profiles(r.Context(), []string{d.ClientID, d.OwnerID})
+
+	raw, _ := json.Marshal(d)
+	out := map[string]any{}
+	_ = json.Unmarshal(raw, &out)
+
+	if p, ok := people[d.ClientID]; ok {
+		out["clientName"] = profiles.DisplayName(p, "Заказчик")
+	}
+	if p, ok := people[d.OwnerID]; ok {
+		out["ownerName"] = profiles.DisplayName(p, "Исполнитель")
+		out["ownerRating"] = p.Rating
+	}
+	return out
 }
 
 func (s *Server) myDeals(w http.ResponseWriter, r *http.Request) {

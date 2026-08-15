@@ -82,6 +82,10 @@ func (s *Server) Routes() http.Handler {
 		})
 	})
 
+	// Внутренний маршрут для других сервисов: публичные карточки пользователей.
+	// Наружу шлюз его не проксирует.
+	r.Get("/internal/profiles", s.publicProfiles)
+
 	r.Get("/.well-known/jwks.json", s.jwks)
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 	return r

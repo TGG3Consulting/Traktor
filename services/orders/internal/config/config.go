@@ -11,6 +11,9 @@ type Config struct {
 	// NotificationsURL пуст → уведомления не отправляются (dev, тесты).
 	// Задан → сервис orders сообщает notifications о новых откликах и решениях.
 	NotificationsURL string
+	// IdentityURL пуст → в списках останутся обезличенные подписи.
+	// Задан → orders подтягивает имена участников из identity.
+	IdentityURL string
 }
 
 func Load() *Config {
@@ -18,6 +21,7 @@ func Load() *Config {
 		Port:             getenv("PORT", "8080"),
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		NotificationsURL: os.Getenv("NOTIFICATIONS_URL"),
+		IdentityURL:      os.Getenv("IDENTITY_URL"),
 	}
 }
 

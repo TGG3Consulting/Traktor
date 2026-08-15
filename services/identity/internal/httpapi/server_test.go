@@ -131,8 +131,11 @@ func TestUpdateMe(t *testing.T) {
 	}
 	var patched map[string]any
 	_ = json.Unmarshal(data, &patched)
-	if patched["name"] != "Тигран" || patched["activeRole"] != "owner" || patched["verified"] != true {
+	if patched["name"] != "Тигран" || patched["activeRole"] != "owner" {
 		t.Fatalf("профиль не обновился: %v", patched)
+	}
+	if patched["verified"] == true {
+		t.Fatal("отметку «Проверен» ставит модерация, а не заполнение имени")
 	}
 
 	// GET /me отдаёт обновлённый профиль.

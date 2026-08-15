@@ -378,6 +378,11 @@ class Offer {
     this.clientCounterAt,
     this.createdAt,
     this.updatedAt,
+    this.ownerName = 'Исполнитель',
+    this.ownerCity = '',
+    this.ownerRating = 0,
+    this.ownerRatingCount = 0,
+    this.ownerVerified = false,
   });
 
   final String id;
@@ -404,6 +409,14 @@ class Offer {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  /// Имя и рейтинг исполнителя — приходят из сервиса профилей; пока профиль
+  /// не заполнен, показываем обезличенную подпись.
+  final String ownerName;
+  final String ownerCity;
+  final double ownerRating;
+  final int ownerRatingCount;
+  final bool ownerVerified;
+
   bool get isActive => status == 'active' || status == 'counter_offered';
   bool get isAccepted => status == 'accepted';
   bool get hasCounter => clientCounterPrice != null;
@@ -424,6 +437,13 @@ class Offer {
         clientCounterAt: DateTime.tryParse(j['clientCounterAt'] as String? ?? '')?.toLocal(),
         createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
         updatedAt: DateTime.tryParse(j['updatedAt'] as String? ?? '')?.toLocal(),
+        ownerName: (j['ownerName'] as String?)?.trim().isNotEmpty == true
+            ? j['ownerName'] as String
+            : 'Исполнитель',
+        ownerCity: j['ownerCity'] as String? ?? '',
+        ownerRating: (j['ownerRating'] as num?)?.toDouble() ?? 0,
+        ownerRatingCount: j['ownerRatingCount'] as int? ?? 0,
+        ownerVerified: j['ownerVerified'] as bool? ?? false,
       );
 }
 
@@ -462,6 +482,9 @@ class Deal {
     this.createdAt,
     this.updatedAt,
     this.closedAt,
+    this.clientName = 'Заказчик',
+    this.ownerName = 'Исполнитель',
+    this.ownerRating = 0,
   });
 
   final String id;
@@ -484,6 +507,12 @@ class Deal {
   final DateTime? updatedAt;
   final DateTime? closedAt;
 
+  /// Имена сторон: на экране сделки люди уже договорились и должны видеть,
+  /// с кем имеют дело.
+  final String clientName;
+  final String ownerName;
+  final double ownerRating;
+
   bool get isClosed => status == 'completed' || status == 'cancelled';
 
   factory Deal.fromJson(Map<String, dynamic> j) => Deal(
@@ -505,6 +534,13 @@ class Deal {
         createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
         updatedAt: DateTime.tryParse(j['updatedAt'] as String? ?? '')?.toLocal(),
         closedAt: DateTime.tryParse(j['closedAt'] as String? ?? '')?.toLocal(),
+        clientName: (j['clientName'] as String?)?.trim().isNotEmpty == true
+            ? j['clientName'] as String
+            : 'Заказчик',
+        ownerName: (j['ownerName'] as String?)?.trim().isNotEmpty == true
+            ? j['ownerName'] as String
+            : 'Исполнитель',
+        ownerRating: (j['ownerRating'] as num?)?.toDouble() ?? 0,
       );
 }
 

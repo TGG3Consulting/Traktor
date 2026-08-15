@@ -234,10 +234,10 @@ func (a *Auth) UpdateProfile(ctx context.Context, id string, p ProfilePatch) (*s
 	}
 	if p.Name != nil {
 		u.Name = *p.Name
-		if u.Name != "" {
-			u.Verified = true
-		}
 	}
+	// Отметку «Проверен» ставит модерация после проверки документов и техники
+	// (ТЗ §2.5). Раньше она выдавалась просто за заполненное имя — это обещало
+	// людям доверие, которого никто не проверял.
 	if p.City != nil {
 		u.City = *p.City
 	}
@@ -265,3 +265,7 @@ func contains(xs []string, x string) bool {
 	}
 	return false
 }
+
+// Store открывает хранилище HTTP-слою: публичные карточки пользователей
+// читаются напрямую, без бизнес-логики входа.
+func (a *Auth) Store() store.Store { return a.store }
