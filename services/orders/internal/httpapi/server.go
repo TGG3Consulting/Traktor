@@ -23,9 +23,19 @@ import (
 
 const userHeader = "X-User-Id"
 
-type Server struct{ svc *service.Service }
+type Server struct {
+	svc *service.Service
+	// realtimeSecret — тем же ключом подписаны билеты Centrifugo. Пусто —
+	// живые обновления выключены, всё остальное работает как обычно.
+	realtimeSecret string
+}
 
 func New(svc *service.Service) *Server { return &Server{svc: svc} }
+
+// NewWithRealtime — сервер, умеющий выдавать билеты на подписку к переписке.
+func NewWithRealtime(svc *service.Service, realtimeSecret string) *Server {
+	return &Server{svc: svc, realtimeSecret: realtimeSecret}
+}
 
 func (s *Server) Routes() http.Handler {
 	r := chi.NewRouter()
@@ -100,6 +110,8 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/{chatId}", s.chat)
 		r.Get("/{chatId}/messages", s.messages)
 		r.Post("/{chatId}/messages", s.sendMessage)
+		// Билет на живую подписку — только участнику переписки.
+		r.Get("/{chatId}/realtime-token", s.chatRealtimeToken)
 	})
 
 	// Ставки исполнителя и решения заказчика по ним.

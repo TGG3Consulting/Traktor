@@ -16,4 +16,11 @@ class Env {
     'API_BASE_URL',
     defaultValue: 'http://localhost:8080/v1',
   );
+
+  /// Адрес живых обновлений (Centrifugo, ADR-6). Пусто — экраны обновляются
+  /// только при заходе, всё остальное работает как обычно.
+  static const String realtimeUrl = String.fromEnvironment(
+    'REALTIME_URL',
+    defaultValue: 'ws://localhost:18000/connection/websocket',
+  );
 }

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../job_detail_screen.dart';
+import '../../../core/realtime.dart';
 import '../jobs_providers.dart';
 import 'auction_providers.dart';
 
@@ -16,13 +17,54 @@ import 'auction_providers.dart';
 /// Сверху живой таймер и текущая лучшая цена, ниже анонимная лента ставок,
 /// внизу — панель своей ставки. Имена участников скрыты до конца торга: это
 /// защита от сговора и переманивания, поэтому и в интерфейсе их нет.
-class AuctionScreen extends ConsumerWidget {
+class AuctionScreen extends ConsumerStatefulWidget {
   const AuctionScreen({super.key, required this.jobId});
 
   final String jobId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AuctionScreen> createState() => _AuctionScreenState();
+}
+
+class _AuctionScreenState extends ConsumerState<AuctionScreen> {
+  void Function()? _unsubscribe;
+
+  @override
+  void initState() {
+    super.initState();
+    _listen();
+  }
+
+  /// Подписка на канал задания: чужая ставка обновляет ленту и таймер сразу,
+  /// без обновления экрана вручную (ADR-6). Если канал недоступен, экран
+  /// работает как раньше — данные подтягиваются при заходе.
+  Future<void> _listen() async {
+    final off = await ref.read(realtimeProvider).subscribe(
+      'job:${widget.jobId}',
+      (event) {
+        if (!mounted) return;
+        ref.invalidate(jobBidsProvider(widget.jobId));
+        // Продление торга меняет время финиша — карточку задания тоже
+        // перечитываем, иначе таймер покажет старый срок.
+        if (event['extended'] == true) ref.invalidate(jobProvider(widget.jobId));
+      },
+    );
+    if (!mounted) {
+      off();
+      return;
+    }
+    _unsubscribe = off;
+  }
+
+  @override
+  void dispose() {
+    _unsubscribe?.call();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final jobId = widget.jobId;
     final job = ref.watch(jobProvider(jobId));
     final scheme = Theme.of(context).colorScheme;
 

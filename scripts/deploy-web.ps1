@@ -28,7 +28,8 @@ Write-Output "--- 1. Sborka ($stamp) ---"
 Push-Location 'C:\Traktor\apps\mobile'
 & $flutter build web --pwa-strategy=none `
     --dart-define=REAL_BACKEND=true `
-    --dart-define=API_BASE_URL=https://api.homly.am/v1 2>&1 |
+    --dart-define=API_BASE_URL=https://api.homly.am/v1 `
+    --dart-define=REALTIME_URL=wss://rt.homly.am/connection/websocket 2>&1 |
     Select-Object -Last 3 | ForEach-Object { "  $_" }
 Pop-Location
 if (-not (Test-Path "$web\main.dart.js")) { Write-Output '  PROVAL: sborka ne poluchilas'; exit 1 }

@@ -87,7 +87,7 @@ func run(log *slog.Logger) error {
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           httpapi.New(svc).Routes(),
+		Handler:           httpapi.NewWithRealtime(svc, cfg.CentrifugoSecret).Routes(),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}

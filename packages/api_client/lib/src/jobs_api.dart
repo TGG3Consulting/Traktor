@@ -317,6 +317,22 @@ class JobsApi {
     return Job.fromJson(_handle(resp));
   }
 
+  /// GET /chats/{id}/realtime-token — билет на подписку к переписке: канал
+  /// закрыт, и выдать билет может только сервис, знающий участников.
+  Future<String> chatRealtimeToken(String token, String chatId) async {
+    final resp = await _http.get(
+      _u('/chats/$chatId/realtime-token'),
+      headers: _headers(token),
+    );
+    return _handle(resp)['token'] as String? ?? '';
+  }
+
+  /// GET /realtime/token — билет на подключение к живым обновлениям (ADR-6).
+  Future<String> realtimeToken(String token) async {
+    final resp = await _http.get(_u('/realtime/token'), headers: _headers(token));
+    return _handle(resp)['token'] as String? ?? '';
+  }
+
   // ── публичная карточка человека (ТЗ §2.3) ──────────────────────────────────
 
   /// GET /users/{id} — имя, город, отметка проверки. Работает без входа:

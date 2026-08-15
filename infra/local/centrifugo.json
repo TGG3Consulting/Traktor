@@ -18,18 +18,20 @@
 
   "namespaces": [
     {
+      "//": "Лента торга анонимна и открыта: цены видят все, имён в событиях нет.",
       "name": "job",
       "presence": true,
       "history_size": 200,
       "history_ttl": "600s",
-      "recovery": true
+      "allow_subscribe_for_client": true
     },
     {
+      "//": "Переписка закрыта: подписка только по токену, который выдаёт orders",
+      "//_": "после проверки, что человек — участник этого чата.",
       "name": "chat",
       "presence": true,
       "history_size": 500,
-      "history_ttl": "86400s",
-      "recovery": true
+      "history_ttl": "86400s"
     }
   ]
 }

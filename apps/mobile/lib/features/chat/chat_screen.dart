@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/realtime.dart';
+import '../../core/session_refresh.dart';
 import '../jobs/jobs_providers.dart';
 import 'chat_providers.dart';
 
@@ -26,8 +28,49 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _scroll = ScrollController();
   bool _sending = false;
 
+  void Function()? _unsubscribe;
+
+  @override
+  void initState() {
+    super.initState();
+    _listen();
+  }
+
+  /// Сообщение собеседника появляется сразу: переписка, которая обновляется
+  /// раз в минуту, превращается в переписку по почте (ADR-6).
+  Future<void> _listen() async {
+    // Канал переписки закрыт — сначала берём билет, он же подтверждает, что
+    // человек участник этого чата.
+    String ticket;
+    try {
+      ticket = await ref.read(sessionRefresherProvider).run(
+            (t) => ref.read(jobsApiProvider).chatRealtimeToken(t, widget.chatId),
+          );
+    } catch (_) {
+      return; // живые обновления недоступны — экран работает как обычно
+    }
+
+    final off = await ref.read(realtimeProvider).subscribe(
+      'chat:${widget.chatId}',
+      (event) {
+        if (!mounted) return;
+        // Своё сообщение уже на экране — перечитывать историю незачем.
+        if (event['senderId'] == ref.read(userIdProvider)) return;
+        ref.invalidate(messagesProvider(widget.chatId));
+        _toBottom();
+      },
+      subscriptionToken: ticket,
+    );
+    if (!mounted) {
+      off();
+      return;
+    }
+    _unsubscribe = off;
+  }
+
   @override
   void dispose() {
+    _unsubscribe?.call();
     _input.dispose();
     _scroll.dispose();
     super.dispose();

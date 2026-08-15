@@ -97,6 +97,7 @@ $env:CATALOG_URL = 'http://127.0.0.1:18083'
 # Zhivye sobytiya torga i chata (ADR-6)
 $env:CENTRIFUGO_URL = 'http://127.0.0.1:18000'
 $env:CENTRIFUGO_API_KEY = 'traktor-local-centrifugo-api'
+$env:CENTRIFUGO_SECRET = 'traktor-local-centrifugo-secret'
 Start-Process -FilePath "$bin\orders.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-orders.log" -RedirectStandardError "$out\svc-orders.err" | Out-Null
 

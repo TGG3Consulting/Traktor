@@ -4,8 +4,10 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 
 	"traktor/orders/internal/job"
 	"traktor/orders/internal/profiles"
@@ -121,6 +123,41 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 		// Клиент показывает мягкое предупреждение: человек должен понимать,
 		// почему его номер в сообщении заменился.
 		"contactsMasked": masked,
+	})
+}
+
+// chatRealtimeToken — токен подписки на канал переписки (ADR-6).
+//
+// Канал чата закрыт: Centrifugo пускает в него только по токену, а выдать его
+// может лишь тот, кто знает участников, — то есть этот сервис.
+func (s *Server) chatRealtimeToken(w http.ResponseWriter, r *http.Request) {
+	chatID := chi.URLParam(r, "chatId")
+	c, err := s.svc.Chat(r.Context(), r.Header.Get(userHeader), chatID)
+	if err != nil {
+		failChat(w, err)
+		return
+	}
+	if s.realtimeSecret == "" {
+		problem(w, http.StatusServiceUnavailable, "realtime_off",
+			"живые обновления выключены на этом стенде")
+		return
+	}
+
+	exp := time.Now().Add(time.Hour)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":     r.Header.Get(userHeader),
+		"channel": "chat:" + c.ID,
+		"exp":     exp.Unix(),
+	})
+	signed, err := token.SignedString([]byte(s.realtimeSecret))
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"token":     signed,
+		"channel":   "chat:" + c.ID,
+		"expiresAt": exp.UTC(),
 	})
 }
 

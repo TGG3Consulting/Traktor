@@ -20,6 +20,8 @@ type Config struct {
 	// как раньше, только без живых обновлений.
 	CentrifugoURL    string
 	CentrifugoAPIKey string
+	// CentrifugoSecret — ключ подписи билетов на подписку к переписке.
+	CentrifugoSecret string
 }
 
 func Load() *Config {
@@ -31,6 +33,7 @@ func Load() *Config {
 		CatalogURL:       os.Getenv("CATALOG_URL"),
 		CentrifugoURL:    os.Getenv("CENTRIFUGO_URL"),
 		CentrifugoAPIKey: os.Getenv("CENTRIFUGO_API_KEY"),
+		CentrifugoSecret: os.Getenv("CENTRIFUGO_SECRET"),
 	}
 }
 
