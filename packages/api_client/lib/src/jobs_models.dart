@@ -1153,3 +1153,74 @@ class BusyDay {
         title: j['title'] as String? ?? '',
       );
 }
+
+/// Спор по сделке (ТЗ §4.1).
+class Dispute {
+  const Dispute({
+    required this.id,
+    this.dealId = '',
+    this.jobId = '',
+    this.jobTitle = '',
+    this.reason = '',
+    this.photos = const [],
+    this.status = 'open',
+    this.outcome = '',
+    this.resolution = '',
+    this.openedBy = '',
+    this.clientName = '',
+    this.ownerName = '',
+    this.openedByClient = false,
+    this.createdAt,
+    this.resolvedAt,
+  });
+
+  final String id;
+  final String dealId;
+  final String jobId;
+  final String jobTitle;
+  final String reason;
+  final List<String> photos;
+
+  /// open — ждёт модератора, resolved — решение вынесено.
+  final String status;
+
+  /// client | owner | compromise
+  final String outcome;
+
+  /// Обоснование решения — его видят обе стороны.
+  final String resolution;
+
+  final String openedBy;
+  final String clientName;
+  final String ownerName;
+  final bool openedByClient;
+  final DateTime? createdAt;
+  final DateTime? resolvedAt;
+
+  bool get isOpen => status == 'open';
+
+  String get outcomeLabel => switch (outcome) {
+        'client' => 'в пользу заказчика',
+        'owner' => 'в пользу исполнителя',
+        'compromise' => 'компромисс',
+        _ => '',
+      };
+
+  factory Dispute.fromJson(Map<String, dynamic> j) => Dispute(
+        id: j['id'] as String? ?? '',
+        dealId: j['dealId'] as String? ?? '',
+        jobId: j['jobId'] as String? ?? '',
+        jobTitle: j['jobTitle'] as String? ?? '',
+        reason: j['reason'] as String? ?? '',
+        photos: ((j['photos'] as List?) ?? const []).map((e) => '$e').toList(),
+        status: j['status'] as String? ?? 'open',
+        outcome: j['outcome'] as String? ?? '',
+        resolution: j['resolution'] as String? ?? '',
+        openedBy: j['openedBy'] as String? ?? '',
+        clientName: j['clientName'] as String? ?? '',
+        ownerName: j['ownerName'] as String? ?? '',
+        openedByClient: j['openedByClient'] as bool? ?? false,
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+        resolvedAt: DateTime.tryParse(j['resolvedAt'] as String? ?? '')?.toLocal(),
+      );
+}

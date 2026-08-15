@@ -16,6 +16,7 @@ import '../features/jobs/deal/deal_screen.dart';
 import '../features/jobs/job_detail_screen.dart';
 import '../features/jobs/offers/offers_screen.dart';
 import '../features/crm/business_screen.dart';
+import '../features/disputes/dispute_queue_screen.dart';
 import '../features/crm/calendar_screen.dart';
 import '../features/crm/spending_screen.dart';
 import '../features/equipment/equipment_list_screen.dart';
@@ -96,6 +97,9 @@ final appRouter = GoRouter(
         step: int.tryParse(state.pathParameters['step'] ?? '1') ?? 1,
       ),
     ),
+
+    // Очередь споров (ТЗ §4.1) — доступна модерации.
+    GoRoute(path: '/moderation/disputes', builder: (_, __) => const DisputeQueueScreen()),
 
     // Очередь проверки техники (ТЗ §4.1) — доступна модерации.
     GoRoute(path: '/moderation', builder: (_, __) => const ModerationScreen()),

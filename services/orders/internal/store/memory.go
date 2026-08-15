@@ -26,6 +26,7 @@ type Memory struct {
 	msgSeq map[string]int
 	reviews  map[string]job.Review      // взаимные оценки по сделкам
 	busyDays map[string]string          // «не работаю»: владелец+день → пометка
+	disputes map[string]job.Dispute     // споры по сделкам
 	views    map[string]map[string]bool // jobID → кто смотрел
 	idemp    map[string]string          // ключ идемпотентности → jobID
 }
@@ -41,6 +42,7 @@ func NewMemory() *Memory {
 		msgSeq:   map[string]int{},
 		reviews:  map[string]job.Review{},
 		busyDays: map[string]string{},
+		disputes: map[string]job.Dispute{},
 		views:    map[string]map[string]bool{},
 		idemp:    map[string]string{},
 	}

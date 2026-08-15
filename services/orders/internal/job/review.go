@@ -94,6 +94,8 @@ var (
 	ErrReviewLong      = errors.New("review: отзыв длиннее 500 символов")
 	ErrReplyTwice      = errors.New("review: ответить на отзыв можно один раз")
 	ErrReplyForeign    = errors.New("review: отвечать может только тот, кого оценили")
+	// ErrReviewFrozen — пока идёт спор, оценки не выставляются (ТЗ §4.1).
+	ErrReviewFrozen = errors.New("review: на время разбора спора оценки заморожены")
 )
 
 // AllowedTags — набор отметок для роли автора: клиент экрана показывает

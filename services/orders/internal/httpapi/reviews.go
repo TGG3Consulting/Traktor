@@ -148,6 +148,9 @@ func failReview(w http.ResponseWriter, err error) {
 	case errors.Is(err, job.ErrReviewTooEarly):
 		problem(w, http.StatusConflict, "review_too_early",
 			"оценка доступна после завершения сделки")
+	case errors.Is(err, job.ErrReviewFrozen):
+		problem(w, http.StatusConflict, "review_frozen",
+			"идёт разбор спора — оценки станут доступны после решения")
 	case errors.Is(err, job.ErrReviewTwice):
 		problem(w, http.StatusConflict, "review_twice", "вы уже оценили эту сделку")
 	case errors.Is(err, job.ErrReplyTwice):

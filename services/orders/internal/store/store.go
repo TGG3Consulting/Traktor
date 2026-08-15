@@ -87,6 +87,15 @@ type Store interface {
 	// SavedOnAuctions — разница между стартовой и итоговой ценой по аукционам.
 	SavedOnAuctions(ctx context.Context, clientID string, from, to time.Time) (int64, error)
 
+	// ── споры (ТЗ §4.1) ──────────────────────────────────────────────────────
+	CreateDispute(ctx context.Context, d *job.Dispute) error
+	UpdateDispute(ctx context.Context, d *job.Dispute) error
+	DisputeByID(ctx context.Context, id string) (*job.Dispute, error)
+	// DisputeByDeal — последний спор по сделке (обычно он же открытый).
+	DisputeByDeal(ctx context.Context, dealID string) (*job.Dispute, error)
+	// OpenDisputes — очередь модерации, старые сверху.
+	OpenDisputes(ctx context.Context, limit int) ([]job.Dispute, error)
+
 	// ── ставки аукциона (ТЗ §2.9) ────────────────────────────────────────────
 	CreateBid(ctx context.Context, b *job.Bid) error
 	UpdateBid(ctx context.Context, b *job.Bid) error

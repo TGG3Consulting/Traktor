@@ -1826,6 +1826,108 @@ paths:
             text/csv:
               schema: { type: string }
 
+  /deals/{dealId}/dispute:
+    post:
+      tags: [orders]
+      summary: Открыть спор по сделке (ТЗ §4.1)
+      description: >
+        Спор открывает участник сделки и только по начатой работе: до выезда
+        исполнителя сделку просто отменяют. Описание проблемы обязательно —
+        по слову «плохо» разобрать нечего. На время разбора оценки заморожены.
+      operationId: openDispute
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: dealId, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 20, maxLength: 1000 }
+                photos: { type: array, items: { type: string } }
+      responses:
+        "201":
+          description: Спор открыт
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dispute" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    get:
+      tags: [orders]
+      summary: Спор по сделке (для её участников)
+      operationId: dealDispute
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: dealId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Спор
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dispute" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /moderation/disputes:
+    get:
+      tags: [orders]
+      summary: Очередь разбора споров (ТЗ §4.1)
+      description: Доступно роли moderator или admin. Старые сверху.
+      operationId: disputeQueue
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 50 } }
+      responses:
+        "200":
+          description: Очередь
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Dispute" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /moderation/disputes/{id}/resolve:
+    post:
+      tags: [orders]
+      summary: Решение по спору с обоснованием
+      description: >
+        Исход и обоснование обязательны: решение без объяснения обе стороны
+        считают несправедливым. Текст уходит обоим. В пользу заказчика сделка
+        отменяется, в пользу исполнителя и при компромиссе — закрывается как
+        выполненная.
+      operationId: resolveDispute
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome, resolution]
+              properties:
+                outcome: { type: string, enum: [client, owner, compromise] }
+                resolution: { type: string, minLength: 20, maxLength: 1000 }
+      responses:
+        "200":
+          description: Спор разобран
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dispute" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1882,6 +1984,23 @@ components:
           description: "route — куда вести по нажатию, плюс данные экрана"
         read: { type: boolean }
         createdAt: { type: string, format: date-time }
+    Dispute:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        dealId: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        jobTitle: { type: string }
+        reason: { type: string }
+        photos: { type: array, items: { type: string } }
+        status: { type: string, enum: [open, resolved] }
+        outcome: { type: string, enum: [client, owner, compromise] }
+        resolution: { type: string, description: "обоснование, видят обе стороны" }
+        openedByClient: { type: boolean }
+        clientName: { type: string }
+        ownerName: { type: string }
+        createdAt: { type: string, format: date-time }
+        resolvedAt: { type: string, format: date-time }
     BusyDay:
       type: object
       properties:

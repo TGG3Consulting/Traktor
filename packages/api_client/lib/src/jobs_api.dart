@@ -401,6 +401,50 @@ class JobsApi {
     if (resp.statusCode >= 300 && resp.statusCode != 204) _handle(resp);
   }
 
+  // ── споры (ТЗ §4.1) ────────────────────────────────────────────────────────
+
+  /// POST /deals/{id}/dispute — открыть спор по сделке.
+  Future<Dispute> openDispute(String token, String dealId, String reason,
+      {List<String> photos = const [], required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/deals/$dealId/dispute'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'reason': reason, 'photos': photos}),
+    );
+    return Dispute.fromJson(_handle(resp));
+  }
+
+  /// GET /deals/{id}/dispute — спор по сделке для её участников.
+  Future<Dispute?> dispute(String token, String dealId) async {
+    final resp = await _http.get(_u('/deals/$dealId/dispute'), headers: _headers(token));
+    if (resp.statusCode == 404) return null;
+    return Dispute.fromJson(_handle(resp));
+  }
+
+  /// GET /moderation/disputes — очередь разбора.
+  Future<List<Dispute>> disputeQueue(String token) async {
+    final resp = await _http.get(_u('/moderation/disputes'), headers: _headers(token));
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => Dispute.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// POST /moderation/disputes/{id}/resolve — решение с обоснованием.
+  Future<Dispute> resolveDispute(
+    String token,
+    String disputeId, {
+    required String outcome,
+    required String resolution,
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.post(
+      _u('/moderation/disputes/$disputeId/resolve'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'outcome': outcome, 'resolution': resolution}),
+    );
+    return Dispute.fromJson(_handle(resp));
+  }
+
   // ── модерация техники (ТЗ §4.1) ────────────────────────────────────────────
 
   /// GET /moderation/equipment — очередь проверки, старые сверху.

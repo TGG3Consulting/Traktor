@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../job_detail_screen.dart';
 import '../../chat/open_chat.dart';
+import '../../disputes/dispute_providers.dart';
+import '../../disputes/dispute_sheet.dart';
 import '../jobs_providers.dart';
 import 'deal_providers.dart';
 
@@ -103,6 +105,8 @@ class _Content extends ConsumerWidget {
                   text: 'Сделка отменена: ${deal.cancelReason}',
                 ),
               ],
+              // Спор виден обеим сторонам: и жалоба, и решение модератора.
+              _DisputeBanner(dealId: deal.id),
               if (deal.status == 'completed') ...[
                 const SizedBox(height: 14),
                 const _Banner(
@@ -156,13 +160,13 @@ class _Timeline extends StatelessWidget {
               last: i == _steps.length - 1,
             ),
           ],
-          if (deal.status == 'cancelled' || deal.status == 'disputed')
+          if (deal.status == 'cancelled')
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: Text(
-                deal.status == 'cancelled' ? 'Сделка отменена' : 'Открыт спор',
+                'Сделка отменена',
                 style: TkText.caption.copyWith(
-                  color: deal.status == 'cancelled' ? scheme.onSurfaceVariant : TkColors.error,
+                  color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -444,10 +448,22 @@ class _ActionsState extends ConsumerState<_Actions> {
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                     ),
                   const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: _busy ? null : _confirmCancel,
-                    child: Text('Отменить сделку',
-                        style: TkText.caption.copyWith(color: TkColors.error)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Спор — не жалоба «в никуда», а обращение к арбитру:
+                      // модератор увидит переписку, фото и отметки времени.
+                      TextButton(
+                        onPressed: _busy ? null : () => showDisputeSheet(context, dealId: deal.id),
+                        child: Text('Есть проблемы',
+                            style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
+                      ),
+                      TextButton(
+                        onPressed: _busy ? null : _confirmCancel,
+                        child: Text('Отменить сделку',
+                            style: TkText.caption.copyWith(color: TkColors.error)),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -498,5 +514,63 @@ class _ActionsState extends ConsumerState<_Actions> {
     await _run(() => ref
         .read(dealActionsProvider)
         .cancel(deal.jobId, deal.id, controller.text.trim()));
+  }
+}
+
+
+/// Плашка спора: пока идёт разбор — что именно оспаривается, после решения —
+/// исход и обоснование модератора. Обе стороны видят один и тот же текст.
+class _DisputeBanner extends ConsumerWidget {
+  const _DisputeBanner({required this.dealId});
+
+  final String dealId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final dispute = ref.watch(disputeOfDealProvider(dealId)).valueOrNull;
+    if (dispute == null) return const SizedBox.shrink();
+
+    final open = dispute.isOpen;
+    final color = open ? TkColors.warning : TkColors.info;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: TkRadius.cardR,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                TkIcon(TkIcons.scales, size: 18, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  open ? 'Идёт разбор спора' : 'Спор разобран: ${dispute.outcomeLabel}',
+                  style: TkText.body.copyWith(fontWeight: FontWeight.w600, color: color),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              open ? dispute.reason : dispute.resolution,
+              style: TkText.caption.copyWith(color: scheme.onSurface),
+            ),
+            if (open) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Модератор смотрит переписку, фотографии и отметки времени. '
+                'Пока идёт разбор, оценки по сделке не выставляются.',
+                style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

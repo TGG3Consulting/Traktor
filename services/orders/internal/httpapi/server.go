@@ -92,8 +92,19 @@ func (s *Server) Routes() http.Handler {
 		r.Post("/{dealId}/cancel", s.cancelDeal)
 
 		// Взаимная оценка после завершения (ТЗ §2.13).
+		// Спор по сделке (ТЗ §4.1).
+		r.Post("/{dealId}/dispute", s.openDispute)
+		r.Get("/{dealId}/dispute", s.dispute)
+
 		r.Get("/{dealId}/review", s.myReviewForDeal)
 		r.Post("/{dealId}/review", s.leaveReview)
+	})
+
+	// Разбор споров — только модерации (ТЗ §4.1).
+	r.Route("/v1/moderation", func(r chi.Router) {
+		r.Use(s.requireUser, s.requireModerator)
+		r.Get("/disputes", s.disputeQueue)
+		r.Post("/disputes/{id}/resolve", s.resolveDispute)
 	})
 
 	// Отзывы: публичная карточка человека и ответ на отзыв о себе.

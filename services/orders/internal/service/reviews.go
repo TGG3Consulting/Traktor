@@ -21,6 +21,12 @@ func (s *Service) LeaveReview(ctx context.Context, userID, dealID string, in job
 	if err := job.CanReview(d, userID); err != nil {
 		return nil, err
 	}
+	// На время разбора оценки заморожены (ТЗ §4.1): иначе отзыв превращается
+	// в оружие в конфликте, а модератор разбирает уже испорченный рейтинг.
+	if dispute, err := s.st.DisputeByDeal(ctx, d.ID); err == nil &&
+		dispute.Status == job.DisputeOpen {
+		return nil, job.ErrReviewFrozen
+	}
 
 	r := in
 	r.DealID = d.ID

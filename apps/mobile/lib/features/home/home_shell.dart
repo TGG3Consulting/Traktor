@@ -164,6 +164,13 @@ class _ProfileTab extends ConsumerWidget {
                   onTap: () => context.push('/moderation'),
                 ),
                 const Divider(height: 1),
+                ListTile(
+                  leading: const TkIcon(TkIcons.scales),
+                  title: const Text('Споры'),
+                  trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                  onTap: () => context.push('/moderation/disputes'),
+                ),
+                const Divider(height: 1),
               ],
               // Заказчику — свои расходы, исполнителю — свой бизнес (ТЗ §3).
               if (isClient) ...[
