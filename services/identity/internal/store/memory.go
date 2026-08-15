@@ -17,14 +17,19 @@ type Memory struct {
 	refresh   map[string]Refresh
 	// Журнал действий модерации (ТЗ §4.1, п.8).
 	adminLog []AdminAction
+	// Заявки на бейдж «Проверен» (ТЗ §2.3) и порядок их подачи: в тестах
+	// время фиксированное, и без порядка очередь выстраивается как попало.
+	verifications map[string]Verification
+	verifySeq     []string
 }
 
 func NewMemory() *Memory {
 	return &Memory{
-		otps:      map[string]OTP{},
-		users:     map[string]User{},
-		usersByID: map[string]User{},
-		refresh:   map[string]Refresh{},
+		otps:          map[string]OTP{},
+		users:         map[string]User{},
+		usersByID:     map[string]User{},
+		refresh:       map[string]Refresh{},
+		verifications: map[string]Verification{},
 	}
 }
 
@@ -223,5 +228,93 @@ func (m *Memory) RevokeAllRefresh(_ context.Context, userID string) error {
 			m.refresh[k] = r
 		}
 	}
+	return nil
+}
+
+// ── проверка человека (ТЗ §2.3) ────────────────────────────────────────────
+
+func (m *Memory) CreateVerification(_ context.Context, v *Verification) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, ex := range m.verifications {
+		if ex.UserID == v.UserID && ex.Status == VerifyPending {
+			return ErrVerifyPending
+		}
+	}
+	if m.verifications == nil {
+		m.verifications = map[string]Verification{}
+	}
+	m.verifications[v.ID] = *v
+	m.verifySeq = append(m.verifySeq, v.ID)
+	return nil
+}
+
+func (m *Memory) UpdateVerification(_ context.Context, v *Verification) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.verifications[v.ID]; !ok {
+		return ErrNotFound
+	}
+	m.verifications[v.ID] = *v
+	return nil
+}
+
+func (m *Memory) VerificationByID(_ context.Context, id string) (*Verification, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	v, ok := m.verifications[id]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	return &v, nil
+}
+
+func (m *Memory) MyVerification(_ context.Context, userID string) (*Verification, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// Идём с конца: последняя заявка — та, о которой человек спрашивает.
+	for i := len(m.verifySeq) - 1; i >= 0; i-- {
+		if v, ok := m.verifications[m.verifySeq[i]]; ok && v.UserID == userID {
+			return &v, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (m *Memory) PendingVerifications(_ context.Context, limit int) ([]Verification, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	out := []Verification{}
+	// Порядок добавления — он же порядок очереди: людям обещан ответ за сутки,
+	// и первым разбирается то, что ждёт дольше.
+	for _, id := range m.verifySeq {
+		v, ok := m.verifications[id]
+		if !ok || v.Status != VerifyPending {
+			continue
+		}
+		if u, ok := m.usersByID[v.UserID]; ok {
+			v.UserName, v.UserPhone = u.Name, u.Phone
+		}
+		out = append(out, v)
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out, nil
+}
+
+func (m *Memory) SetVerified(_ context.Context, userID string, verified bool) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	u, ok := m.usersByID[userID]
+	if !ok {
+		return ErrNotFound
+	}
+	u.Verified = verified
+	m.usersByID[userID] = u
+	m.users[u.Phone] = u
 	return nil
 }

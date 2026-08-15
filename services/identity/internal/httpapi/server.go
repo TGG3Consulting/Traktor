@@ -84,6 +84,10 @@ func (s *Server) Routes() http.Handler {
 			r.Use(s.requireAuth)
 			r.Get("/me", s.me)
 			r.Patch("/me", s.updateMe)
+
+			// Бейдж «Проверен» (ТЗ §2.3): документ смотрит живой модератор.
+			r.Post("/me/verification", s.submitVerification)
+			r.Get("/me/verification", s.myVerification)
 		})
 
 		// Управление пользователями — только модерации (ТЗ §4.1, п.3).
@@ -92,6 +96,13 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/", s.searchUsers)
 			r.Get("/{id}", s.userCard)
 			r.Post("/{id}/status", s.setUserStatus)
+		})
+
+		// Очередь проверки людей (ТЗ §2.3).
+		r.Route("/moderation/verifications", func(r chi.Router) {
+			r.Use(s.requireAuth, s.requireModerator)
+			r.Get("/", s.verificationQueue)
+			r.Post("/{id}/review", s.reviewVerification)
 		})
 	})
 

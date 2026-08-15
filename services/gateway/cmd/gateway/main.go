@@ -135,6 +135,7 @@ func run(log *slog.Logger) error {
 		{Prefix: "/v1/moderation/equipment", Upstream: cfg.CatalogURL},
 		{Prefix: "/v1/moderation/categories", Upstream: cfg.CatalogURL},
 		{Prefix: "/v1/moderation/users", Upstream: cfg.IdentityURL},
+		{Prefix: "/v1/moderation/verifications", Upstream: cfg.IdentityURL},
 		{Prefix: "/v1/moderation/disputes", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/moderation/complaints", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/moderation/dashboard", Upstream: cfg.OrdersURL},

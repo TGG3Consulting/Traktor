@@ -932,4 +932,51 @@ class JobsApi {
     );
     return Category.fromJson(_handle(resp));
   }
+
+  // ── проверка человека (ТЗ §2.3) ────────────────────────────────────────────
+
+  /// POST /me/verification — подать документ на проверку.
+  Future<Verification> submitVerification(
+    String token, {
+    required String docKind,
+    required List<String> documents,
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.post(
+      _u('/me/verification'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'docKind': docKind, 'documents': documents}),
+    );
+    return Verification.fromJson(_handle(resp));
+  }
+
+  /// GET /me/verification — состояние проверки для экрана профиля.
+  Future<Verification> myVerification(String token) async {
+    final resp = await _http.get(_u('/me/verification'), headers: _headers(token));
+    return Verification.fromJson(_handle(resp));
+  }
+
+  /// GET /moderation/verifications — очередь проверки людей.
+  Future<List<Verification>> verificationQueue(String token) async {
+    final resp = await _http.get(_u('/moderation/verifications'), headers: _headers(token));
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => Verification.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// POST /moderation/verifications/{id}/review — решение модератора.
+  Future<Verification> reviewVerification(
+    String token,
+    String id, {
+    required bool approve,
+    String reason = '',
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.post(
+      _u('/moderation/verifications/$id/review'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'approve': approve, 'reason': reason}),
+    );
+    return Verification.fromJson(_handle(resp));
+  }
 }

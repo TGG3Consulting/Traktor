@@ -27,9 +27,11 @@ import '../features/equipment/equipment_wizard_screen.dart';
 import '../features/moderation/catalog_screen.dart';
 import '../features/moderation/moderation_screen.dart';
 import '../features/moderation/user_card_screen.dart';
+import '../features/moderation/verification_queue_screen.dart';
 import '../features/moderation/users_screen.dart';
 import '../features/notifications/settings_screen.dart';
 import '../features/profile/public_profile_screen.dart';
+import '../features/profile/verification_screen.dart';
 import '../features/reviews/review_screen.dart';
 import '../features/onboarding/language_screen.dart';
 import '../features/onboarding/role_screen.dart';
@@ -111,6 +113,13 @@ final appRouter = GoRouter(
 
     // Сводка площадки (ТЗ §4.1, п.1) — доступна модерации.
     GoRoute(path: '/moderation/dashboard', builder: (_, __) => const DashboardScreen()),
+
+    // Проверка людей (ТЗ §2.3) — очередь модерации и подача документа.
+    GoRoute(
+      path: '/moderation/verifications',
+      builder: (_, __) => const VerificationQueueScreen(),
+    ),
+    GoRoute(path: '/profile/verification', builder: (_, __) => const VerificationScreen()),
 
     // Справочник (ТЗ §4.1, п.5) — правка категорий без выката сервиса.
     GoRoute(path: '/moderation/catalog', builder: (_, __) => const CatalogEditScreen()),

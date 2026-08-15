@@ -1494,3 +1494,69 @@ class AdminAction {
         createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
       );
 }
+
+/// Заявка на бейдж «Проверен» (ТЗ §2.3).
+///
+/// Бейдж — главный сигнал доверия в ленте: рядом с ним отклик читается иначе.
+/// Поэтому он выдаётся после того, как документ посмотрел живой модератор.
+class Verification {
+  const Verification({
+    this.id = '',
+    this.docKind = 'passport',
+    this.documents = const [],
+    this.status = 'none',
+    this.statusRu = '',
+    this.reason = '',
+    this.userId = '',
+    this.userName = '',
+    this.userPhone = '',
+    this.createdAt,
+    this.reviewedAt,
+  });
+
+  final String id;
+
+  /// passport | license | other
+  final String docKind;
+  final List<String> documents;
+
+  /// none — не подавалась, pending | approved | rejected
+  final String status;
+  final String statusRu;
+
+  /// Причина отказа: без неё человек не поймёт, что переснять.
+  final String reason;
+
+  /// Заполняется только в очереди модерации: документ сверяют с профилем.
+  final String userId;
+  final String userName;
+  final String userPhone;
+
+  final DateTime? createdAt;
+  final DateTime? reviewedAt;
+
+  bool get isNone => status == 'none';
+  bool get isPending => status == 'pending';
+  bool get isApproved => status == 'approved';
+  bool get isRejected => status == 'rejected';
+
+  String get docKindRu => switch (docKind) {
+        'passport' => 'Паспорт',
+        'license' => 'Водительские права',
+        _ => 'Другой документ',
+      };
+
+  factory Verification.fromJson(Map<String, dynamic> j) => Verification(
+        id: j['id'] as String? ?? '',
+        docKind: j['docKind'] as String? ?? 'passport',
+        documents: ((j['documents'] as List?) ?? const []).map((e) => '$e').toList(),
+        status: j['status'] as String? ?? 'none',
+        statusRu: j['statusRu'] as String? ?? '',
+        reason: j['reason'] as String? ?? '',
+        userId: j['userId'] as String? ?? '',
+        userName: j['userName'] as String? ?? '',
+        userPhone: j['userPhone'] as String? ?? '',
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+        reviewedAt: DateTime.tryParse(j['reviewedAt'] as String? ?? '')?.toLocal(),
+      );
+}

@@ -179,6 +179,13 @@ class _ProfileTab extends ConsumerWidget {
                 ),
                 const Divider(height: 1),
                 ListTile(
+                  leading: const TkIcon(TkIcons.idCard),
+                  title: const Text('Проверка людей'),
+                  trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                  onTap: () => context.push('/moderation/verifications'),
+                ),
+                const Divider(height: 1),
+                ListTile(
                   leading: const TkIcon(TkIcons.usersThree),
                   title: const Text('Пользователи'),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
@@ -231,6 +238,18 @@ class _ProfileTab extends ConsumerWidget {
                   title: const Text('Моя техника'),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/equipment'),
+                ),
+                const Divider(height: 1),
+              ],
+              // Бейдж «Проверен» (ТЗ §2.3): у проверенных чаще выбирают,
+              // поэтому пункт виден всем, кто ещё не прошёл проверку.
+              if (!(ref.watch(sessionProvider)?.user.verified ?? false)) ...[
+                ListTile(
+                  leading: const TkIcon(TkIcons.idCard),
+                  title: const Text('Пройти проверку'),
+                  subtitle: const Text('Бейдж «Проверен» в карточке'),
+                  trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                  onTap: () => context.push('/profile/verification'),
                 ),
                 const Divider(height: 1),
               ],

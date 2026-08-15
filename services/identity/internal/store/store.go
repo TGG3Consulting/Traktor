@@ -49,6 +49,34 @@ const (
 	StatusBanned = "banned"
 )
 
+// Verification — заявка человека на бейдж «Проверен» (ТЗ §2.3).
+//
+// Бейдж — главный сигнал доверия в ленте, поэтому выдаётся не по факту
+// загрузки файла, а после того, как документ посмотрел человек.
+type Verification struct {
+	ID        string
+	UserID    string
+	Documents []string
+	DocKind   string
+	Status    string
+	Reason    string
+
+	ReviewedBy string
+	ReviewedAt *time.Time
+	CreatedAt  time.Time
+
+	// Подмешивается в очередь модерации.
+	UserName  string
+	UserPhone string
+}
+
+// Состояния заявки на проверку.
+const (
+	VerifyPending  = "pending"
+	VerifyApproved = "approved"
+	VerifyRejected = "rejected"
+)
+
 // AdminAction — запись журнала действий модерации (ТЗ §4.1, п.8).
 //
 // Без журнала ошибку или злоупотребление невозможно ни найти, ни оспорить.
@@ -100,6 +128,18 @@ type Store interface {
 	// SetUserStatus — заморозка, бан или снятие ограничений.
 	SetUserStatus(ctx context.Context, id, status, reason, byID string, at time.Time) error
 	LogAdminAction(ctx context.Context, a AdminAction) error
+
+	// ── проверка человека (ТЗ §2.3) ──────────────────────────────────────────
+	CreateVerification(ctx context.Context, v *Verification) error
+	UpdateVerification(ctx context.Context, v *Verification) error
+	VerificationByID(ctx context.Context, id string) (*Verification, error)
+	// MyVerification — последняя заявка человека: по ней экран профиля решает,
+	// показывать кнопку подачи или состояние проверки.
+	MyVerification(ctx context.Context, userID string) (*Verification, error)
+	// PendingVerifications — очередь модерации, старые сверху.
+	PendingVerifications(ctx context.Context, limit int) ([]Verification, error)
+	// SetVerified — выдать или снять бейдж.
+	SetVerified(ctx context.Context, userID string, verified bool) error
 	// AdminActionsFor — история решений по конкретному человеку.
 	AdminActionsFor(ctx context.Context, targetID string, limit int) ([]AdminAction, error)
 
