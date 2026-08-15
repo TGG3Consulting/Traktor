@@ -100,5 +100,7 @@
   "keepIt": "Keep it",
   "jobCancelled": "Job cancelled",
   "auction": "Auction",
-  "auctionLeft": "{time} left"
+  "auctionLeft": "{time} left",
+  "viewsCount": "{n, plural, one{{n} view} other{{n} views}}",
+  "needByLabel": "needed: {when}"
 }

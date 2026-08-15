@@ -5,6 +5,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/session_refresh.dart';
 import '../../core/share_link.dart';
@@ -35,15 +36,16 @@ class JobDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final job = ref.watch(jobProvider(jobId));
     final myId = ref.watch(sessionUserIdProvider);
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Задание'),
+        title: Text(l.jobTitle),
         automaticallyImplyLeading: false,
         leading: embedded
             ? null
             : IconButton(
-                tooltip: 'Назад',
+                tooltip: l.back,
                 onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
                 icon: TkIcon(TkIcons.arrowLeft, size: 20,
                     color: Theme.of(context).colorScheme.onSurface),
@@ -57,7 +59,7 @@ class JobDetailScreen extends ConsumerWidget {
           // только у вошедшего и не у автора.
           if (myId.isNotEmpty && job.valueOrNull != null && job.value!.clientId != myId)
             IconButton(
-              tooltip: 'Пожаловаться',
+              tooltip: l.complain,
               onPressed: () async {
                 final sent = await showComplaintSheet(
                   context,
@@ -67,7 +69,7 @@ class JobDetailScreen extends ConsumerWidget {
                 );
                 if (sent == true && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Жалоба отправлена модерации')),
+                    SnackBar(content: Text(l.complaintSent)),
                   );
                 }
               },
@@ -105,6 +107,7 @@ class _Content extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final category = ref.watch(categoryByIdProvider(job.categoryId));
     final lang = Localizations.localeOf(context).languageCode;
+    final l = AppLocalizations.of(context);
 
     return Column(
       children: [
@@ -123,7 +126,7 @@ class _Content extends ConsumerWidget {
                         color: TkColors.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text('Фиксированная цена',
+                      child: Text(l.fixedPrice,
                           style: TkText.caption.copyWith(
                               color: TkColors.primary, fontWeight: FontWeight.w600)),
                     ),
@@ -169,34 +172,37 @@ class _Content extends ConsumerWidget {
                 child: Column(
                   children: [
                     _Line(
-                      label: 'Категория',
+                      label: l.category,
                       value: category?.name.forLang(lang) ??
-                          (job.openToAny ? 'Исполнитель предложит технику' : '—'),
+                          (job.openToAny ? l.ownerBringsUnit : '—'),
                     ),
                     if (job.params.isNotEmpty)
                       ...job.params.entries.map((e) => _Line(
                             label: tkSpecTitle(category, e.key, lang),
                             value: tkSpecValue(category, e.key, e.value),
                           )),
-                    _Line(label: 'Подъезд', value: switch (job.access) {
-                      'yes' => 'Есть',
-                      'no' => 'Нет',
-                      _ => 'Не уточнён',
+                    _Line(label: l.access, value: switch (job.access) {
+                      'yes' => l.yes,
+                      'no' => l.no,
+                      _ => l.notSet,
                     }),
-                    _Line(label: 'Когда', value: _needBy(job)),
+                    _Line(label: l.when, value: _needBy(job, l)),
                     _Line(
-                      label: 'Место',
-                      value: isMine ? job.address : _approximate(job.address),
+                      label: l.place,
+                      value: isMine ? job.address : _approximate(job.address, l),
                       last: job.workersCount == 0,
                     ),
                     if (job.workersCount > 0)
-                      _Line(label: 'Разнорабочие', value: '${job.workersCount} чел.', last: true),
+                      _Line(
+                          label: l.workers,
+                          value: l.workersCount(job.workersCount),
+                          last: true),
                   ],
                 ),
               ),
               if (job.description.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text('Что нужно сделать', style: TkText.h3),
+                Text(l.whatToDo, style: TkText.h3),
                 const SizedBox(height: 6),
                 Text(job.description, style: TkText.body),
               ],
@@ -210,9 +216,7 @@ class _Content extends ConsumerWidget {
                   const SizedBox(width: 14),
                   TkIcon(TkIcons.chatCircle, size: 15, color: scheme.onSurfaceVariant),
                   const SizedBox(width: 5),
-                  Text(
-                      '${job.offersCount} '
-                      '${tkPlural(job.offersCount, 'отклик', 'отклика', 'откликов')}',
+                  Text(l.offersCount(job.offersCount),
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
                 ],
               ),
@@ -230,9 +234,9 @@ class _Content extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Ваша минимальная цена: '
+                          '${l.reservePrefix}'
                           '${tkMoney(job.auction!.reserveAmount, currency: job.currency)}. '
-                          'Исполнители её не видят.',
+                          '${l.reserveHidden}',
                           style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                         ),
                       ),
@@ -248,17 +252,17 @@ class _Content extends ConsumerWidget {
     );
   }
 
-  String _needBy(Job j) => switch (j.dateMode) {
+  String _needBy(Job j, AppLocalizations l) => switch (j.dateMode) {
         'exact' => tkShortDate(j.dateStart),
         'range' => '${tkShortDate(j.dateStart)} – ${tkShortDate(j.dateEnd)}',
-        _ => 'Как можно скорее',
+        _ => l.asapWhen,
       };
 
   /// До сделки исполнитель видит только район (ТЗ §2.8).
-  String _approximate(String address) {
-    if (address.isEmpty) return 'Уточняется';
+  String _approximate(String address, AppLocalizations l) {
+    if (address.isEmpty) return l.whenTbd;
     final parts = address.split(',');
-    return parts.length > 1 ? '${parts.first.trim()} (примерно)' : '$address (примерно)';
+    return l.approx(parts.length > 1 ? parts.first.trim() : address);
   }
 
 
@@ -294,13 +298,14 @@ class _Actions extends ConsumerWidget {
   }
 
   Widget _ownerActions(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     // Исполнитель выбран — заказчику остаётся подтвердить и работать.
     if (job.status == JobStatus.dealPending) {
       return SizedBox(
         width: double.infinity,
         child: FilledButton(
           onPressed: () => _confirmDeal(context, ref),
-          child: const Text('Подтвердить сделку'),
+          child: Text(l.confirmDeal),
         ),
       );
     }
@@ -310,13 +315,13 @@ class _Actions extends ConsumerWidget {
         width: double.infinity,
         child: FilledButton(
           onPressed: () => context.go('/deals/${deal.id}'),
-          child: const Text('Открыть сделку'),
+          child: Text(l.openDeal),
         ),
       );
     }
     if (!_open) {
       return Text(
-        'Задание закрыто',
+        l.jobClosed,
         textAlign: TextAlign.center,
         style: TkText.caption.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
       );
@@ -326,7 +331,7 @@ class _Actions extends ConsumerWidget {
         Expanded(
           child: OutlinedButton(
             onPressed: () => _confirmCancel(context, ref),
-            child: const Text('Снять задание'),
+            child: Text(l.cancelJob),
           ),
         ),
         const SizedBox(width: 10),
@@ -338,8 +343,8 @@ class _Actions extends ConsumerWidget {
                 ? () => context.go('/jobs/${job.id}/bids')
                 : (job.offersCount > 0 ? () => context.go('/jobs/${job.id}/offers') : null),
             child: Text(job.isAuction
-                ? 'Смотреть торг'
-                : (job.offersCount > 0 ? 'Отклики (${job.offersCount})' : 'Откликов пока нет')),
+                ? l.watchAuction
+                : (job.offersCount > 0 ? l.offersWith(job.offersCount) : l.noOffersYet)),
           ),
         ),
       ],
@@ -347,6 +352,7 @@ class _Actions extends ConsumerWidget {
   }
 
   Widget _executorActions(BuildContext context, WidgetRef ref, ColorScheme scheme) {
+    final l = AppLocalizations.of(context);
     // Исполнителя выбрали — дальше вся работа идёт на экране сделки.
     final deal = ref.watch(dealByJobProvider(job.id)).valueOrNull;
     if (deal != null && deal.ownerId != '') {
@@ -354,13 +360,13 @@ class _Actions extends ConsumerWidget {
         width: double.infinity,
         child: FilledButton(
           onPressed: () => context.go('/deals/${deal.id}'),
-          child: const Text('Открыть сделку'),
+          child: Text(l.openDeal),
         ),
       );
     }
     if (!_open) {
       return Text(
-        'Задание больше не принимает отклики',
+        l.jobNoMoreOffers,
         textAlign: TextAlign.center,
         style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
       );
@@ -373,7 +379,7 @@ class _Actions extends ConsumerWidget {
           Expanded(
             child: FilledButton(
               onPressed: () => context.go('/jobs/${job.id}/bids'),
-              child: const Text('Перейти к торгу'),
+              child: Text(l.goToAuction),
             ),
           ),
         ],
@@ -389,9 +395,9 @@ class _Actions extends ConsumerWidget {
         children: [
           Text(
             mine.hasCounter
-                ? 'Заказчик предложил ${tkMoney(mine.clientCounterPrice, currency: job.currency)} — '
-                    'примите или предложите своё'
-                : 'Ваше предложение: ${tkMoney(mine.price, currency: job.currency)}',
+                ? l.clientCountered(
+                    tkMoney(mine.clientCounterPrice, currency: job.currency))
+                : l.yourOffer(tkMoney(mine.price, currency: job.currency)),
             textAlign: TextAlign.center,
             style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
           ),
@@ -401,14 +407,14 @@ class _Actions extends ConsumerWidget {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => _withdraw(context, ref, mine.id),
-                  child: const Text('Снять'),
+                  child: Text(l.withdraw),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton(
                   onPressed: () => _openOfferSheet(context, existing: mine),
-                  child: const Text('Изменить'),
+                  child: Text(l.change),
                 ),
               ),
             ],
@@ -426,7 +432,8 @@ class _Actions extends ConsumerWidget {
         Expanded(
           child: FilledButton(
             onPressed: () => _openOfferSheet(context),
-            child: Text('Откликнуться · ${tkMoney(job.budgetAmount, currency: job.currency)}'),
+            child: Text(l.makeOfferWith(
+                tkMoney(job.budgetAmount, currency: job.currency))),
           ),
         ),
       ],
@@ -434,6 +441,7 @@ class _Actions extends ConsumerWidget {
   }
 
   Future<void> _openOfferSheet(BuildContext context, {Offer? existing}) async {
+    final l = AppLocalizations.of(context);
     final sent = await showOfferSheet(
       context,
       jobId: job.id,
@@ -443,7 +451,7 @@ class _Actions extends ConsumerWidget {
     );
     if (sent == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Предложение отправлено заказчику')),
+        SnackBar(content: Text(l.offerSent)),
       );
     }
   }
@@ -464,7 +472,7 @@ class _Actions extends ConsumerWidget {
       await ref.read(offerActionsProvider).withdraw(job.id, offerId);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Предложение снято')),
+          SnackBar(content: Text(AppLocalizations.of(context).offerWithdrawn)),
         );
       }
     } on ApiException catch (e) {
@@ -477,20 +485,19 @@ class _Actions extends ConsumerWidget {
   /// Снятие задания необратимо для исполнителей, которые уже откликнулись, —
   /// поэтому подтверждение с прямым описанием последствий (ТЗ §1.10).
   Future<void> _confirmCancel(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Снять задание?'),
-        content: const Text(
-          'Оно исчезнет из ленты, а откликнувшиеся исполнители получат уведомление. '
-          'Вернуть задание можно будет только созданием нового.',
-        ),
+        title: Text(l.cancelJobQ),
+        content: Text(l.cancelJobBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Оставить')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false), child: Text(l.keepIt)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TkColors.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Снять'),
+            child: Text(l.withdraw),
           ),
         ],
       ),
@@ -510,7 +517,7 @@ class _Actions extends ConsumerWidget {
       ref.invalidate(feedProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Задание снято')),
+          SnackBar(content: Text(l.jobCancelled)),
         );
       }
     } on ApiException catch (e) {
@@ -567,7 +574,9 @@ class _AuctionTimerState extends State<_AuctionTimer> {
           TkIcon(TkIcons.lightning, size: 15, color: color),
           const SizedBox(width: 6),
           Text(
-            left == null ? 'Аукцион' : 'До финиша ${tkTimeLeft(left)}',
+            left == null
+                ? AppLocalizations.of(context).auction
+                : AppLocalizations.of(context).auctionLeft(tkTimeLeft(left)),
             style: TkText.caption.copyWith(color: color, fontWeight: FontWeight.w700),
           ),
         ],

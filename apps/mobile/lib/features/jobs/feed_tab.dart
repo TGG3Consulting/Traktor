@@ -107,6 +107,14 @@ class _FeedList extends ConsumerWidget {
                       viewsCount: j.viewsCount,
                       workersCount: j.workersCount,
                       hasPhoto: j.photos.isNotEmpty,
+                      labels: TkJobCardLabels(
+                        fixed: l.feedFixed,
+                        auction: l.feedAuction,
+                        offersFn: l.offersCount,
+                        viewsFn: l.viewsCount,
+                        needByFn: l.needByLabel,
+                        auctionLeftFn: (left) => '${l.feedAuction} · $left',
+                      ),
                       onTap: () => compact
                           ? ref.read(selectedJobProvider.notifier).state = j.id
                           : context.go('/jobs/${j.id}'),

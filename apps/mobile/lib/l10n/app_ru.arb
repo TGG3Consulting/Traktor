@@ -110,5 +110,9 @@
   "jobCancelled": "Задание снято",
   "auction": "Аукцион",
   "auctionLeft": "До финиша {time}",
-  "@auctionLeft": { "placeholders": { "time": {} } }
+  "@auctionLeft": { "placeholders": { "time": {} } },
+  "viewsCount": "{n, plural, one{{n} просмотр} few{{n} просмотра} other{{n} просмотров}}",
+  "@viewsCount": { "placeholders": { "n": {} } },
+  "needByLabel": "нужна: {when}",
+  "@needByLabel": { "placeholders": { "when": {} } }
 }

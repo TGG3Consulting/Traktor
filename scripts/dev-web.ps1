@@ -24,9 +24,15 @@ Push-Location 'C:\Traktor\apps\mobile'
     --dart-define=REAL_BACKEND=true `
     --dart-define=API_BASE_URL=http://localhost:18080/v1 `
     --dart-define=REALTIME_URL=ws://localhost:18000/connection/websocket `
-    -o $outDir 2>&1 | Select-Object -Last 5 | ForEach-Object { "  $_" }
+    -o $outDir 2>&1 | Select-Object -Last 25 | ForEach-Object { "  $_" }
 Pop-Location
-if (-not (Test-Path "$outDir\main.dart.js")) { Write-Output '  PROVAL: sborka ne poluchilas'; exit 1 }
+# Proveryaem ne nalichie fayla, a ego svezhest: staraya sborka na diske
+# vyglyadela kak uspeh, i oshibka kompilyacii proskakivala nezamechennoy.
+$js = Get-Item "$outDir\main.dart.js" -ErrorAction SilentlyContinue
+if (-not $js -or $js.LastWriteTime -lt (Get-Date).AddMinutes(-3)) {
+    Write-Output '  PROVAL: sborka ne poluchilas (fayl ne obnovilsya)'
+    exit 1
+}
 Write-Output '  OK: sobrano'
 
 Write-Output '--- Razdacha na 18091 ---'

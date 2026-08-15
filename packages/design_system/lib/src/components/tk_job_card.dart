@@ -30,6 +30,7 @@ class TkJobCard extends StatelessWidget {
     this.workersCount = 0,
     this.hasPhoto = false,
     this.onTap,
+    this.labels = const TkJobCardLabels(),
   });
 
   final String title;
@@ -54,13 +55,17 @@ class TkJobCard extends StatelessWidget {
   final bool hasPhoto;
   final VoidCallback? onTap;
 
+  /// Подписи карточки. Дизайн-система не знает про язык приложения, поэтому
+  /// переведённые слова приходят снаружи (ТЗ §1.4).
+  final TkJobCardLabels labels;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final sub = [
       if (city.isNotEmpty) city,
       if (distanceM != null) tkDistance(distanceM),
-      if (needBy.isNotEmpty) 'нужна: $needBy',
+      if (needBy.isNotEmpty) labels.needBy(needBy),
     ].join(' · ');
 
     return Material(
@@ -126,14 +131,16 @@ class TkJobCard extends StatelessWidget {
                   const Spacer(),
                   if (workersCount > 0) _WorkersBadge(count: workersCount),
                   if (workersCount > 0) const SizedBox(width: 6),
-                  _ModeBadge(isAuction: isAuction, endsAt: auctionEndsAt),
+                  _ModeBadge(
+                      isAuction: isAuction,
+                      endsAt: auctionEndsAt,
+                      labels: labels),
                 ],
               ),
               if (offersCount > 0 || viewsCount > 0) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '$offersCount ${tkPlural(offersCount, 'отклик', 'отклика', 'откликов')} · '
-                  '$viewsCount ${tkPlural(viewsCount, 'просмотр', 'просмотра', 'просмотров')}',
+                  '${labels.offers(offersCount)} · ${labels.views(viewsCount)}',
                   style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                 ),
               ],
@@ -174,9 +181,10 @@ class _WorkersBadge extends StatelessWidget {
 
 /// Бейдж режима: у аукциона — живой таймер до финиша, у фикс-цены — метка.
 class _ModeBadge extends StatefulWidget {
-  const _ModeBadge({required this.isAuction, this.endsAt});
+  const _ModeBadge({required this.isAuction, this.endsAt, required this.labels});
   final bool isAuction;
   final DateTime? endsAt;
+  final TkJobCardLabels labels;
 
   @override
   State<_ModeBadge> createState() => _ModeBadgeState();
@@ -210,7 +218,7 @@ class _ModeBadgeState extends State<_ModeBadge> {
         color: TkColors.primary,
         background: TkColors.primary.withValues(alpha: 0.12),
         icon: TkIcons.money,
-        text: 'Фикс-цена',
+        text: widget.labels.fixed,
       );
     }
     final left = widget.endsAt?.difference(DateTime.now());
@@ -218,7 +226,9 @@ class _ModeBadgeState extends State<_ModeBadge> {
       color: TkColors.warning,
       background: TkColors.warning.withValues(alpha: 0.15),
       icon: TkIcons.lightning,
-      text: left == null ? 'Аукцион' : 'Аукцион · ${tkTimeLeft(left)}',
+      text: left == null
+          ? widget.labels.auction
+          : widget.labels.auctionLeft(tkTimeLeft(left)),
     );
   }
 }
@@ -256,4 +266,37 @@ class _Badge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Подписи карточки задания на языке приложения.
+///
+/// Значения по умолчанию — русские: карточка используется и в местах, где
+/// локализации ещё нет, и пустая подпись выглядела бы как поломка.
+class TkJobCardLabels {
+  const TkJobCardLabels({
+    this.fixed = 'Фикс-цена',
+    this.auction = 'Аукцион',
+    this.offersFn,
+    this.viewsFn,
+    this.needByFn,
+    this.auctionLeftFn,
+  });
+
+  final String fixed;
+  final String auction;
+
+  final String Function(int)? offersFn;
+  final String Function(int)? viewsFn;
+  final String Function(String)? needByFn;
+  final String Function(String)? auctionLeftFn;
+
+  String offers(int n) =>
+      offersFn?.call(n) ?? '$n ${tkPlural(n, 'отклик', 'отклика', 'откликов')}';
+
+  String views(int n) =>
+      viewsFn?.call(n) ?? '$n ${tkPlural(n, 'просмотр', 'просмотра', 'просмотров')}';
+
+  String needBy(String when) => needByFn?.call(when) ?? 'нужна: $when';
+
+  String auctionLeft(String left) => auctionLeftFn?.call(left) ?? '$auction · $left';
 }

@@ -100,5 +100,7 @@
   "keepIt": "Թողնել",
   "jobCancelled": "Առաջադրանքը հանված է",
   "auction": "Աճուրդ",
-  "auctionLeft": "Մինչև ավարտը՝ {time}"
+  "auctionLeft": "Մինչև ավարտը՝ {time}",
+  "viewsCount": "{n, plural, one{{n} դիտում} other{{n} դիտում}}",
+  "needByLabel": "պետք է՝ {when}"
 }
