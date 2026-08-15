@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../job_detail_screen.dart';
 import '../../chat/open_chat.dart';
@@ -25,12 +26,13 @@ class DealScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final deal = ref.watch(dealProvider(dealId));
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Сделка'),
+        title: Text(l.dealTitle),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -56,6 +58,7 @@ class _Content extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final myId = ref.watch(sessionUserIdProvider);
+    final l = AppLocalizations.of(context);
     final isOwner = myId == deal.ownerId;
     final job = ref.watch(jobProvider(deal.jobId)).valueOrNull;
 
@@ -79,7 +82,7 @@ class _Content extends ConsumerWidget {
                     style: TkText.price.copyWith(fontSize: 26, color: TkColors.primary),
                   ),
                   const SizedBox(width: 10),
-                  Text('цена зафиксирована',
+                  Text(l.priceFixed,
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
                 ],
               ),
@@ -91,10 +94,8 @@ class _Content extends ConsumerWidget {
                   color: TkColors.info,
                   icon: TkIcons.hourglass,
                   text: isOwner
-                      ? 'Заказчик проверяет работу. Если не ответит до '
-                          '${tkShortDate(deal.acceptanceDeadline)}, приёмка пройдёт автоматически.'
-                      : 'Проверьте работу. Если не ответить до '
-                          '${tkShortDate(deal.acceptanceDeadline)}, она будет принята автоматически.',
+                      ? l.acceptanceOwner(tkShortDate(deal.acceptanceDeadline))
+                      : l.acceptanceClient(tkShortDate(deal.acceptanceDeadline)),
                 ),
               ],
               if (deal.status == 'cancelled' && deal.cancelReason.isNotEmpty) ...[
@@ -102,18 +103,17 @@ class _Content extends ConsumerWidget {
                 _Banner(
                   color: TkColors.error,
                   icon: TkIcons.warning,
-                  text: 'Сделка отменена: ${deal.cancelReason}',
+                  text: l.dealCancelledWith(deal.cancelReason),
                 ),
               ],
               // Спор виден обеим сторонам: и жалоба, и решение модератора.
               _DisputeBanner(dealId: deal.id),
               if (deal.status == 'completed') ...[
                 const SizedBox(height: 14),
-                const _Banner(
+                _Banner(
                   color: TkColors.success,
                   icon: TkIcons.checkCircle,
-                  text: 'Работа принята. Осталось оценить друг друга — отзывы откроются, '
-                      'когда оценят обе стороны.',
+                  text: l.bothRateHint,
                 ),
               ],
               const SizedBox(height: 16),
@@ -133,38 +133,42 @@ class _Timeline extends StatelessWidget {
 
   final Deal deal;
 
-  static const _steps = [
-    ('confirmed', 'Подтверждено'),
-    ('on_the_way', 'Исполнитель выехал'),
-    ('in_progress', 'Работа идёт'),
-    ('work_done', 'Работа завершена'),
-    ('completed', 'Принято заказчиком'),
-  ];
+  /// Шаги сделки. Собираются на месте: подписи зависят от языка, а список
+  /// с переводами нельзя объявить константой.
+  List<(String, String)> _steps(AppLocalizations l) => [
+        ('confirmed', l.stConfirmed),
+        ('on_the_way', l.stOnTheWay),
+        ('in_progress', l.stInProgress),
+        ('work_done', l.finishWork),
+        ('completed', l.stAccepted),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final passed = {for (final e in deal.timeline) e.status: e};
-    final currentIndex = _steps.indexWhere((s) => s.$1 == deal.status);
+    final steps = _steps(l);
+    final currentIndex = steps.indexWhere((s) => s.$1 == deal.status);
 
     return TkCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (var i = 0; i < _steps.length; i++) ...[
+          for (var i = 0; i < steps.length; i++) ...[
             _Step(
-              title: _steps[i].$2,
-              event: passed[_steps[i].$1],
-              done: passed.containsKey(_steps[i].$1),
+              title: steps[i].$2,
+              event: passed[steps[i].$1],
+              done: passed.containsKey(steps[i].$1),
               current: i == currentIndex,
-              last: i == _steps.length - 1,
+              last: i == steps.length - 1,
             ),
           ],
           if (deal.status == 'cancelled')
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: Text(
-                'Сделка отменена',
+                l.stCancelled,
                 style: TkText.caption.copyWith(
                   color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
@@ -235,7 +239,7 @@ class _Step extends StatelessWidget {
                   ),
                   if (event != null)
                     Text(
-                      _when(event!.at),
+                      _when(event!.at, AppLocalizations.of(context)),
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                     ),
                   if (event != null && event!.note.isNotEmpty)
@@ -249,11 +253,11 @@ class _Step extends StatelessWidget {
     );
   }
 
-  String _when(DateTime at) {
+  String _when(DateTime at, AppLocalizations l) {
     final time = '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
     final today = DateTime.now();
     if (at.year == today.year && at.month == today.month && at.day == today.day) {
-      return 'сегодня $time';
+      return l.todayAt(time);
     }
     return '${tkShortDate(at)} $time';
   }
@@ -270,6 +274,7 @@ class _Contacts extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     return TkCard(
       child: Row(
         children: [
@@ -285,7 +290,7 @@ class _Contacts extends ConsumerWidget {
               children: [
                 Text(isOwner ? deal.clientName : deal.ownerName, style: TkText.h3),
                 Text(
-                  'Телефон появится здесь вместе с профилями сторон',
+                  l.phoneLater,
                   style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                 ),
               ],
@@ -294,7 +299,7 @@ class _Contacts extends ConsumerWidget {
           // В сделке переписка уже без маскировки — это основной канал
           // связи по ходу работы (ТЗ §2.11, прототип: кнопка «Чат»).
           IconButton(
-            tooltip: 'Написать',
+            tooltip: l.writeMessage,
             onPressed: () => openChatAndGo(context, ref, deal.jobId,
                 ownerId: isOwner ? null : deal.ownerId),
             icon: TkIcon(TkIcons.chatCircle, size: 20, color: scheme.onSurfaceVariant),
@@ -349,18 +354,18 @@ class _ActionsState extends ConsumerState<_Actions> {
   Deal get deal => widget.deal;
 
   /// Следующий шаг: что именно предложить нажать этому человеку сейчас.
-  (String status, String label)? get _next {
+  (String status, String label)? _nextStep(AppLocalizations l) {
     if (deal.isClosed) return null;
     if (widget.isOwner) {
       return switch (deal.status) {
-        'confirmed' => ('on_the_way', 'Выехал на объект'),
-        'on_the_way' => ('in_progress', 'Начал работу'),
-        'in_progress' => ('work_done', 'Работа завершена'),
+        'confirmed' => ('on_the_way', l.goOnTheWay),
+        'on_the_way' => ('in_progress', l.startWork),
+        'in_progress' => ('work_done', l.finishWork),
         _ => null,
       };
     }
     return switch (deal.status) {
-      'work_done' => ('completed', 'Принять работу'),
+      'work_done' => ('completed', l.acceptWork),
       _ => null,
     };
   }
@@ -381,7 +386,8 @@ class _ActionsState extends ConsumerState<_Actions> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final next = _next;
+    final l = AppLocalizations.of(context);
+    final next = _nextStep(l);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -400,19 +406,19 @@ class _ActionsState extends ConsumerState<_Actions> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Сделка завершена',
+                        l.dealDone,
                         textAlign: TextAlign.center,
                         style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                       ),
                       const SizedBox(height: 8),
                       FilledButton(
                         onPressed: () => context.push('/deals/${deal.id}/review'),
-                        child: const Text('Оценить'),
+                        child: Text(l.rateIt),
                       ),
                     ],
                   )
                 : Text(
-                    'Сделка отменена',
+                    l.stCancelled,
                     textAlign: TextAlign.center,
                     style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                   ))
@@ -442,8 +448,8 @@ class _ActionsState extends ConsumerState<_Actions> {
                   else
                     Text(
                       widget.isOwner
-                          ? 'Ждём действий заказчика'
-                          : 'Ждём, пока исполнитель выполнит работу',
+                          ? l.waitingClient
+                          : l.waitingOwner,
                       textAlign: TextAlign.center,
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                     ),
@@ -455,12 +461,12 @@ class _ActionsState extends ConsumerState<_Actions> {
                       // модератор увидит переписку, фото и отметки времени.
                       TextButton(
                         onPressed: _busy ? null : () => showDisputeSheet(context, dealId: deal.id),
-                        child: Text('Есть проблемы',
+                        child: Text(l.haveProblems,
                             style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
                       ),
                       TextButton(
                         onPressed: _busy ? null : _confirmCancel,
-                        child: Text('Отменить сделку',
+                        child: Text(l.cancelDeal,
                             style: TkText.caption.copyWith(color: TkColors.error)),
                       ),
                     ],
@@ -474,32 +480,30 @@ class _ActionsState extends ConsumerState<_Actions> {
   /// Отмена после подтверждения — тяжёлое действие: у второй стороны сорван
   /// день. Поэтому причина обязательна и последствия названы прямо.
   Future<void> _confirmCancel() async {
+    final l = AppLocalizations.of(context);
     final controller = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Отменить сделку?'),
+        title: Text(l.cancelDealQ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Вторая сторона получит уведомление с вашей причиной. '
-              'Частые отмены отражаются на рейтинге.',
-            ),
+            Text(l.cancelDealBody),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
-              decoration: const InputDecoration(hintText: 'Причина отмены'),
+              decoration: InputDecoration(hintText: l.cancelReason),
               maxLength: 200,
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Оставить')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.keepIt)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TkColors.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Отменить сделку'),
+            child: Text(l.cancelDeal),
           ),
         ],
       ),
@@ -507,7 +511,7 @@ class _ActionsState extends ConsumerState<_Actions> {
     if (ok != true || !mounted) return;
     if (controller.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Укажите причину — её увидит вторая сторона')),
+        SnackBar(content: Text(l.cancelReasonHint)),
       );
       return;
     }
@@ -528,6 +532,7 @@ class _DisputeBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     final dispute = ref.watch(disputeOfDealProvider(dealId)).valueOrNull;
     if (dispute == null) return const SizedBox.shrink();
 
@@ -550,7 +555,7 @@ class _DisputeBanner extends ConsumerWidget {
                 TkIcon(TkIcons.scales, size: 18, color: color),
                 const SizedBox(width: 8),
                 Text(
-                  open ? 'Идёт разбор спора' : 'Спор разобран: ${dispute.outcomeLabel}',
+                  open ? l.disputeOngoing : l.disputeResolvedWith(dispute.outcomeLabel),
                   style: TkText.body.copyWith(fontWeight: FontWeight.w600, color: color),
                 ),
               ],
@@ -563,8 +568,7 @@ class _DisputeBanner extends ConsumerWidget {
             if (open) ...[
               const SizedBox(height: 6),
               Text(
-                'Модератор смотрит переписку, фотографии и отметки времени. '
-                'Пока идёт разбор, оценки по сделке не выставляются.',
+                l.disputeExplain,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
