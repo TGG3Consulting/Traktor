@@ -133,6 +133,7 @@ func run(log *slog.Logger) error {
 		// Разделы модерации живут в разных сервисах: техника — в каталоге,
 		// споры — в заказах. Роутер выбирает самый длинный совпавший префикс.
 		{Prefix: "/v1/moderation/equipment", Upstream: cfg.CatalogURL},
+		{Prefix: "/v1/moderation/categories", Upstream: cfg.CatalogURL},
 		{Prefix: "/v1/moderation/users", Upstream: cfg.IdentityURL},
 		{Prefix: "/v1/moderation/disputes", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/moderation/complaints", Upstream: cfg.OrdersURL},

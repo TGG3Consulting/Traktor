@@ -74,6 +74,31 @@ func scan(rows pgx.Rows) (catalog.Category, error) {
 		&c.Name.Hy, &c.Name.Ru, &c.Name.En, &c.Icon, &specs, &c.SortOrder); err != nil {
 		return catalog.Category{}, fmt.Errorf("catalog: чтение строки: %w", err)
 	}
+	// Обычные выборки идут по условию active, поэтому здесь оно всегда true.
+	c.Active = true
+	if len(specs) > 0 {
+		if err := json.Unmarshal(specs, &c.SpecTemplate); err != nil {
+			return catalog.Category{}, fmt.Errorf("catalog: разбор spec_template %s: %w", c.Slug, err)
+		}
+	}
+	if c.SpecTemplate == nil {
+		c.SpecTemplate = []catalog.SpecField{}
+	}
+	return c, nil
+}
+
+// scanWithActive — строка вместе с признаком видимости: нужен модерации,
+// которая работает и со скрытыми категориями.
+func scanWithActive(rows pgx.Rows) (catalog.Category, error) {
+	var (
+		c     catalog.Category
+		specs []byte
+	)
+	if err := rows.Scan(&c.ID, &c.ParentID, &c.Kind, &c.Slug,
+		&c.Name.Hy, &c.Name.Ru, &c.Name.En, &c.Icon, &specs, &c.SortOrder,
+		&c.Active); err != nil {
+		return catalog.Category{}, fmt.Errorf("catalog: чтение строки: %w", err)
+	}
 	if len(specs) > 0 {
 		if err := json.Unmarshal(specs, &c.SpecTemplate); err != nil {
 			return catalog.Category{}, fmt.Errorf("catalog: разбор spec_template %s: %w", c.Slug, err)

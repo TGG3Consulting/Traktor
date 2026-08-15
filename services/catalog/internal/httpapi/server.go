@@ -54,6 +54,13 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/equipment", s.pendingEquipment)
 		r.Post("/equipment/{id}/approve", s.approveEquipment)
 		r.Post("/equipment/{id}/reject", s.rejectEquipment)
+
+		// Правка справочника без релиза (ТЗ §4.1, п.5): пока категории живут
+		// только в миграции, новый вид работ ждёт выката сервиса.
+		r.Get("/categories", s.allCategories)
+		r.Post("/categories", s.createCategory)
+		r.Patch("/categories/{id}", s.updateCategory)
+		r.Post("/categories/{id}/visibility", s.toggleCategory)
 	})
 
 	// Внутренний доступ для других сервисов: orders проверяет, что ставка

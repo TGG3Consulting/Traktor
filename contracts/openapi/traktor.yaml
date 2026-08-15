@@ -2117,6 +2117,112 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /moderation/categories:
+    get:
+      tags: [catalog]
+      summary: Справочник целиком, включая скрытое (ТЗ §4.1, п.5)
+      description: >
+        Доступно роли moderator или admin. Скрытые категории тоже здесь: иначе
+        вернуть убранную категорию невозможно.
+      operationId: allCategories
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: kind, in: query, schema: { type: string, enum: [work, unit] } }
+      responses:
+        "200":
+          description: Категории
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Category" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+    post:
+      tags: [catalog]
+      summary: Новая категория без выката сервиса
+      description: >
+        Появляется в визарде сразу. Название обязательно на трёх языках: пустая
+        строка на чужом языке выглядит как поломка приложения. Ключ — латиница,
+        цифры и дефис; он неизменяем, по нему сходятся отчёты за прошлые месяцы.
+      operationId: createCategory
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CategoryEdit" }
+      responses:
+        "201":
+          description: Категория создана
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /moderation/categories/{id}:
+    patch:
+      tags: [catalog]
+      summary: Правка названия, иконки, порядка и шаблона характеристик
+      description: >
+        Ключ и ветвь не меняются: сменить ветвь значит оторвать категорию от
+        уже созданных заданий.
+      operationId: updateCategory
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CategoryEdit" }
+      responses:
+        "200":
+          description: Категория обновлена
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /moderation/categories/{id}/visibility:
+    post:
+      tags: [catalog]
+      summary: Скрыть категорию или вернуть
+      description: >
+        Удаления нет: на категорию ссылаются уже созданные задания и техника.
+        Родителя с видимыми потомками скрыть нельзя — иначе люди увидят ветку
+        без входа в неё.
+      operationId: setCategoryVisibility
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [active]
+              properties:
+                active: { type: boolean }
+      responses:
+        "200":
+          description: Видимость изменена
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2611,3 +2717,24 @@ components:
         reason: { type: string }
         actorId: { type: string, format: uuid }
         createdAt: { type: string, format: date-time }
+
+    CategoryEdit:
+      type: object
+      description: Тело правки справочника (ТЗ §4.1, п.5).
+      required: [name]
+      properties:
+        parentId: { type: string, format: uuid, nullable: true }
+        kind: { type: string, enum: [work, unit], description: "Только при создании" }
+        slug: { type: string, description: "Только при создании; латиница, цифры и дефис" }
+        name:
+          type: object
+          required: [hy, ru, en]
+          properties:
+            hy: { type: string }
+            ru: { type: string }
+            en: { type: string }
+        icon: { type: string, description: "Имя иконки Phosphor; эмодзи запрещены" }
+        sortOrder: { type: integer }
+        specTemplate:
+          type: array
+          items: { $ref: "#/components/schemas/SpecField" }

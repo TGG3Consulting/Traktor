@@ -16,6 +16,22 @@ type Store interface {
 	// ByID возвращает одну категорию; ошибка ErrNotFound, если её нет.
 	ByID(ctx context.Context, id string) (catalog.Category, error)
 
+	// ── правка справочника у модерации (ТЗ §4.1, п.5) ────────────────────────
+	// ListAll — то же, что List, но вместе со скрытыми: модератор должен
+	// видеть и то, что убрал, иначе вернуть категорию невозможно.
+	ListAll(ctx context.Context, kind catalog.Kind) ([]catalog.Category, error)
+	// AnyByID — категория независимо от того, скрыта она или нет.
+	AnyByID(ctx context.Context, id string) (catalog.Category, error)
+	CreateCategory(ctx context.Context, c catalog.Category) error
+	UpdateCategory(ctx context.Context, c catalog.Category) error
+	// SetCategoryActive — скрыть или вернуть. Удаления нет: на категорию
+	// ссылаются уже созданные задания и техника.
+	SetCategoryActive(ctx context.Context, id string, active bool) error
+	// HasChildren — есть ли вложенные категории (в том числе скрытые).
+	HasChildren(ctx context.Context, id string) (bool, error)
+	// SlugTaken — занят ли ключ кем-то, кроме указанной категории.
+	SlugTaken(ctx context.Context, slug, exceptID string) (bool, error)
+
 	// Техника исполнителя (ТЗ §2.5).
 	CreateEquipment(ctx context.Context, e *catalog.Equipment) error
 	UpdateEquipment(ctx context.Context, e *catalog.Equipment) error

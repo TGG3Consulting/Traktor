@@ -887,4 +887,49 @@ class JobsApi {
     );
     return AdminUser.fromJson(_handle(resp));
   }
+
+  // ── правка справочника (ТЗ §4.1, п.5) ──────────────────────────────────────
+
+  /// GET /moderation/categories — вместе со скрытыми: иначе вернуть убранную
+  /// категорию невозможно.
+  Future<List<Category>> allCategories(String token, {String kind = ''}) async {
+    final resp = await _http.get(_u('/moderation/categories?kind=$kind'),
+        headers: _headers(token));
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => Category.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// POST /moderation/categories — новая категория без выката сервиса.
+  Future<Category> createCategory(String token, Category c,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/moderation/categories'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode(c.toEditJson()),
+    );
+    return Category.fromJson(_handle(resp));
+  }
+
+  /// PATCH /moderation/categories/{id} — название, иконка, порядок, шаблон.
+  Future<Category> updateCategory(String token, Category c,
+      {required String idempotencyKey}) async {
+    final resp = await _http.patch(
+      _u('/moderation/categories/${c.id}'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode(c.toEditJson()),
+    );
+    return Category.fromJson(_handle(resp));
+  }
+
+  /// POST /moderation/categories/{id}/visibility — скрыть или вернуть.
+  Future<Category> setCategoryVisible(String token, String id, bool active,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/moderation/categories/$id/visibility'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'active': active}),
+    );
+    return Category.fromJson(_handle(resp));
+  }
 }

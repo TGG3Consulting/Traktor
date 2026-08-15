@@ -186,6 +186,13 @@ class _ProfileTab extends ConsumerWidget {
                 ),
                 const Divider(height: 1),
                 ListTile(
+                  leading: const TkIcon(TkIcons.clipboardText),
+                  title: const Text('Справочник'),
+                  trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                  onTap: () => context.push('/moderation/catalog'),
+                ),
+                const Divider(height: 1),
+                ListTile(
                   leading: const TkIcon(TkIcons.chartLineUp),
                   title: const Text('Сводка площадки'),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),

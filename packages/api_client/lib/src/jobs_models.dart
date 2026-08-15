@@ -54,6 +54,20 @@ class SpecField {
   final LocalizedName label;
   final bool required;
 
+  /// Тело для правки справочника: сервер ждёт подписи плоскими полями.
+  Map<String, dynamic> toEditJson() => {
+        'key': key,
+        'type': type,
+        if (unit.isNotEmpty) 'unit': unit,
+        if (min != null) 'min': min,
+        if (max != null) 'max': max,
+        if (options.isNotEmpty) 'options': options,
+        if (label.hy.isNotEmpty) 'label_hy': label.hy,
+        'label_ru': label.ru,
+        if (label.en.isNotEmpty) 'label_en': label.en,
+        if (required) 'required': true,
+      };
+
   factory SpecField.fromJson(Map<String, dynamic> j) => SpecField(
         key: j['key'] as String? ?? '',
         type: j['type'] as String? ?? 'text',
@@ -82,6 +96,7 @@ class Category {
     this.children = const [],
     this.parentId,
     this.sortOrder = 0,
+    this.active = true,
   });
 
   final String id;
@@ -96,6 +111,46 @@ class Category {
   final List<SpecField> specTemplate;
   final List<Category> children;
   final int sortOrder;
+
+  /// Видна ли категория в приложении. Скрытая остаётся в базе: на неё
+  /// ссылаются уже созданные задания и техника (ТЗ §4.1, п.5).
+  final bool active;
+
+  /// Тело запроса на правку справочника (ТЗ §4.1, п.5).
+  Map<String, dynamic> toEditJson() => {
+        'parentId': parentId,
+        'kind': kind,
+        'slug': slug,
+        'name': {'hy': name.hy, 'ru': name.ru, 'en': name.en},
+        'icon': icon,
+        'sortOrder': sortOrder,
+        'specTemplate': specTemplate.map((f) => f.toEditJson()).toList(),
+      };
+
+  Category copyWith({
+    String? id,
+    String? parentId,
+    bool clearParent = false,
+    String? kind,
+    String? slug,
+    LocalizedName? name,
+    String? icon,
+    List<SpecField>? specTemplate,
+    int? sortOrder,
+    bool? active,
+  }) =>
+      Category(
+        id: id ?? this.id,
+        parentId: clearParent ? null : (parentId ?? this.parentId),
+        kind: kind ?? this.kind,
+        slug: slug ?? this.slug,
+        name: name ?? this.name,
+        icon: icon ?? this.icon,
+        specTemplate: specTemplate ?? this.specTemplate,
+        children: children,
+        sortOrder: sortOrder ?? this.sortOrder,
+        active: active ?? this.active,
+      );
 
   factory Category.fromJson(Map<String, dynamic> j) => Category(
         id: j['id'] as String? ?? '',
@@ -113,6 +168,7 @@ class Category {
                 .toList() ??
             const [],
         sortOrder: j['sortOrder'] as int? ?? 0,
+        active: j['active'] as bool? ?? true,
       );
 }
 

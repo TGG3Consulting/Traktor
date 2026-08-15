@@ -24,6 +24,7 @@ import '../features/crm/spending_screen.dart';
 import '../features/equipment/equipment_list_screen.dart';
 import '../features/equipment/equipment_new_screen.dart';
 import '../features/equipment/equipment_wizard_screen.dart';
+import '../features/moderation/catalog_screen.dart';
 import '../features/moderation/moderation_screen.dart';
 import '../features/moderation/user_card_screen.dart';
 import '../features/moderation/users_screen.dart';
@@ -110,6 +111,9 @@ final appRouter = GoRouter(
 
     // Сводка площадки (ТЗ §4.1, п.1) — доступна модерации.
     GoRoute(path: '/moderation/dashboard', builder: (_, __) => const DashboardScreen()),
+
+    // Справочник (ТЗ §4.1, п.5) — правка категорий без выката сервиса.
+    GoRoute(path: '/moderation/catalog', builder: (_, __) => const CatalogEditScreen()),
 
     // Пользователи (ТЗ §4.1, п.3) — поиск, карточка, ограничения.
     GoRoute(path: '/moderation/users', builder: (_, __) => const AdminUsersScreen()),

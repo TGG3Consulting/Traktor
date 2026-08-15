@@ -37,7 +37,10 @@ type Category struct {
 	Icon         string      `json:"icon"`
 	SpecTemplate []SpecField `json:"specTemplate"`
 	SortOrder    int         `json:"sortOrder"`
-	Children     []Category  `json:"children,omitempty"`
+	// Active — видна ли категория в приложении. Скрытая остаётся в базе:
+	// на неё ссылаются уже созданные задания и техника (ТЗ §4.1, п.5).
+	Active   bool       `json:"active"`
+	Children []Category `json:"children,omitempty"`
 }
 
 // Name — название на трёх языках проекта.
