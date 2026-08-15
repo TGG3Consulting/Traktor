@@ -100,6 +100,34 @@ class _Content extends ConsumerWidget {
                 tkMoney(job.budgetAmount, currency: job.currency),
                 style: TkText.price.copyWith(fontSize: 26, color: TkColors.primary),
               ),
+              // Фотографии места: их видно раньше характеристик — по ним
+              // исполнитель сразу понимает объём и подъезд (ТЗ §2.6).
+              if (job.photos.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 160,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: job.photos.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) => ClipRRect(
+                      borderRadius: TkRadius.cardR,
+                      child: Image.network(
+                        job.photos[i],
+                        width: 220,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 220,
+                          color: scheme.surfaceContainerHighest,
+                          alignment: Alignment.center,
+                          child: TkIcon(TkIcons.image,
+                              size: 24, color: scheme.onSurfaceVariant),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               TkCard(
                 child: Column(

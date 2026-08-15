@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../equipment/photo_picker.dart';
 import '../jobs_providers.dart';
 import '../spec_labels.dart';
 import 'wizard_controller.dart';
@@ -25,6 +26,8 @@ class _CreateStep2State extends ConsumerState<CreateStep2> {
   late final TextEditingController _title;
   late final TextEditingController _description;
   final Map<String, dynamic> _params = {};
+  List<String> _photos = const [];
+  bool _uploading = false;
 
   static const _minDescription = 20; // ТЗ §2.6: описание не короче 20 символов
 
@@ -35,6 +38,7 @@ class _CreateStep2State extends ConsumerState<CreateStep2> {
     _title = TextEditingController(text: draft?.title ?? '');
     _description = TextEditingController(text: draft?.description ?? '');
     _params.addAll(draft?.params ?? const {});
+    _photos = draft?.photos ?? const [];
   }
 
   @override
@@ -54,6 +58,7 @@ class _CreateStep2State extends ConsumerState<CreateStep2> {
             title: _title.text.trim(),
             description: _description.text.trim(),
             params: _params,
+            photos: _photos,
             draftStep: 3,
           ),
           goToStep: 3,
@@ -122,10 +127,47 @@ class _CreateStep2State extends ConsumerState<CreateStep2> {
                 )),
           ],
           const SizedBox(height: 18),
-          _PhotoHint(),
+          const Text('Фотографии места', style: TkText.h3),
+          const SizedBox(height: 4),
+          Text(
+            'Необязательно, но с фото откликов заметно больше: исполнитель видит '
+            'подъезд и объём работы, а не догадывается о них.',
+            style: TkText.caption
+                .copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 10),
+          TkPhotoGrid(
+            photos: _photos,
+            busy: _uploading,
+            onAdd: _addPhotos,
+            onRemove: (i) => setState(() => _photos = [..._photos]..removeAt(i)),
+          ),
         ],
       ),
     );
+  }
+
+  /// Добавить фотографии места: выбор, сжатие и загрузка в хранилище.
+  /// Адреса сохранятся вместе с остальными полями шага.
+  Future<void> _addPhotos() async {
+    if (_uploading) return;
+    setState(() => _uploading = true);
+    try {
+      final urls = await ref.read(photoUploaderProvider).pickAndUpload(
+            folder: 'jobs',
+            limit: 8 - _photos.length,
+          );
+      if (urls.isEmpty || !mounted) return;
+      setState(() => _photos = [..._photos, ...urls].take(8).toList());
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Фото не загрузилось: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   /// Подсказка-шаблон по категории (ТЗ §2.6 шаг 2).
@@ -227,35 +269,5 @@ class _SpecInput extends StatelessWidget {
           ),
         );
     }
-  }
-
-}
-
-/// Фото места сильно повышают отклики (ТЗ §2.6). Загрузка появится вместе с
-/// сервисом media — до тех пор честно говорим об этом, а не рисуем кнопку,
-/// которая ничего не делает.
-class _PhotoHint extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: TkRadius.cardR,
-      ),
-      child: Row(
-        children: [
-          TkIcon(TkIcons.camera, size: 20, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Фото места скоро можно будет прикрепить прямо здесь — с ними откликов заметно больше.',
-              style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -22,3 +22,4 @@ export 'src/components/tk_order_type_sheet.dart';
 export 'src/components/tk_job_card.dart';
 export 'src/components/tk_wizard.dart';
 export 'src/components/tk_stars.dart';
+export 'src/components/tk_photo_grid.dart';

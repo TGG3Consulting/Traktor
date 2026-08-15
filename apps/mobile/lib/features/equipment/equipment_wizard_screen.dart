@@ -459,85 +459,11 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       children: [
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            for (var i = 0; i < _photos.length; i++)
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: TkRadius.cardR,
-                    child: Image.network(
-                      _photos[i],
-                      width: 104,
-                      height: 104,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        width: 104,
-                        height: 104,
-                        color: scheme.surfaceContainerHighest,
-                        alignment: Alignment.center,
-                        child: TkIcon(TkIcons.image, size: 22,
-                            color: scheme.onSurfaceVariant),
-                      ),
-                    ),
-                  ),
-                  if (i == 0)
-                    Positioned(
-                      left: 6,
-                      bottom: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: const BoxDecoration(
-                          color: TkColors.primary,
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
-                        ),
-                        child: const Text('Обложка',
-                            style: TextStyle(fontSize: 10, color: Colors.white)),
-                      ),
-                    ),
-                  Positioned(
-                    right: 2,
-                    top: 2,
-                    child: InkWell(
-                      onTap: () => _removePhoto(i),
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: scheme.surface.withValues(alpha: 0.9),
-                          shape: BoxShape.circle,
-                        ),
-                        child: TkIcon(TkIcons.x, size: 12, color: scheme.onSurface),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            if (_photos.length < 8)
-              InkWell(
-                onTap: _busy ? null : _addPhotos,
-                borderRadius: TkRadius.cardR,
-                child: Container(
-                  width: 104,
-                  height: 104,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: scheme.outlineVariant),
-                    borderRadius: TkRadius.cardR,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TkIcon(TkIcons.camera, size: 22, color: scheme.onSurfaceVariant),
-                      const SizedBox(height: 4),
-                      Text('Добавить',
-                          style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
-                    ],
-                  ),
-                ),
-              ),
-          ],
+        TkPhotoGrid(
+          photos: _photos,
+          busy: _busy,
+          onAdd: _addPhotos,
+          onRemove: _removePhoto,
         ),
         const SizedBox(height: 14),
         Text(
@@ -557,44 +483,18 @@ class _EquipmentWizardScreenState extends ConsumerState<EquipmentWizardScreen> {
       children: [
         const Text('Техпаспорт или свидетельство о регистрации', style: TkText.body),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            for (final d in _docs)
-              ClipRRect(
-                borderRadius: TkRadius.cardR,
-                child: Image.network(
-                  d,
-                  width: 120,
-                  height: 84,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 120,
-                    height: 84,
-                    color: scheme.surfaceContainerHighest,
-                    alignment: Alignment.center,
-                    child: TkIcon(TkIcons.fileText, size: 20,
-                        color: scheme.onSurfaceVariant),
-                  ),
-                ),
-              ),
-            if (_docs.length < 4)
-              InkWell(
-                onTap: _busy ? null : _addDocs,
-                borderRadius: TkRadius.cardR,
-                child: Container(
-                  width: 120,
-                  height: 84,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: scheme.outlineVariant),
-                    borderRadius: TkRadius.cardR,
-                  ),
-                  child: TkIcon(TkIcons.camera, size: 20, color: scheme.onSurfaceVariant),
-                ),
-              ),
-          ],
+        TkPhotoGrid(
+          photos: _docs,
+          max: 4,
+          busy: _busy,
+          tileSize: 120,
+          coverLabel: '',
+          onAdd: _addDocs,
+          onRemove: (i) async {
+            final next = [..._docs]..removeAt(i);
+            setState(() => _docs = next);
+            await ref.read(equipmentActionsProvider).patch(widget.equipmentId, docs: next);
+          },
         ),
         const SizedBox(height: 8),
         Row(
