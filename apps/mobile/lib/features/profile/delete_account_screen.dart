@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../auth/auth_controller.dart';
 
@@ -23,15 +24,16 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final user = ref.watch(sessionProvider)?.user;
     final pending = user?.deleteAfter;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Удаление аккаунта'),
+        title: Text(l.deleteAccountTitle),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -49,12 +51,11 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Аккаунт удалится ${tkShortDate(pending)}',
+                  Text(l.accountDeletesOn(tkShortDate(pending)),
                       style: TkText.body.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
                   Text(
-                    'До этого дня всё работает как обычно. Любой вход в приложение '
-                    'отменяет удаление — как и кнопка ниже.',
+                    l.deletePendingHint,
                     style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                   ),
                 ],
@@ -63,36 +64,32 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _busy ? null : _cancel,
-              child: const Text('Оставить аккаунт'),
+              child: Text(l.keepAccount),
             ),
           ] else ...[
-            const Text('Что произойдёт', style: TkText.h3),
+            Text(l.whatHappens, style: TkText.h3),
             const SizedBox(height: 8),
-            const _Point(
+            _Point(
               icon: TkIcons.clock,
-              text: 'Тридцать дней аккаунт ждёт: за это время можно передумать, '
-                  'просто войдя снова.',
+              text: l.delPoint1,
             ),
-            const _Point(
+            _Point(
               icon: TkIcons.user,
-              text: 'Потом имя, телефон и город стираются, профиль становится '
-                  'обезличенным.',
+              text: l.delPoint2,
             ),
-            const _Point(
+            _Point(
               icon: TkIcons.star,
-              text: 'Отзывы и завершённые сделки остаются без вашего имени: '
-                  'на них держится рейтинг второй стороны.',
+              text: l.delPoint3,
             ),
-            const _Point(
+            _Point(
               icon: TkIcons.warning,
-              text: 'Незакрытые сделки лучше довести до конца — исполнитель или '
-                  'заказчик ждёт вас.',
+              text: l.delPoint4,
             ),
             const SizedBox(height: 20),
             OutlinedButton(
               style: OutlinedButton.styleFrom(foregroundColor: TkColors.error),
               onPressed: _busy ? null : _confirm,
-              child: const Text('Удалить аккаунт'),
+              child: Text(l.deleteAccount),
             ),
           ],
         ],
@@ -102,25 +99,23 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   Future<void> _confirm() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = AppLocalizations.of(context);
     // Двойное подтверждение (ТЗ §2.3): необратимое действие не должно
     // выполняться одним касанием.
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Удалить аккаунт?'),
-        content: const Text(
-          'Аккаунт исчезнет через 30 дней. Всё это время его можно вернуть — '
-          'достаточно войти в приложение.',
-        ),
+        title: Text(l.deleteAccountQ),
+        content: Text(l.deleteAccountBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Оставить'),
+            child: Text(l.keepIt),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TkColors.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Удалить'),
+            child: Text(l.deleteYes),
           ),
         ],
       ),
@@ -131,7 +126,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     try {
       await ref.read(authControllerProvider.notifier).requestDeletion();
       messenger.showSnackBar(
-        const SnackBar(content: Text('Аккаунт будет удалён через 30 дней')),
+        SnackBar(content: Text(l.deleteScheduled)),
       );
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.detail)));
@@ -142,10 +137,11 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   Future<void> _cancel() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
       await ref.read(authControllerProvider.notifier).cancelDeletion();
-      messenger.showSnackBar(const SnackBar(content: Text('Удаление отменено')));
+      messenger.showSnackBar(SnackBar(content: Text(l.deleteCancelled)));
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.detail)));
     } finally {

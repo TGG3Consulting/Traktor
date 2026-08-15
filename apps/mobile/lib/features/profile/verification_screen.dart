@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/session_refresh.dart';
 import '../auth/auth_controller.dart';
@@ -36,15 +37,16 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(myVerificationProvider);
     final verified = ref.watch(sessionProvider)?.user.verified ?? false;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Проверка профиля'),
+        title: Text(l.verifyTitle),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -75,6 +77,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
 
   Future<void> _addPhotos() async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = AppLocalizations.of(context);
     setState(() => _busy = true);
     try {
       final urls = await ref
@@ -82,7 +85,7 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen> {
           .pickAndUpload(folder: 'documents', limit: 4 - _docs.length);
       if (urls.isNotEmpty) setState(() => _docs.addAll(urls));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Не удалось загрузить: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(l.uploadFailed('$e'))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -115,10 +118,11 @@ class _Approved extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const TkEmptyState(
+    final l = AppLocalizations.of(context);
+    return TkEmptyState(
       icon: TkIcons.checkCircle,
-      title: 'Профиль проверен',
-      description: 'Бейдж «Проверен» виден всем в ленте и в вашей карточке',
+      title: l.profileVerified,
+      description: l.verifiedBadgeSeen,
     );
   }
 }
@@ -130,6 +134,7 @@ class _Pending extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -138,22 +143,21 @@ class _Pending extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  TkIcon(TkIcons.hourglass, size: 20),
-                  SizedBox(width: 8),
-                  Text('Документ на проверке', style: TkText.h3),
+                  const TkIcon(TkIcons.hourglass, size: 20),
+                  const SizedBox(width: 8),
+                  Text(l.docUnderReview, style: TkText.h3),
                 ],
               ),
               const SizedBox(height: 6),
               Text(
-                'Отвечаем в течение суток. Пока идёт проверка, вы работаете '
-                'как обычно — бейдж просто появится в карточке.',
+                l.reviewWithinDay,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
               if (verification.createdAt != null) ...[
                 const SizedBox(height: 8),
-                Text('Подано ${tkShortDate(verification.createdAt)}',
+                Text(l.submittedOn(tkShortDate(verification.createdAt)),
                     style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
               ],
             ],
@@ -187,6 +191,7 @@ class _Form extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
 
     return ListView(
@@ -202,7 +207,7 @@ class _Form extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Прошлая заявка отклонена',
+                Text(l.lastRejected,
                     style: TkText.body.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(rejectedReason, style: TkText.caption),
@@ -211,23 +216,21 @@ class _Form extends StatelessWidget {
           ),
           const SizedBox(height: 14),
         ],
-        const Text('Зачем это нужно', style: TkText.h3),
+        Text(l.whyVerify, style: TkText.h3),
         const SizedBox(height: 4),
         Text(
-          'Заказчики выбирают между несколькими исполнителями и чаще пишут тем, '
-          'у кого профиль проверен. Документ видит только модератор — в карточке '
-          'он не показывается.',
+          l.whyVerifyBody,
           style: TkText.body.copyWith(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
-        Text('Какой документ', style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
+        Text(l.whichDoc, style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
         const SizedBox(height: 6),
         Wrap(
           spacing: 8,
           children: [
-            TkChip(label: 'Паспорт', selected: kind == 'passport', onTap: () => onKind('passport')),
-            TkChip(label: 'Права', selected: kind == 'license', onTap: () => onKind('license')),
-            TkChip(label: 'Другой', selected: kind == 'other', onTap: () => onKind('other')),
+            TkChip(label: l.docPassport, selected: kind == 'passport', onTap: () => onKind('passport')),
+            TkChip(label: l.docLicense, selected: kind == 'license', onTap: () => onKind('license')),
+            TkChip(label: l.docOther, selected: kind == 'other', onTap: () => onKind('other')),
           ],
         ),
         const SizedBox(height: 16),
@@ -237,12 +240,11 @@ class _Form extends StatelessWidget {
           onRemove: onRemove,
           max: 4,
           busy: busy,
-          coverLabel: 'Основной',
+          coverLabel: l.mainPhoto,
         ),
         const SizedBox(height: 6),
         Text(
-          'Снимайте при дневном свете, чтобы читались фамилия и номер. '
-          'До четырёх снимков.',
+          l.docShootHint,
           style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 20),
@@ -251,11 +253,11 @@ class _Form extends StatelessWidget {
           child: busy
               ? const SizedBox(
                   width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Отправить на проверку'),
+              : Text(l.sendForReview),
         ),
         const SizedBox(height: 8),
         Text(
-          'Ответим в течение суток.',
+          l.answerWithinDay,
           textAlign: TextAlign.center,
           style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
         ),

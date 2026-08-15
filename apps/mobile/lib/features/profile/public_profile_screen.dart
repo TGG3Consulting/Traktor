@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/app_settings.dart';
 import '../../core/share_link.dart';
@@ -34,6 +35,7 @@ class PublicProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final profile = ref.watch(publicProfileProvider(userId));
     final reviews = ref.watch(userReviewsProvider(userId));
@@ -42,9 +44,9 @@ class PublicProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Профиль'),
+        title: Text(l.profileTitle),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -55,7 +57,7 @@ class PublicProfileScreen extends ConsumerWidget {
           if (ref.watch(sessionProvider)?.user.id case final me?
               when me.isNotEmpty && me != userId)
             IconButton(
-              tooltip: 'Пожаловаться',
+              tooltip: l.complain,
               onPressed: () async {
                 final sent = await showComplaintSheet(
                   context,
@@ -65,7 +67,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 );
                 if (sent == true && context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Жалоба отправлена модерации')),
+                    SnackBar(content: Text(l.complaintSent)),
                   );
                 }
               },
@@ -118,7 +120,7 @@ class PublicProfileScreen extends ConsumerWidget {
                           [
                             if (p.city.isNotEmpty) p.city,
                             if (p.createdAt != null)
-                              'на площадке с ${tkShortDate(p.createdAt)}',
+                              l.onPlatformSince(tkShortDate(p.createdAt)),
                           ].join(' · '),
                           style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                         ),
@@ -140,7 +142,7 @@ class PublicProfileScreen extends ConsumerWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Техника', style: TkText.h3),
+                    Text(l.equipmentSection, style: TkText.h3),
                     const SizedBox(height: 8),
                     for (final e in list) ...[
                       TkCard(
@@ -174,7 +176,7 @@ class PublicProfileScreen extends ConsumerWidget {
                                     [
                                       if (e.categoryTitle(lang).isNotEmpty)
                                         e.categoryTitle(lang),
-                                      if (e.year != null) '${e.year} г',
+                                      if (e.year != null) l.yearShort(e.year!),
                                     ].join(' · '),
                                     style: TkText.caption
                                         .copyWith(color: scheme.onSurfaceVariant),
@@ -196,7 +198,7 @@ class PublicProfileScreen extends ConsumerWidget {
               },
             ),
 
-            const Text('Отзывы', style: TkText.h3),
+            Text(l.reviewsSection, style: TkText.h3),
             const SizedBox(height: 8),
             reviews.when(
               loading: () => const TkSkeletonList(count: 2),
@@ -207,7 +209,7 @@ class PublicProfileScreen extends ConsumerWidget {
               data: (page) {
                 if (page.items.isEmpty) {
                   return Text(
-                    'Отзывов пока нет. Они появляются после завершённых сделок.',
+                    l.noReviewsYet,
                     style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                   );
                 }
@@ -235,6 +237,7 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return TkCard(
       child: Column(
@@ -252,7 +255,7 @@ class _ReviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            review.authorName.isEmpty ? 'Пользователь' : review.authorName,
+            review.authorName.isEmpty ? l.someUser : review.authorName,
             style: TkText.caption.copyWith(fontWeight: FontWeight.w600),
           ),
           if (review.tags.isNotEmpty) ...[
@@ -280,7 +283,7 @@ class _ReviewCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ответ',
+                  Text(l.replyLabel,
                       style: TkText.caption.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text(review.replyText, style: TkText.caption),
