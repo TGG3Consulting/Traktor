@@ -351,6 +351,37 @@ class JobsApi {
     return Spending.fromJson(_handle(resp));
   }
 
+  // ── модерация техники (ТЗ §4.1) ────────────────────────────────────────────
+
+  /// GET /moderation/equipment — очередь проверки, старые сверху.
+  Future<List<ModerationItem>> moderationQueue(String token) async {
+    final resp = await _http.get(_u('/moderation/equipment'), headers: _headers(token));
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => ModerationItem.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// POST /moderation/equipment/{id}/approve — выдать бейдж «Проверен».
+  Future<void> approveEquipment(String token, String id,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/moderation/equipment/$id/approve'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    _handle(resp);
+  }
+
+  /// POST /moderation/equipment/{id}/reject — отказ с обязательной причиной.
+  Future<void> rejectEquipment(String token, String id, String reason,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/moderation/equipment/$id/reject'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'reason': reason}),
+    );
+    _handle(resp);
+  }
+
   // ── публичная карточка человека (ТЗ §2.3) ──────────────────────────────────
 
   /// GET /users/{id} — имя, город, отметка проверки. Работает без входа:

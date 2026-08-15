@@ -14,12 +14,25 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	"traktor/catalog/internal/catalog"
+	"traktor/catalog/internal/notify"
 	"traktor/catalog/internal/store"
 )
 
-type Server struct{ st store.Store }
+type Server struct {
+	st store.Store
+	// notify — сообщения владельцу техники о решении модерации.
+	notify notify.Notifier
+}
 
-func New(st store.Store) *Server { return &Server{st: st} }
+func New(st store.Store) *Server { return &Server{st: st, notify: notify.Noop{}} }
+
+// NewWithNotifier — сервер, умеющий сообщать владельцу решение модерации.
+func NewWithNotifier(st store.Store, n notify.Notifier) *Server {
+	if n == nil {
+		n = notify.Noop{}
+	}
+	return &Server{st: st, notify: n}
+}
 
 func (s *Server) Routes() http.Handler {
 	r := chi.NewRouter()
@@ -33,6 +46,14 @@ func (s *Server) Routes() http.Handler {
 	r.Route("/v1/categories", func(r chi.Router) {
 		r.Get("/", s.list)
 		r.Get("/{id}", s.byID)
+	})
+
+	// Очередь проверки техники (ТЗ §4.1). Доступ — только модерации.
+	r.Route("/v1/moderation", func(r chi.Router) {
+		r.Use(s.requireModerator)
+		r.Get("/equipment", s.pendingEquipment)
+		r.Post("/equipment/{id}/approve", s.approveEquipment)
+		r.Post("/equipment/{id}/reject", s.rejectEquipment)
 	})
 
 	// Внутренний доступ для других сервисов: orders проверяет, что ставка

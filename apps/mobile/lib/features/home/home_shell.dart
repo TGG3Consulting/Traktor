@@ -5,6 +5,7 @@ import 'package:design_system/design_system.dart';
 import 'package:traktor_mobile/l10n/app_localizations.dart';
 import '../../core/app_settings.dart';
 import '../auth/auth_controller.dart';
+import '../moderation/moderation_screen.dart';
 import '../notifications/messages_tab.dart';
 import '../jobs/client_jobs_tab.dart';
 import '../jobs/create/wizard_controller.dart';
@@ -154,6 +155,16 @@ class _ProfileTab extends ConsumerWidget {
                 ),
               ),
               const Divider(height: 1),
+              // Модерация: пункт появляется сам у тех, кому выдана роль.
+              if (ref.watch(isModeratorProvider)) ...[
+                ListTile(
+                  leading: const TkIcon(TkIcons.shield),
+                  title: const Text('Проверка техники'),
+                  trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                  onTap: () => context.push('/moderation'),
+                ),
+                const Divider(height: 1),
+              ],
               // Заказчику — свои расходы, исполнителю — свой бизнес (ТЗ §3).
               if (isClient) ...[
                 ListTile(

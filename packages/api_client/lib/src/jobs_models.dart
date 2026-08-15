@@ -1079,3 +1079,48 @@ class CategorySpend {
         deals: j['deals'] as int? ?? 0,
       );
 }
+
+/// Карточка техники в очереди проверки (ТЗ §4.1). Документы видны только
+/// модерации — в обычной карточке их нет.
+class ModerationItem {
+  const ModerationItem({
+    required this.id,
+    this.ownerId = '',
+    this.title = '',
+    this.year,
+    this.photos = const [],
+    this.docs = const [],
+    this.categoryName,
+    this.waitingHours = 0,
+  });
+
+  final String id;
+  final String ownerId;
+  final String title;
+  final int? year;
+  final List<String> photos;
+  final List<String> docs;
+  final Map<String, dynamic>? categoryName;
+
+  /// Сколько часов карточка ждёт решения: обещали сутки.
+  final int waitingHours;
+
+  bool get overdue => waitingHours >= 24;
+
+  String categoryTitle(String lang) {
+    final n = categoryName;
+    if (n == null) return '';
+    return (n[lang] ?? n['ru'] ?? '') as String;
+  }
+
+  factory ModerationItem.fromJson(Map<String, dynamic> j) => ModerationItem(
+        id: j['id'] as String? ?? '',
+        ownerId: j['ownerId'] as String? ?? '',
+        title: j['title'] as String? ?? '',
+        year: j['year'] as int?,
+        photos: ((j['photos'] as List?) ?? const []).map((e) => '$e').toList(),
+        docs: ((j['docs'] as List?) ?? const []).map((e) => '$e').toList(),
+        categoryName: (j['categoryName'] as Map?)?.cast<String, dynamic>(),
+        waitingHours: j['waitingHours'] as int? ?? 0,
+      );
+}

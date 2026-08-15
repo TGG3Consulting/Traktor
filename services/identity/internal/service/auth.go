@@ -4,6 +4,7 @@
 package service
 
 import (
+	"strings"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -47,6 +48,11 @@ type Auth struct {
 	// (например «000000»). Пустая строка означает боевое поведение: код
 	// случайный. Значение приходит из конфигурации, в коде не зашито.
 	staticCode string
+
+	// moderators — телефоны, которым выдаётся роль модератора (ТЗ §4.1).
+	// Список задаёт владелец площадки через окружение: отдельной админки для
+	// назначения ролей пока нет, а править базу руками — плохая практика.
+	moderators []string
 }
 
 func NewAuth(s store.Store, p sms.Provider, signer *token.Signer, now Now) *Auth {
@@ -54,6 +60,12 @@ func NewAuth(s store.Store, p sms.Provider, signer *token.Signer, now Now) *Auth
 		now = time.Now
 	}
 	return &Auth{store: s, sms: p, signer: signer, now: now}
+}
+
+// WithModerators задаёт телефоны модераторов.
+func (a *Auth) WithModerators(phones []string) *Auth {
+	a.moderators = phones
+	return a
 }
 
 // WithStaticCode включает фиксированный код входа (dev/демо). В проде не
@@ -141,7 +153,7 @@ func (a *Auth) VerifyOTP(ctx context.Context, phone, code string) (*Session, err
 		u = &store.User{
 			ID:         uuid.NewString(),
 			Phone:      phone,
-			Roles:      []string{"client"},
+			Roles:      a.rolesFor(phone),
 			ActiveRole: "client",
 			CreatedAt:  a.now(),
 		}
@@ -150,8 +162,47 @@ func (a *Auth) VerifyOTP(ctx context.Context, phone, code string) (*Session, err
 		}
 	} else if err != nil {
 		return nil, err
+	} else if a.isModerator(phone) && !hasRole(u.Roles, roleModerator) {
+		// Телефон добавили в список модерации уже после регистрации —
+		// выдаём роль при первом же входе, без ручной правки базы.
+		u.Roles = append(u.Roles, roleModerator)
+		if err := a.store.UpdateUser(ctx, *u); err != nil {
+			return nil, err
+		}
 	}
 	return a.issue(ctx, *u)
+}
+
+// roleModerator — доступ к очереди проверки техники и спорам (ТЗ §4.1).
+// Роль живёт рядом с обычной: модератор остаётся заказчиком или исполнителем,
+// просто ему дополнительно видна админская часть.
+const roleModerator = "moderator"
+
+func (a *Auth) rolesFor(phone string) []string {
+	if a.isModerator(phone) {
+		return []string{"client", roleModerator}
+	}
+	return []string{"client"}
+}
+
+// isModerator — телефон из списка MODERATOR_PHONES. Так роль выдаётся без
+// отдельной админки и без правки базы руками: список задаёт владелец площадки.
+func (a *Auth) isModerator(phone string) bool {
+	for _, p := range a.moderators {
+		if strings.TrimSpace(p) == phone {
+			return true
+		}
+	}
+	return false
+}
+
+func hasRole(roles []string, want string) bool {
+	for _, r := range roles {
+		if r == want {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *Auth) issue(ctx context.Context, u store.User) (*Session, error) {

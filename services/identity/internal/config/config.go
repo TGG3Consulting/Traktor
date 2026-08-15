@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"os"
+	"strings"
 )
 
 // Config — окружение сервиса identity. Секреты — из Secret Manager (env),
@@ -30,6 +31,10 @@ type Config struct {
 	// Пустое значение = боевое поведение (код случайный).
 	OTPStaticCode string
 
+	// ModeratorPhones — телефоны, которым выдаётся роль модератора (ТЗ §4.1).
+	// Список через запятую в MODERATOR_PHONES.
+	ModeratorPhones []string
+
 	// EphemeralKey = true означает, что ключ подписи сгенерирован при старте:
 	// после перезапуска все выданные токены станут недействительными.
 	EphemeralKey bool
@@ -44,6 +49,7 @@ func Load() (*Config, error) {
 		Kid:           getenv("JWT_KID", "dev"),
 		DatabaseURL:   os.Getenv("DATABASE_URL"),
 		PhoneEncKey:   os.Getenv("PHONE_ENC_KEY"),
+		ModeratorPhones: splitList(os.Getenv("MODERATOR_PHONES")),
 		OTPStaticCode: os.Getenv("OTP_STATIC_CODE"),
 	}
 
@@ -94,4 +100,15 @@ func getenv(k, def string) string {
 		return v
 	}
 	return def
+}
+
+// splitList разбирает список через запятую, отбрасывая пустые куски.
+func splitList(raw string) []string {
+	out := []string{}
+	for _, part := range strings.Split(raw, ",") {
+		if p := strings.TrimSpace(part); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

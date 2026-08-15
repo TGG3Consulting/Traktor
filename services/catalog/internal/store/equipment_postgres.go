@@ -133,6 +133,31 @@ func (p *Postgres) PublicEquipment(ctx context.Context, ownerID string) ([]catal
 	return out, rows.Err()
 }
 
+// PendingEquipment — очередь модерации. Сортировка по возрасту: первым
+// разбирается то, что ждёт дольше всех (ТЗ §4.1).
+func (p *Postgres) PendingEquipment(ctx context.Context, limit int) ([]catalog.Equipment, error) {
+	q := `SELECT` + equipmentColumns + `
+	        FROM catalog.equipment
+	       WHERE status = 'pending'
+	    ORDER BY updated_at
+	       LIMIT $1`
+	rows, err := p.pool.Query(ctx, q, limit)
+	if err != nil {
+		return nil, fmt.Errorf("catalog: очередь модерации: %w", err)
+	}
+	defer rows.Close()
+
+	out := []catalog.Equipment{}
+	for rows.Next() {
+		e, err := scanEquipment(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *e)
+	}
+	return out, rows.Err()
+}
+
 func scanEquipment(rows pgx.Rows) (*catalog.Equipment, error) {
 	var e catalog.Equipment
 	var status string

@@ -25,4 +25,6 @@ type Store interface {
 	// PublicEquipment — техника человека для его карточки: только та, что
 	// участвует в работе (проверенная или опубликованная без документов).
 	PublicEquipment(ctx context.Context, ownerID string) ([]catalog.Equipment, error)
+	// PendingEquipment — очередь проверки, старые сверху: обещали сутки.
+	PendingEquipment(ctx context.Context, limit int) ([]catalog.Equipment, error)
 }

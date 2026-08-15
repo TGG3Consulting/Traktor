@@ -16,6 +16,7 @@ import (
 
 	"traktor/catalog/internal/config"
 	"traktor/catalog/internal/httpapi"
+	"traktor/catalog/internal/notify"
 	"traktor/catalog/internal/store"
 )
 
@@ -41,9 +42,17 @@ func run(log *slog.Logger) error {
 	}
 	defer closeStore()
 
+	var notifier notify.Notifier = notify.Noop{}
+	if cfg.NotificationsURL != "" {
+		notifier = notify.NewHTTP(cfg.NotificationsURL, log)
+		log.Info("уведомления о модерации включены", "notifications", cfg.NotificationsURL)
+	} else {
+		log.Warn("NOTIFICATIONS_URL не задан: решения модерации не уйдут владельцу")
+	}
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           httpapi.New(st).Routes(),
+		Handler:           httpapi.NewWithNotifier(st, notifier).Routes(),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}

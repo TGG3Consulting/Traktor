@@ -77,6 +77,8 @@ $env:DATABASE_URL = $db
 $env:PHONE_ENC_KEY = $key
 
 $env:PORT = '18081'; $env:TEST_MODE = '1'; $env:OTP_STATIC_CODE = '000000'; $env:JWT_KID = 'dev'
+# Telefon Tigrana - moderator: emu vidna ochered proverki tehniki
+$env:MODERATOR_PHONES = '+37490000001'
 Start-Process -FilePath "$bin\identity.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-identity.log" -RedirectStandardError "$out\svc-identity.err" | Out-Null
 
@@ -85,6 +87,8 @@ Start-Process -FilePath "$bin\notifications.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-notifications.log" -RedirectStandardError "$out\svc-notifications.err" | Out-Null
 
 $env:PORT = '18083'
+# catalog soobshchaet vladelcu tehniki o reshenii moderacii
+$env:NOTIFICATIONS_URL = 'http://127.0.0.1:18082'
 Start-Process -FilePath "$bin\catalog.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-catalog.log" -RedirectStandardError "$out\svc-catalog.err" | Out-Null
 

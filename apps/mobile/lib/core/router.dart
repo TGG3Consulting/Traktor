@@ -20,6 +20,7 @@ import '../features/crm/spending_screen.dart';
 import '../features/equipment/equipment_list_screen.dart';
 import '../features/equipment/equipment_new_screen.dart';
 import '../features/equipment/equipment_wizard_screen.dart';
+import '../features/moderation/moderation_screen.dart';
 import '../features/notifications/settings_screen.dart';
 import '../features/profile/public_profile_screen.dart';
 import '../features/reviews/review_screen.dart';
@@ -93,6 +94,9 @@ final appRouter = GoRouter(
         step: int.tryParse(state.pathParameters['step'] ?? '1') ?? 1,
       ),
     ),
+
+    // Очередь проверки техники (ТЗ §4.1) — доступна модерации.
+    GoRoute(path: '/moderation', builder: (_, __) => const ModerationScreen()),
 
     // Настройки уведомлений (ТЗ §2.14).
     GoRoute(

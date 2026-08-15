@@ -35,12 +35,17 @@ func Auth(cache *jwks.Cache, public func(path string) bool) func(http.Handler) h
 			// чужие данные на публичном маршруте.
 			r.Header.Del("X-User-Id")
 			r.Header.Del("X-User-Role")
+			// Все роли, а не только активная: модератор остаётся заказчиком
+			// или исполнителем и не должен переключать роль ради проверки
+			// техники (ТЗ §4.1).
+			r.Header.Del("X-User-Roles")
 
 			if public(r.URL.Path) {
 				if token, ok := bearer(r); ok {
 					if claims, err := cache.Verify(r.Context(), token, time.Now()); err == nil {
 						r.Header.Set("X-User-Id", claims.Sub)
 						r.Header.Set("X-User-Role", claims.ActiveRole)
+						r.Header.Set("X-User-Roles", strings.Join(claims.Roles, ","))
 						next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))
 						return
 					}
@@ -62,6 +67,7 @@ func Auth(cache *jwks.Cache, public func(path string) bool) func(http.Handler) h
 			// Прокидываем проверенный идентификатор пользователя вниз по стеку.
 			r.Header.Set("X-User-Id", claims.Sub)
 			r.Header.Set("X-User-Role", claims.ActiveRole)
+			r.Header.Set("X-User-Roles", strings.Join(claims.Roles, ","))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

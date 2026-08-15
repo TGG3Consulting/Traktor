@@ -1649,6 +1649,92 @@ paths:
                         last: { type: string, format: date-time }
                         regular: { type: boolean, description: "три сделки и больше" }
 
+  /moderation/equipment:
+    get:
+      tags: [catalog]
+      summary: Очередь проверки техники (ТЗ §4.1)
+      description: >
+        Доступно роли moderator или admin. Сортировка по возрасту: первым
+        разбирается то, что ждёт дольше всех — исполнителю обещали ответ за
+        сутки. В карточке видны документы, которых нет в обычной выдаче.
+      operationId: moderationQueue
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 50 } }
+      responses:
+        "200":
+          description: Очередь
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        ownerId: { type: string, format: uuid }
+                        title: { type: string }
+                        year: { type: integer }
+                        photos: { type: array, items: { type: string } }
+                        docs:
+                          type: array
+                          items: { type: string }
+                          description: "видно только модерации"
+                        waitingHours: { type: integer }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /moderation/equipment/{id}/approve:
+    post:
+      tags: [catalog]
+      summary: Одобрить технику — бейдж «Проверен»
+      operationId: approveEquipment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Одобрено, владельцу ушло уведомление
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Equipment" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409":
+          description: Карточка не ждёт проверки
+
+  /moderation/equipment/{id}/reject:
+    post:
+      tags: [catalog]
+      summary: Отклонить технику с обязательной причиной
+      description: >
+        Причина обязательна: «отклонено» без объяснения человек не сможет
+        исправить, и он просто уйдёт с площадки. Текст уходит владельцу.
+      operationId: rejectEquipment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, maxLength: 300 }
+      responses:
+        "200":
+          description: Отклонено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Equipment" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:

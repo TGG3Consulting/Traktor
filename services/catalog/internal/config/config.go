@@ -8,12 +8,17 @@ type Config struct {
 	// DatabaseURL пуст → сокращённый справочник в памяти (dev без базы).
 	// Задан → Postgres с накатом миграций и полным сидом.
 	DatabaseURL string
+
+	// NotificationsURL пуст → решения модерации не уходят владельцу пушем,
+	// но сама модерация работает: статус карточки меняется в базе.
+	NotificationsURL string
 }
 
 func Load() *Config {
 	return &Config{
 		Port:        getenv("PORT", "8080"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
+		DatabaseURL:      os.Getenv("DATABASE_URL"),
+		NotificationsURL: os.Getenv("NOTIFICATIONS_URL"),
 	}
 }
 

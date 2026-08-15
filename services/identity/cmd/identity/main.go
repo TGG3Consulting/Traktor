@@ -59,7 +59,7 @@ func run(log *slog.Logger) error {
 	defer closeStore()
 
 	signer := token.NewSigner(cfg.PrivKey, cfg.Kid)
-	auth := service.NewAuth(st, provider, signer, time.Now)
+	auth := service.NewAuth(st, provider, signer, time.Now).WithModerators(cfg.ModeratorPhones)
 	if cfg.OTPStaticCode != "" {
 		log.Warn("вход по фиксированному коду — только для разработки",
 			"code", cfg.OTPStaticCode)
