@@ -89,6 +89,16 @@ func (n *Notifier) Notify(ctx context.Context, userID string, msg Notification) 
 		return 0, err
 	}
 
+	// Настройки решают только судьбу push: в центре уведомлений событие уже
+	// сохранено и никуда не денется (ТЗ §2.14).
+	prefs, err := n.store.PrefsOf(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	if !allowPush(prefs, msg.Kind, n.now()) {
+		return 0, nil
+	}
+
 	devices, err := n.store.ListDevicesByUser(ctx, userID)
 	if err != nil {
 		return 0, err

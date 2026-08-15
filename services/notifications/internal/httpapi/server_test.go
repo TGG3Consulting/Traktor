@@ -17,7 +17,10 @@ import (
 func newServer() (*Server, *push.Fake) {
 	st := store.NewMemory()
 	fake := push.NewFake()
-	svc := service.New(st, fake, time.Now)
+	// Время фиксируем на середину дня: с тихими часами (ТЗ §2.14) тест на
+	// time.Now падал бы каждую ночь, хотя сервис работает верно.
+	noon := time.Date(2026, 8, 15, 12, 0, 0, 0, time.FixedZone("AMT", 4*3600))
+	svc := service.New(st, fake, func() time.Time { return noon })
 	return New(svc), fake
 }
 

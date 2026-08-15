@@ -15,6 +15,7 @@ import '../features/jobs/auction/auction_screen.dart';
 import '../features/jobs/deal/deal_screen.dart';
 import '../features/jobs/job_detail_screen.dart';
 import '../features/jobs/offers/offers_screen.dart';
+import '../features/notifications/settings_screen.dart';
 import '../features/reviews/review_screen.dart';
 import '../features/onboarding/language_screen.dart';
 import '../features/onboarding/role_screen.dart';
@@ -64,6 +65,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/deals/:id',
       builder: (_, state) => DealScreen(dealId: state.pathParameters['id']!),
+    ),
+
+    // Настройки уведомлений (ТЗ §2.14).
+    GoRoute(
+      path: '/settings/notifications',
+      builder: (_, __) => const NotificationSettingsScreen(),
     ),
 
     // Взаимная оценка после сделки (ТЗ §2.13). Отдельный маршрут: на него

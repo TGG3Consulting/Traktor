@@ -55,7 +55,44 @@ type Notification struct {
 	CreatedAt time.Time
 }
 
-// Store — хранилище токенов устройств и ленты уведомлений.
+// Prefs — настройки уведомлений (ТЗ §2.14).
+//
+// Управление по группам, а не один рубильник: иначе человек отключает всё
+// разом и пропускает важное.
+type Prefs struct {
+	UserID    string
+	Auctions  bool
+	Deals     bool
+	Chat      bool
+	NewJobs   bool
+	Marketing bool
+
+	// Тихие часы для некритичных уведомлений (местное время).
+	QuietHours bool
+	QuietFrom  int
+	QuietTo    int
+
+	// «Вашу ставку перебили» приходит и ночью, если человек сам так решил.
+	OutbidAlways bool
+}
+
+// DefaultPrefs — то, что действует, пока человек ничего не менял. Маркетинг
+// выключен: рассылка только по согласию.
+func DefaultPrefs(userID string) Prefs {
+	return Prefs{
+		UserID:     userID,
+		Auctions:   true,
+		Deals:      true,
+		Chat:       true,
+		NewJobs:    true,
+		Marketing:  false,
+		QuietHours: true,
+		QuietFrom:  22,
+		QuietTo:    8,
+	}
+}
+
+// Store — хранилище токенов устройств, ленты уведомлений и настроек.
 type Store interface {
 	// UpsertDevice регистрирует/обновляет токен (идемпотентно по Token).
 	UpsertDevice(ctx context.Context, d Device) error
@@ -74,4 +111,8 @@ type Store interface {
 	MarkNotificationsRead(ctx context.Context, userID string, ids []string, at time.Time) error
 	// DeleteOldNotifications — уборка старше срока хранения (90 дней).
 	DeleteOldNotifications(ctx context.Context, before time.Time) (int, error)
+
+	// Настройки уведомлений (ТЗ §2.14).
+	PrefsOf(ctx context.Context, userID string) (Prefs, error)
+	SavePrefs(ctx context.Context, p Prefs, at time.Time) error
 }

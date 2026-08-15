@@ -155,6 +155,13 @@ class _ProfileTab extends ConsumerWidget {
               ),
               const Divider(height: 1),
               ListTile(
+                leading: const TkIcon(TkIcons.bell),
+                title: const Text('Уведомления'),
+                trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                onTap: () => context.push('/settings/notifications'),
+              ),
+              const Divider(height: 1),
+              ListTile(
                 leading: const TkIcon(TkIcons.globe),
                 title: const Text('Язык'),
                 trailing: DropdownButton<String>(

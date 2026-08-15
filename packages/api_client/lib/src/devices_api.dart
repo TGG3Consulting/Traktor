@@ -138,6 +138,51 @@ class NotificationsApi {
     return NotificationsPage.fromJson(decodeJsonBody(resp));
   }
 
+  /// GET /notifications/settings — что человеку присылать (ТЗ §2.14).
+  Future<NotificationPrefs> prefs(String token) async {
+    final resp = await _http.get(
+      _u('/notifications/settings'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    _ensureOkStatic(resp);
+    return NotificationPrefs.fromJson(decodeJsonBody(resp));
+  }
+
+  /// PUT /notifications/settings — меняем только те поля, что переключили.
+  Future<NotificationPrefs> savePrefs(
+    String token, {
+    bool? auctions,
+    bool? deals,
+    bool? chat,
+    bool? newJobs,
+    bool? marketing,
+    bool? quietHours,
+    int? quietFrom,
+    int? quietTo,
+    bool? outbidAlways,
+  }) async {
+    final resp = await _http.put(
+      _u('/notifications/settings'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        if (auctions != null) 'auctions': auctions,
+        if (deals != null) 'deals': deals,
+        if (chat != null) 'chat': chat,
+        if (newJobs != null) 'newJobs': newJobs,
+        if (marketing != null) 'marketing': marketing,
+        if (quietHours != null) 'quietHours': quietHours,
+        if (quietFrom != null) 'quietFrom': quietFrom,
+        if (quietTo != null) 'quietTo': quietTo,
+        if (outbidAlways != null) 'outbidAlways': outbidAlways,
+      }),
+    );
+    _ensureOkStatic(resp);
+    return NotificationPrefs.fromJson(decodeJsonBody(resp));
+  }
+
   /// POST /notifications/read — отметить прочитанными. Пустой список — все.
   Future<void> markRead(String token,
       {List<String> ids = const [], required String idempotencyKey}) async {
@@ -165,4 +210,46 @@ void _ensureOkStatic(http.Response resp) {
         : (decodeJsonBody(resp)['detail'] as String? ?? 'Ошибка запроса');
     throw ApiException(resp.statusCode, detail);
   }
+}
+
+/// Настройки уведомлений (ТЗ §2.14).
+class NotificationPrefs {
+  const NotificationPrefs({
+    this.auctions = true,
+    this.deals = true,
+    this.chat = true,
+    this.newJobs = true,
+    this.marketing = false,
+    this.quietHours = true,
+    this.quietFrom = 22,
+    this.quietTo = 8,
+    this.outbidAlways = false,
+  });
+
+  final bool auctions;
+  final bool deals;
+  final bool chat;
+  final bool newJobs;
+
+  /// Рассылка — только по согласию.
+  final bool marketing;
+
+  final bool quietHours;
+  final int quietFrom;
+  final int quietTo;
+
+  /// «Вашу ставку перебили» будит и ночью, если человек так решил.
+  final bool outbidAlways;
+
+  factory NotificationPrefs.fromJson(Map<String, dynamic> j) => NotificationPrefs(
+        auctions: j['auctions'] as bool? ?? true,
+        deals: j['deals'] as bool? ?? true,
+        chat: j['chat'] as bool? ?? true,
+        newJobs: j['newJobs'] as bool? ?? true,
+        marketing: j['marketing'] as bool? ?? false,
+        quietHours: j['quietHours'] as bool? ?? true,
+        quietFrom: j['quietFrom'] as int? ?? 22,
+        quietTo: j['quietTo'] as int? ?? 8,
+        outbidAlways: j['outbidAlways'] as bool? ?? false,
+      );
 }

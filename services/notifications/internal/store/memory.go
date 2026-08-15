@@ -11,10 +11,15 @@ type Memory struct {
 	mu      sync.Mutex
 	devices map[string]Device       // по Token
 	feed    map[string]Notification // центр уведомлений, по ID
+	prefs   map[string]Prefs        // настройки уведомлений, по пользователю
 }
 
 func NewMemory() *Memory {
-	return &Memory{devices: map[string]Device{}, feed: map[string]Notification{}}
+	return &Memory{
+		devices: map[string]Device{},
+		feed:    map[string]Notification{},
+		prefs:   map[string]Prefs{},
+	}
 }
 
 func (m *Memory) UpsertDevice(_ context.Context, d Device) error {

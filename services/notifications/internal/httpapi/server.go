@@ -40,6 +40,8 @@ func (s *Server) Routes() http.Handler {
 	// Центр уведомлений (ТЗ §2.14).
 	r.Get("/v1/notifications", s.feed)
 	r.Post("/v1/notifications/read", s.markRead)
+	r.Get("/v1/notifications/settings", s.prefs)
+	r.Put("/v1/notifications/settings", s.savePrefs)
 	// Внутренние (сервис-сервис, не проксируются gateway наружу).
 	r.Post("/internal/notify", s.notify)
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
@@ -206,4 +208,96 @@ func (s *Server) markRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+type prefsBody struct {
+	Auctions     *bool `json:"auctions"`
+	Deals        *bool `json:"deals"`
+	Chat         *bool `json:"chat"`
+	NewJobs      *bool `json:"newJobs"`
+	Marketing    *bool `json:"marketing"`
+	QuietHours   *bool `json:"quietHours"`
+	QuietFrom    *int  `json:"quietFrom"`
+	QuietTo      *int  `json:"quietTo"`
+	OutbidAlways *bool `json:"outbidAlways"`
+}
+
+func prefsJSON(p store.Prefs) map[string]any {
+	return map[string]any{
+		"auctions":     p.Auctions,
+		"deals":        p.Deals,
+		"chat":         p.Chat,
+		"newJobs":      p.NewJobs,
+		"marketing":    p.Marketing,
+		"quietHours":   p.QuietHours,
+		"quietFrom":    p.QuietFrom,
+		"quietTo":      p.QuietTo,
+		"outbidAlways": p.OutbidAlways,
+	}
+}
+
+// prefs — GET /v1/notifications/settings.
+func (s *Server) prefs(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-Id")
+	if userID == "" {
+		problem(w, http.StatusUnauthorized, "Нужен вход")
+		return
+	}
+	p, err := s.svc.Prefs(r.Context(), userID)
+	if err != nil {
+		slog.Error("настройки уведомлений недоступны", "user", userID, "err", err)
+		problem(w, http.StatusInternalServerError, "Не удалось загрузить настройки")
+		return
+	}
+	writeJSON(w, http.StatusOK, prefsJSON(p))
+}
+
+// savePrefs — PUT /v1/notifications/settings. Приходят только изменённые поля:
+// экран настроек переключает по одному тумблеру, а не переписывает всё разом.
+func (s *Server) savePrefs(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-Id")
+	if userID == "" {
+		problem(w, http.StatusUnauthorized, "Нужен вход")
+		return
+	}
+	var body prefsBody
+	if err := decode(r, &body); err != nil {
+		problem(w, http.StatusBadRequest, "Неверный запрос")
+		return
+	}
+
+	p, err := s.svc.Prefs(r.Context(), userID)
+	if err != nil {
+		problem(w, http.StatusInternalServerError, "Не удалось загрузить настройки")
+		return
+	}
+	setBool(&p.Auctions, body.Auctions)
+	setBool(&p.Deals, body.Deals)
+	setBool(&p.Chat, body.Chat)
+	setBool(&p.NewJobs, body.NewJobs)
+	setBool(&p.Marketing, body.Marketing)
+	setBool(&p.QuietHours, body.QuietHours)
+	setBool(&p.OutbidAlways, body.OutbidAlways)
+	setInt(&p.QuietFrom, body.QuietFrom)
+	setInt(&p.QuietTo, body.QuietTo)
+
+	if err := s.svc.SavePrefs(r.Context(), p); err != nil {
+		slog.Error("настройки не сохранились", "user", userID, "err", err)
+		problem(w, http.StatusInternalServerError, "Не удалось сохранить настройки")
+		return
+	}
+	saved, _ := s.svc.Prefs(r.Context(), userID)
+	writeJSON(w, http.StatusOK, prefsJSON(saved))
+}
+
+func setBool(dst *bool, v *bool) {
+	if v != nil {
+		*dst = *v
+	}
+}
+
+func setInt(dst *int, v *int) {
+	if v != nil {
+		*dst = *v
+	}
 }
