@@ -30,6 +30,7 @@ import '../features/moderation/user_card_screen.dart';
 import '../features/moderation/verification_queue_screen.dart';
 import '../features/moderation/users_screen.dart';
 import '../features/notifications/settings_screen.dart';
+import '../features/profile/delete_account_screen.dart';
 import '../features/profile/public_profile_screen.dart';
 import '../features/profile/verification_screen.dart';
 import '../features/reviews/review_screen.dart';
@@ -120,6 +121,7 @@ final appRouter = GoRouter(
       builder: (_, __) => const VerificationQueueScreen(),
     ),
     GoRoute(path: '/profile/verification', builder: (_, __) => const VerificationScreen()),
+    GoRoute(path: '/profile/delete', builder: (_, __) => const DeleteAccountScreen()),
 
     // Справочник (ТЗ §4.1, п.5) — правка категорий без выката сервиса.
     GoRoute(path: '/moderation/catalog', builder: (_, __) => const CatalogEditScreen()),

@@ -88,6 +88,10 @@ func (s *Server) Routes() http.Handler {
 			// Бейдж «Проверен» (ТЗ §2.3): документ смотрит живой модератор.
 			r.Post("/me/verification", s.submitVerification)
 			r.Get("/me/verification", s.myVerification)
+
+			// Удаление аккаунта с отсрочкой (ТЗ §2.3, §4.3).
+			r.Delete("/me", s.requestDeletion)
+			r.Post("/me/restore", s.cancelDeletion)
 		})
 
 		// Управление пользователями — только модерации (ТЗ §4.1, п.3).
@@ -271,7 +275,7 @@ func (s *Server) jwks(w http.ResponseWriter, _ *http.Request) {
 
 // userJSON — единое представление профиля (совпадает со схемой User в OpenAPI).
 func userJSON(u store.User) map[string]any {
-	return map[string]any{
+	out := map[string]any{
 		"id":         u.ID,
 		"phone":      u.Phone,
 		"name":       u.Name,
@@ -280,6 +284,12 @@ func userJSON(u store.User) map[string]any {
 		"activeRole": u.ActiveRole,
 		"verified":   u.Verified,
 	}
+	// Запрошенное удаление показываем в профиле: человек должен видеть, что
+	// аккаунт уйдёт, и иметь возможность передумать (ТЗ §2.3).
+	if u.DeleteAfter != nil {
+		out["deleteAfter"] = u.DeleteAfter.Format(time.RFC3339)
+	}
+	return out
 }
 
 func sessionJSON(sess *service.Session) map[string]any {

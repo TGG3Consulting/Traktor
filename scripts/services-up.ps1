@@ -1,4 +1,4 @@
-# Podnimaet ves lokalnyy "prod": bazu, tri Go-servisa i tunnel Cloudflare.
+﻿# Podnimaet ves lokalnyy "prod": bazu, tri Go-servisa i tunnel Cloudflare.
 # Vsyo v fone, bez okon: pomoshchnik vypolnyaet etot skript i ne blokiruetsya.
 #
 # VNIMANIE: tolko latinitsa - PowerShell 5.1 chitaet .ps1 v ANSI.
@@ -79,6 +79,9 @@ $env:PHONE_ENC_KEY = $key
 $env:PORT = '18081'; $env:TEST_MODE = '1'; $env:OTP_STATIC_CODE = '000000'; $env:JWT_KID = 'dev'
 # Telefon Tigrana - moderator: emu vidna ochered proverki tehniki
 $env:MODERATOR_PHONES = '+37490000001'
+# Ochered otsrochennyh udaleniy: na stende razbiraem chasto, chtoby proverka
+# ne zhdala chas (v boyu - raz v chas, znachenie po umolchaniyu).
+$env:DELETION_EVERY_SEC = '5'
 Start-Process -FilePath "$bin\identity.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-identity.log" -RedirectStandardError "$out\svc-identity.err" | Out-Null
 

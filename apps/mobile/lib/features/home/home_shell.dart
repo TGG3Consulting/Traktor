@@ -278,6 +278,19 @@ class _ProfileTab extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
+        // Уйти с площадки человек должен мочь (ТЗ §2.3): пункт неяркий, но
+        // на виду, а не спрятан в переписке с поддержкой.
+        TextButton(
+          onPressed: () => context.push('/profile/delete'),
+          child: Text(
+            (ref.watch(sessionProvider)?.user.deleteAfter) == null
+                ? 'Удалить аккаунт'
+                : 'Аккаунт готовится к удалению',
+            style: TkText.caption.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+        ),
+        const SizedBox(height: 4),
         // Выход из аккаунта: чистит локальную сессию, возвращает на онбординг.
         TkButton(
           label: 'Выйти',

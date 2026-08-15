@@ -318,3 +318,73 @@ func (m *Memory) SetVerified(_ context.Context, userID string, verified bool) er
 	m.users[u.Phone] = u
 	return nil
 }
+
+// ── удаление аккаунта (ТЗ §2.3, §4.3) ──────────────────────────────────────
+
+func (m *Memory) RequestDeletion(_ context.Context, userID string, requestedAt, deleteAfter time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	u, ok := m.usersByID[userID]
+	if !ok {
+		return ErrNotFound
+	}
+	u.DeleteAfter = &deleteAfter
+	m.usersByID[userID] = u
+	m.users[u.Phone] = u
+	return nil
+}
+
+func (m *Memory) CancelDeletion(_ context.Context, userID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	u, ok := m.usersByID[userID]
+	if !ok {
+		return ErrNotFound
+	}
+	u.DeleteAfter = nil
+	m.usersByID[userID] = u
+	m.users[u.Phone] = u
+	return nil
+}
+
+func (m *Memory) DueDeletions(_ context.Context, now time.Time, limit int) ([]User, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if limit <= 0 || limit > 500 {
+		limit = 100
+	}
+	out := []User{}
+	for _, u := range m.usersByID {
+		if u.AnonymizedAt == nil && u.DeleteAfter != nil && !u.DeleteAfter.After(now) {
+			out = append(out, u)
+			if len(out) >= limit {
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
+func (m *Memory) Anonymize(_ context.Context, userID string, at time.Time) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	u, ok := m.usersByID[userID]
+	if !ok || u.AnonymizedAt != nil {
+		return ErrNotFound
+	}
+	delete(m.users, u.Phone)
+	u.Name, u.City = "", ""
+	u.Phone = "deleted:" + u.ID
+	u.Verified = false
+	u.DeleteAfter = nil
+	u.AnonymizedAt = &at
+	m.usersByID[userID] = u
+
+	for k, r := range m.refresh {
+		if r.UserID == userID {
+			r.Revoked = true
+			m.refresh[k] = r
+		}
+	}
+	return nil
+}

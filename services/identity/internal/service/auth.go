@@ -162,6 +162,16 @@ func (a *Auth) VerifyOTP(ctx context.Context, phone, code string) (*Session, err
 		}
 	} else if err != nil {
 		return nil, err
+	} else if u.DeleteAfter != nil {
+		// Вход в течение отсрочки означает «передумал»: спрашивать об этом
+		// отдельным экраном — лишний шаг, человек и так вернулся.
+		if err := a.store.CancelDeletion(ctx, u.ID); err != nil {
+			return nil, err
+		}
+		u.DeleteAfter = nil
+		if u.Status == store.StatusBanned {
+			return nil, ErrBanned
+		}
 	} else if u.Status == store.StatusBanned {
 		// Забаненному вход закрыт: пускать его и обрывать действия по одному —
 		// значит показать, что запрет обходится (ТЗ §4.1, п.3).

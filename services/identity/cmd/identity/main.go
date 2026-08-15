@@ -65,6 +65,10 @@ func run(log *slog.Logger) error {
 			"code", cfg.OTPStaticCode)
 		auth = auth.WithStaticCode(cfg.OTPStaticCode)
 	}
+	// Отсроченные удаления обрабатываются сами: человек, попросивший уйти,
+	// не должен для этого писать в поддержку (ТЗ §2.3).
+	auth.StartDeletionWorker(ctx, cfg.DeletionEvery)
+
 	api := httpapi.New(auth, &cfg.PrivKey.PublicKey, cfg.Kid)
 
 	srv := &http.Server{

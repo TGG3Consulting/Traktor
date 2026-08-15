@@ -76,12 +76,14 @@ const userCols = `
 	pgp_sym_decrypt(phone_enc, $2)::text AS phone,
 	COALESCE(name, ''), COALESCE(city, ''),
 	roles, active_role, verified, created_at,
-	status, status_reason, status_at, COALESCE(status_by::text, '')`
+	status, status_reason, status_at, COALESCE(status_by::text, ''),
+	delete_after, anonymized_at`
 
 func (p *Postgres) scanUser(row pgx.Row) (*User, error) {
 	var u User
 	err := row.Scan(&u.ID, &u.Phone, &u.Name, &u.City, &u.Roles, &u.ActiveRole,
-		&u.Verified, &u.CreatedAt, &u.Status, &u.StatusReason, &u.StatusAt, &u.StatusBy)
+		&u.Verified, &u.CreatedAt, &u.Status, &u.StatusReason, &u.StatusAt, &u.StatusBy,
+		&u.DeleteAfter, &u.AnonymizedAt)
 	if err != nil {
 		return nil, mapErr(err)
 	}

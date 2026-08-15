@@ -138,6 +138,29 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/User" }
 
+    delete:
+      tags: [identity]
+      summary: Удалить аккаунт с отсрочкой (ТЗ §2.3, §4.3)
+      description: >
+        Удаление отложенное: тридцать дней человек может передумать, и вход
+        в приложение его отменяет. По истечении срока профиль обезличивается,
+        а не стирается — на сделки ссылаются отзывы и рейтинг второй стороны.
+      operationId: requestDeletion
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Аккаунт поставлен в очередь на удаление
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleteAfter: { type: string, format: date-time }
+                  graceDays: { type: integer, example: 30 }
+                  note: { type: string }
+
   /devices:
     post:
       tags: [notifications]
@@ -2330,6 +2353,27 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /me/restore:
+    post:
+      tags: [identity]
+      summary: Отменить удаление аккаунта (ТЗ §2.3)
+      description: >
+        Вход в приложение отменяет удаление сам; этот маршрут нужен тем, кто
+        уже открыл приложение и хочет отменить его явно.
+      operationId: cancelDeletion
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Удаление отменено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleteAfter: { type: string, nullable: true }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2730,6 +2774,11 @@ components:
       type: object
       required: [id, phone, roles, activeRole]
       properties:
+        deleteAfter:
+          type: string
+          format: date-time
+          nullable: true
+          description: "Когда аккаунт будет удалён, если человек не передумает (§2.3)"
         id: { type: string, format: uuid }
         phone: { type: string, description: "виден только владельцу; другим — до сделки скрыт" }
         name: { type: string }

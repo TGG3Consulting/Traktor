@@ -12,6 +12,7 @@ class ApiUser {
     this.rating = 0,
     this.ratingCount = 0,
     this.verified = false,
+    this.deleteAfter,
   });
 
   final String id;
@@ -25,6 +26,10 @@ class ApiUser {
   final int ratingCount;
   final bool verified;
 
+  /// Когда аккаунт будет удалён, если человек не передумает (ТЗ §2.3).
+  /// null — удаление не запрошено.
+  final DateTime? deleteAfter;
+
   factory ApiUser.fromJson(Map<String, dynamic> j) => ApiUser(
         id: j['id'] as String? ?? '',
         phone: j['phone'] as String? ?? '',
@@ -36,6 +41,7 @@ class ApiUser {
         rating: (j['rating'] as num?)?.toDouble() ?? 0,
         ratingCount: j['ratingCount'] as int? ?? 0,
         verified: j['verified'] as bool? ?? false,
+        deleteAfter: DateTime.tryParse(j['deleteAfter'] as String? ?? '')?.toLocal(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -49,6 +55,7 @@ class ApiUser {
         'rating': rating,
         'ratingCount': ratingCount,
         'verified': verified,
+        if (deleteAfter != null) 'deleteAfter': deleteAfter!.toIso8601String(),
       };
 }
 

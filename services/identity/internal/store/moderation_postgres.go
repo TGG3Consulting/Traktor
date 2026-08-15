@@ -44,7 +44,8 @@ func (p *Postgres) SearchUsers(ctx context.Context, query string, limit int) ([]
 		pgp_sym_decrypt(phone_enc, $1)::text AS phone,
 		COALESCE(name, ''), COALESCE(city, ''),
 		roles, active_role, verified, created_at,
-		status, status_reason, status_at, COALESCE(status_by::text, '')`
+		status, status_reason, status_at, COALESCE(status_by::text, ''),
+		delete_after, anonymized_at`
 
 	q := `SELECT ` + cols + `
 	        FROM identity.users
@@ -62,7 +63,7 @@ func (p *Postgres) SearchUsers(ctx context.Context, query string, limit int) ([]
 		var u User
 		if err := rows.Scan(&u.ID, &u.Phone, &u.Name, &u.City, &u.Roles, &u.ActiveRole,
 			&u.Verified, &u.CreatedAt, &u.Status, &u.StatusReason, &u.StatusAt,
-			&u.StatusBy); err != nil {
+			&u.StatusBy, &u.DeleteAfter, &u.AnonymizedAt); err != nil {
 			return nil, fmt.Errorf("identity: чтение пользователя: %w", err)
 		}
 		out = append(out, u)

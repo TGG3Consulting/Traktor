@@ -8,12 +8,19 @@ import (
 	"encoding/pem"
 	"errors"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Config — окружение сервиса identity. Секреты — из Secret Manager (env),
 // не из файлов в репозитории (правило 15).
 type Config struct {
+	// DeletionEvery — как часто разбирается очередь отсроченных удалений
+	// (ТЗ §2.3). На локальном стенде ставится маленьким, чтобы проверка не
+	// ждала час.
+	DeletionEvery time.Duration
+
 	Port          string
 	TestMode      bool // fake SMS, без реальных отправок
 	DexatelKey    string
@@ -51,6 +58,7 @@ func Load() (*Config, error) {
 		PhoneEncKey:     os.Getenv("PHONE_ENC_KEY"),
 		ModeratorPhones: splitList(os.Getenv("MODERATOR_PHONES")),
 		OTPStaticCode:   os.Getenv("OTP_STATIC_CODE"),
+		DeletionEvery:   time.Duration(getenvInt("DELETION_EVERY_SEC", 3600)) * time.Second,
 	}
 
 	// Пока SMS-провайдер не подключён, вход идёт по фиксированному коду.
@@ -111,4 +119,13 @@ func splitList(raw string) []string {
 		}
 	}
 	return out
+}
+
+func getenvInt(k string, def int) int {
+	if v := os.Getenv(k); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
 }

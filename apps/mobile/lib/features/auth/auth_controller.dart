@@ -178,6 +178,54 @@ class AuthController extends Notifier<AuthState> {
     return true;
   }
 
+  /// Поставить аккаунт в очередь на удаление (ТЗ §2.3). Сессия остаётся:
+  /// тридцать дней всё работает как обычно, и человек может передумать.
+  Future<void> requestDeletion() async {
+    final session = ref.read(sessionProvider);
+    if (session == null) return;
+    final until = await ref.read(authApiProvider).requestDeletion(
+          session.accessToken,
+          idempotencyKey: '${session.user.id}:delete',
+        );
+    await _updateUser(session, deleteAfter: until);
+  }
+
+  /// Отменить удаление, не дожидаясь следующего входа.
+  Future<void> cancelDeletion() async {
+    final session = ref.read(sessionProvider);
+    if (session == null) return;
+    await ref.read(authApiProvider).cancelDeletion(
+          session.accessToken,
+          idempotencyKey: '${session.user.id}:restore',
+        );
+    await _updateUser(session, deleteAfter: null);
+  }
+
+  /// Обновляет профиль в сессии, не перезапрашивая его целиком.
+  Future<void> _updateUser(Session session, {required DateTime? deleteAfter}) async {
+    final u = session.user;
+    final refreshed = Session(
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      expiresInSec: session.expiresInSec,
+      user: ApiUser(
+        id: u.id,
+        phone: u.phone,
+        name: u.name,
+        avatarUrl: u.avatarUrl,
+        city: u.city,
+        roles: u.roles,
+        activeRole: u.activeRole,
+        rating: u.rating,
+        ratingCount: u.ratingCount,
+        verified: u.verified,
+        deleteAfter: deleteAfter,
+      ),
+    );
+    ref.read(sessionProvider.notifier).state = refreshed;
+    await ref.read(sessionStoreProvider).save(refreshed);
+  }
+
   void completeProfile() => state = state.copyWith(stage: AuthStage.signedIn);
   void changeNumber() =>
       state = state.copyWith(stage: AuthStage.signedOut, resetPhone: true);

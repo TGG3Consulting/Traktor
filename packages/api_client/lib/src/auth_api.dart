@@ -84,5 +84,33 @@ class AuthApi {
     return ApiUser.fromJson(_handle(resp));
   }
 
+  /// DELETE /me — поставить аккаунт в очередь на удаление (ТЗ §2.3).
+  ///
+  /// Удаление отложенное: тридцать дней человек может передумать, и вход
+  /// в этот срок его отменяет. Возвращает дату, когда аккаунт исчезнет.
+  Future<DateTime?> requestDeletion(String accessToken,
+      {required String idempotencyKey}) async {
+    final resp = await _http.delete(
+      _u('/me'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Idempotency-Key': idempotencyKey,
+      },
+    );
+    return DateTime.tryParse(_handle(resp)['deleteAfter'] as String? ?? '')?.toLocal();
+  }
+
+  /// POST /me/restore — отменить удаление, не дожидаясь следующего входа.
+  Future<void> cancelDeletion(String accessToken, {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/me/restore'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Idempotency-Key': idempotencyKey,
+      },
+    );
+    _handle(resp);
+  }
+
   void close() => _http.close();
 }

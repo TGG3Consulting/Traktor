@@ -40,6 +40,11 @@ type User struct {
 	StatusReason string
 	StatusAt     *time.Time
 	StatusBy     string
+
+	// Удаление аккаунта с отсрочкой (ТЗ §2.3): DeleteAfter — когда истекает
+	// срок, до которого человек может передумать.
+	DeleteAfter  *time.Time
+	AnonymizedAt *time.Time
 }
 
 // Состояния пользователя в модерации.
@@ -140,6 +145,17 @@ type Store interface {
 	PendingVerifications(ctx context.Context, limit int) ([]Verification, error)
 	// SetVerified — выдать или снять бейдж.
 	SetVerified(ctx context.Context, userID string, verified bool) error
+
+	// ── удаление аккаунта (ТЗ §2.3, §4.3) ────────────────────────────────────
+	// RequestDeletion ставит запрос в очередь, deleteAfter — конец отсрочки.
+	RequestDeletion(ctx context.Context, userID string, requestedAt, deleteAfter time.Time) error
+	// CancelDeletion — человек передумал и вошёл снова.
+	CancelDeletion(ctx context.Context, userID string) error
+	// DueDeletions — те, у кого отсрочка истекла.
+	DueDeletions(ctx context.Context, now time.Time, limit int) ([]User, error)
+	// Anonymize обезличивает профиль: имя и телефон стираются, сделки и
+	// отзывы второй стороны остаются целыми.
+	Anonymize(ctx context.Context, userID string, at time.Time) error
 	// AdminActionsFor — история решений по конкретному человеку.
 	AdminActionsFor(ctx context.Context, targetID string, limit int) ([]AdminAction, error)
 
