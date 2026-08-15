@@ -22,4 +22,7 @@ type Store interface {
 	EquipmentByID(ctx context.Context, id string) (*catalog.Equipment, error)
 	// EquipmentByOwner — список «Моя техника», свежие сверху.
 	EquipmentByOwner(ctx context.Context, ownerID string) ([]catalog.Equipment, error)
+	// PublicEquipment — техника человека для его карточки: только та, что
+	// участвует в работе (проверенная или опубликованная без документов).
+	PublicEquipment(ctx context.Context, ownerID string) ([]catalog.Equipment, error)
 }

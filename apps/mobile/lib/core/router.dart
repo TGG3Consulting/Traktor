@@ -19,6 +19,7 @@ import '../features/equipment/equipment_list_screen.dart';
 import '../features/equipment/equipment_new_screen.dart';
 import '../features/equipment/equipment_wizard_screen.dart';
 import '../features/notifications/settings_screen.dart';
+import '../features/profile/public_profile_screen.dart';
 import '../features/reviews/review_screen.dart';
 import '../features/onboarding/language_screen.dart';
 import '../features/onboarding/role_screen.dart';
@@ -68,6 +69,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/deals/:id',
       builder: (_, state) => DealScreen(dealId: state.pathParameters['id']!),
+    ),
+
+    // Карточка человека (ТЗ §2.3): открыта без входа — ссылкой делятся.
+    GoRoute(
+      path: '/users/:id',
+      builder: (_, state) => PublicProfileScreen(userId: state.pathParameters['id']!),
     ),
 
     // Техника исполнителя (ТЗ §2.5): список и визард из четырёх шагов.

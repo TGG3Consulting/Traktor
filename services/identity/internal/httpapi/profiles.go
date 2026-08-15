@@ -3,6 +3,8 @@ package httpapi
 import (
 	"net/http"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // publicProfiles — публичные карточки пользователей для других сервисов
@@ -50,4 +52,23 @@ func (s *Server) publicProfiles(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+// publicProfile — GET /v1/users/{id}. Чужая карточка целиком (ТЗ §2.3).
+//
+// Телефона здесь нет и быть не может: до сделки он скрыт, а в сделке стороны
+// получают его отдельно, с проверкой участия.
+func (s *Server) publicProfile(w http.ResponseWriter, r *http.Request) {
+	u, err := s.auth.Store().GetUserByID(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		problem(w, http.StatusNotFound, "Пользователь не найден")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"id":        u.ID,
+		"name":      u.Name,
+		"city":      u.City,
+		"verified":  u.Verified,
+		"createdAt": u.CreatedAt,
+	})
 }

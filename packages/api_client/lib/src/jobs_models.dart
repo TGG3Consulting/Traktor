@@ -894,3 +894,34 @@ class UploadLink {
         expiresIn: j['expiresIn'] as int? ?? 900,
       );
 }
+
+
+/// Публичная карточка человека (ТЗ §2.3). Телефона здесь нет: до сделки он
+/// скрыт, а в сделке приходит отдельно.
+class PublicProfile {
+  const PublicProfile({
+    required this.id,
+    this.name = '',
+    this.city = '',
+    this.verified = false,
+    this.createdAt,
+  });
+
+  final String id;
+  final String name;
+  final String city;
+
+  /// Документы проверены модерацией.
+  final bool verified;
+  final DateTime? createdAt;
+
+  String get displayName => name.trim().isEmpty ? 'Пользователь' : name.trim();
+
+  factory PublicProfile.fromJson(Map<String, dynamic> j) => PublicProfile(
+        id: j['id'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+        city: j['city'] as String? ?? '',
+        verified: j['verified'] as bool? ?? false,
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+      );
+}

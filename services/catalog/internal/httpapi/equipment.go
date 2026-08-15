@@ -194,6 +194,31 @@ func (s *Server) equipmentByID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list[0])
 }
 
+// publicEquipment — техника человека для его публичной карточки. Тарифы и
+// документы здесь не нужны, поэтому отдаём только то, что видно постороннему.
+func (s *Server) publicEquipment(w http.ResponseWriter, r *http.Request) {
+	items, err := s.st.PublicEquipment(r.Context(), chi.URLParam(r, "userId"))
+	if err != nil {
+		problem(w, http.StatusInternalServerError, "internal", "не удалось прочитать технику")
+		return
+	}
+	s.withCategoryNames(r, items)
+
+	out := make([]map[string]any, 0, len(items))
+	for _, e := range items {
+		out = append(out, map[string]any{
+			"id":           e.ID,
+			"title":        e.Title(),
+			"year":         e.Year,
+			"photos":       e.Photos,
+			"status":       e.Status,
+			"wins":         e.Wins,
+			"categoryName": e.CategoryName,
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": out})
+}
+
 // internalEquipment — короткая карточка для других сервисов: кому машина
 // принадлежит, активна ли она и к какой категории относится. Личные данные
 // (документы, тарифы) здесь не нужны, поэтому и не отдаются.

@@ -74,6 +74,11 @@ func (s *Server) Routes() http.Handler {
 		r.Post("/auth/otp/verify", s.otpVerify)
 		r.Post("/auth/refresh", s.refresh)
 
+		// Чужая карточка (ТЗ §2.3): имя, город, отметка проверки. Открыта без
+		// входа — ссылку на исполнителя отправляют в мессенджере, и она должна
+		// открываться у любого.
+		r.Get("/users/{id}", s.publicProfile)
+
 		// Приватная зона: только с валидным access-токеном.
 		r.Group(func(r chi.Router) {
 			r.Use(s.requireAuth)

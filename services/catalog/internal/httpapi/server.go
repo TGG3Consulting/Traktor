@@ -42,6 +42,8 @@ func (s *Server) Routes() http.Handler {
 
 	// Техника исполнителя (ТЗ §2.5).
 	r.Route("/v1/equipment", func(r chi.Router) {
+		// Карточка исполнителя: техника, которую он показывает миру.
+		r.Get("/users/{userId}", s.publicEquipment)
 		r.Get("/my", s.myEquipment)
 		r.Post("/drafts", s.createEquipment)
 		r.Get("/{id}", s.equipmentByID)

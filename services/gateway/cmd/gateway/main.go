@@ -78,6 +78,9 @@ func run(log *slog.Logger) error {
 			// Личные разделы (/v1/jobs/my, черновики) остаются под токеном:
 			// их сервис отдаёт только при заголовке X-User-Id от шлюза.
 			strings.HasPrefix(path, "/v1/categories") ||
+			strings.HasPrefix(path, "/v1/users/") ||
+			// Техника в чужой карточке: её видно по ссылке без входа.
+			strings.HasPrefix(path, "/v1/equipment/users/") ||
 			publicJobsPath(path)
 	}
 
@@ -86,6 +89,7 @@ func run(log *slog.Logger) error {
 	router, err := proxy.Router([]proxy.Route{
 		{Prefix: "/v1/auth/", Upstream: cfg.IdentityURL},
 		{Prefix: "/v1/me", Upstream: cfg.IdentityURL},
+		{Prefix: "/v1/users", Upstream: cfg.IdentityURL},
 		{Prefix: "/v1/devices", Upstream: cfg.NotificationsURL},
 		{Prefix: "/v1/notifications", Upstream: cfg.NotificationsURL},
 		{Prefix: "/v1/categories", Upstream: cfg.CatalogURL},

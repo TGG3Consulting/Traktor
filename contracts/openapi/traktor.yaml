@@ -1523,6 +1523,53 @@ paths:
                     items: { $ref: "#/components/schemas/UploadLink" }
         "415": { $ref: "#/components/responses/Problem" }
 
+  /users/{userId}:
+    get:
+      tags: [identity]
+      summary: Публичная карточка человека (ТЗ §2.3)
+      description: >
+        Имя, город и отметка проверки. Открыта без входа: ссылкой на исполнителя
+        делятся в мессенджере. Телефон здесь не отдаётся никогда — до сделки он
+        скрыт, а в сделке приходит отдельно.
+      operationId: publicProfile
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Карточка
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  name: { type: string }
+                  city: { type: string }
+                  verified: { type: boolean }
+                  createdAt: { type: string, format: date-time }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /equipment/users/{userId}:
+    get:
+      tags: [catalog]
+      summary: Техника человека в его карточке
+      description: >
+        Только опубликованные машины. Тарифы и документы посторонним не видны.
+      operationId: publicEquipment
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Техника
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Equipment" }
+
 components:
   securitySchemes:
     bearerAuth:

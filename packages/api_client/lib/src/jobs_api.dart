@@ -317,6 +317,29 @@ class JobsApi {
     return Job.fromJson(_handle(resp));
   }
 
+  // ── публичная карточка человека (ТЗ §2.3) ──────────────────────────────────
+
+  /// GET /users/{id} — имя, город, отметка проверки. Работает без входа:
+  /// ссылкой на исполнителя делятся в мессенджере.
+  Future<PublicProfile> publicProfile(String userId, {String? token}) async {
+    final resp = await _http.get(
+      _u('/users/$userId'),
+      headers: token == null || token.isEmpty ? const {} : _headers(token),
+    );
+    return PublicProfile.fromJson(_handle(resp));
+  }
+
+  /// GET /equipment/users/{id} — техника человека, которую он показывает миру.
+  Future<List<Equipment>> publicEquipment(String userId, {String? token}) async {
+    final resp = await _http.get(
+      _u('/equipment/users/$userId'),
+      headers: token == null || token.isEmpty ? const {} : _headers(token),
+    );
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => Equipment.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
   // ── загрузка файлов (ТЗ §2.5, ADR-5) ───────────────────────────────────────
 
   /// POST /media/uploads — временные ссылки на загрузку.

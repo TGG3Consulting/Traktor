@@ -106,7 +106,12 @@ class _OfferCard extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Text(offer.ownerName, style: TkText.h3),
+                          // Имя ведёт в карточку: заказчик решает по технике
+                          // и отзывам, а не по одной строке в списке.
+                          InkWell(
+                            onTap: () => context.push('/users/${offer.ownerId}'),
+                            child: Text(offer.ownerName, style: TkText.h3),
+                          ),
                           if (offer.ownerVerified) ...[
                             const SizedBox(width: 4),
                             const TkIcon(TkIcons.checkCircle, size: 14, color: TkColors.success),

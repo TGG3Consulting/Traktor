@@ -110,6 +110,29 @@ func nullable(s string) *string {
 	return &s
 }
 
+// PublicEquipment — то, что видно посторонним в карточке исполнителя.
+func (p *Postgres) PublicEquipment(ctx context.Context, ownerID string) ([]catalog.Equipment, error) {
+	q := `SELECT` + equipmentColumns + `
+	        FROM catalog.equipment
+	       WHERE owner_id=$1 AND status IN ('verified','unverified')
+	    ORDER BY status, created_at DESC`
+	rows, err := p.pool.Query(ctx, q, ownerID)
+	if err != nil {
+		return nil, fmt.Errorf("catalog: техника в карточке: %w", err)
+	}
+	defer rows.Close()
+
+	out := []catalog.Equipment{}
+	for rows.Next() {
+		e, err := scanEquipment(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *e)
+	}
+	return out, rows.Err()
+}
+
 func scanEquipment(rows pgx.Rows) (*catalog.Equipment, error) {
 	var e catalog.Equipment
 	var status string

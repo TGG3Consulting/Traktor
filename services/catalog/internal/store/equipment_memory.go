@@ -38,6 +38,21 @@ func (m *Memory) UpdateEquipment(_ context.Context, e *catalog.Equipment) error 
 	return nil
 }
 
+func (m *Memory) PublicEquipment(_ context.Context, ownerID string) ([]catalog.Equipment, error) {
+	s := m.equip()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	out := []catalog.Equipment{}
+	for _, e := range s.items {
+		if e.OwnerID == ownerID && e.Active() {
+			out = append(out, e)
+		}
+	}
+	sort.Slice(out, func(i, k int) bool { return out[i].CreatedAt.After(out[k].CreatedAt) })
+	return out, nil
+}
+
 func (m *Memory) EquipmentByID(_ context.Context, id string) (*catalog.Equipment, error) {
 	s := m.equip()
 	s.mu.RLock()
