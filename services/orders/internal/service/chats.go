@@ -149,6 +149,12 @@ func (s *Service) Messages(ctx context.Context, userID, chatID string, limit, of
 	if err != nil {
 		return nil, err
 	}
+	// Хранилище отдаёт последние сообщения (свежие первыми) — это нужно для
+	// пагинации. Читается переписка наоборот, сверху вниз, поэтому здесь
+	// разворачиваем: иначе диалог выглядит как ответы раньше вопросов.
+	for i, k := 0, len(msgs)-1; i < k; i, k = i+1, k-1 {
+		msgs[i], msgs[k] = msgs[k], msgs[i]
+	}
 	if err := s.st.MarkRead(ctx, chatID, userID); err != nil {
 		return nil, err
 	}

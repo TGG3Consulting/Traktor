@@ -140,3 +140,22 @@ func TestСобеседникПолучаетУведомление(t *testing.T
 		t.Fatal("о новом сообщении нужно уведомить собеседника")
 	}
 }
+
+func TestПерепискаЧитаетсяСверхуВниз(t *testing.T) {
+	svc := newSvc()
+	ctx := context.Background()
+	j := published(t, svc)
+	c, _ := svc.OpenChat(ctx, owner, j.ID, "")
+
+	_, _, _ = svc.SendMessage(ctx, owner, c.ID, "Первое")
+	_, _, _ = svc.SendMessage(ctx, client, c.ID, "Второе")
+	_, _, _ = svc.SendMessage(ctx, owner, c.ID, "Третье")
+
+	msgs, err := svc.Messages(ctx, client, c.ID, 20, 0)
+	if err != nil {
+		t.Fatalf("история: %v", err)
+	}
+	if len(msgs) != 3 || msgs[0].Text != "Первое" || msgs[2].Text != "Третье" {
+		t.Fatalf("диалог должен идти по времени, иначе ответы оказываются раньше вопросов: %+v", msgs)
+	}
+}

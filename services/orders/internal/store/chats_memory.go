@@ -68,7 +68,8 @@ func (m *Memory) ChatsByUser(_ context.Context, userID string, limit, offset int
 			if msg.ChatID != c.ID {
 				continue
 			}
-			if last == nil || msg.CreatedAt.After(last.CreatedAt) {
+			if last == nil || msg.CreatedAt.After(last.CreatedAt) ||
+				(msg.CreatedAt.Equal(last.CreatedAt) && m.msgSeq[msg.ID] > m.msgSeq[last.ID]) {
 				copy := msg
 				last = &copy
 			}
@@ -114,8 +115,10 @@ func (m *Memory) CreateMessage(_ context.Context, msg *job.Message) error {
 	defer m.mu.Unlock()
 	if m.messages == nil {
 		m.messages = map[string]job.Message{}
+		m.msgSeq = map[string]int{}
 	}
 	m.messages[msg.ID] = *msg
+	m.msgSeq[msg.ID] = len(m.msgSeq) + 1
 	return nil
 }
 
@@ -129,7 +132,14 @@ func (m *Memory) Messages(_ context.Context, chatID string, limit, offset int) (
 			out = append(out, msg)
 		}
 	}
-	sort.Slice(out, func(i, k int) bool { return out[i].CreatedAt.After(out[k].CreatedAt) })
+	// Свежие первыми — как в Postgres. При совпадении времени (в тестах оно
+	// фиксированное) решает порядок добавления.
+	sort.Slice(out, func(i, k int) bool {
+		if out[i].CreatedAt.Equal(out[k].CreatedAt) {
+			return m.msgSeq[out[i].ID] > m.msgSeq[out[k].ID]
+		}
+		return out[i].CreatedAt.After(out[k].CreatedAt)
+	})
 	if offset >= len(out) {
 		return []job.Message{}, nil
 	}

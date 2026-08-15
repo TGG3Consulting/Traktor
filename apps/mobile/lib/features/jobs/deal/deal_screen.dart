@@ -108,7 +108,8 @@ class _Content extends ConsumerWidget {
                 const _Banner(
                   color: TkColors.success,
                   icon: TkIcons.checkCircle,
-                  text: 'Работа принята. Оценки сторон появятся в следующем обновлении.',
+                  text: 'Работа принята. Осталось оценить друг друга — отзывы откроются, '
+                      'когда оценят обе стороны.',
                 ),
               ],
               const SizedBox(height: 16),
