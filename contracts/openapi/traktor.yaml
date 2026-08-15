@@ -992,6 +992,148 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /jobs/{id}/chat:
+    post:
+      tags: [orders]
+      summary: Открыть переписку по заданию (ТЗ §2.12)
+      description: >
+        Один чат на пару «задание + исполнитель»: повторный вызов возвращает
+        существующую ветку, а не создаёт вторую. Заказчик указывает ownerId,
+        исполнитель поле не заполняет — второй стороной всегда заказчик.
+      operationId: openChat
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ownerId: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Переписка открыта
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Chat" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409":
+          description: Задание закрыто — переписки по нему нет
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /chats:
+    get:
+      tags: [orders]
+      summary: Мои переписки
+      operationId: myChats
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 20 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0 } }
+      responses:
+        "200":
+          description: Список, свежие сверху
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Chat" }
+
+  /chats/{chatId}:
+    get:
+      tags: [orders]
+      summary: Карточка переписки
+      operationId: getChat
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Переписка
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Chat" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /chats/{chatId}/messages:
+    get:
+      tags: [orders]
+      summary: История переписки (открытие считается прочтением)
+      operationId: chatMessages
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - { name: limit, in: query, schema: { type: integer, default: 50 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0 } }
+      responses:
+        "200":
+          description: Сообщения по возрастанию времени
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Message" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [orders]
+      summary: Отправить сообщение
+      description: >
+        До подтверждения сделки телефоны, ники мессенджеров и почта в тексте
+        заменяются точками (ТЗ §2.10). Ответ содержит contactsMasked — по нему
+        клиент показывает отправителю мягкое предупреждение вместо блокировки.
+      operationId: sendMessage
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 2000 }
+      responses:
+        "201":
+          description: Сообщение отправлено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { $ref: "#/components/schemas/Message" }
+                  contactsMasked:
+                    type: boolean
+                    description: контакты в тексте были скрыты
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1017,6 +1159,37 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
   schemas:
+    Chat:
+      type: object
+      required: [id, jobId, kind]
+      properties:
+        id: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        jobTitle: { type: string }
+        peerName: { type: string, description: "имя собеседника для списка" }
+        kind:
+          type: string
+          enum: [pre_deal, deal]
+          description: "до сделки контакты маскируются, в сделке — нет"
+        lastText: { type: string }
+        lastMessageAt: { type: string, format: date-time }
+        unread: { type: integer, description: "непрочитанных для запросившего" }
+        createdAt: { type: string, format: date-time }
+    Message:
+      type: object
+      required: [id, chatId, kind, text, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        chatId: { type: string, format: uuid }
+        senderId:
+          type: string
+          format: uuid
+          description: "пусто у системных сообщений площадки"
+        kind:
+          type: string
+          enum: [text, photo, system]
+        text: { type: string }
+        createdAt: { type: string, format: date-time }
     Bid:
       type: object
       required: [id, price, status]
