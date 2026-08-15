@@ -186,3 +186,12 @@ func (p *Postgres) CountUsers(ctx context.Context, from, to time.Time) (int, err
 	}
 	return n, nil
 }
+
+// RevokeAllRefresh обрывает все сессии человека (бан, ТЗ §4.1 п.3).
+func (p *Postgres) RevokeAllRefresh(ctx context.Context, userID string) error {
+	const q = `UPDATE identity.refresh_tokens SET revoked = true WHERE user_id = $1::uuid`
+	if _, err := p.pool.Exec(ctx, q, userID); err != nil {
+		return fmt.Errorf("identity: обрыв сессий: %w", err)
+	}
+	return nil
+}

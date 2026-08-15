@@ -85,6 +85,14 @@ func (s *Server) Routes() http.Handler {
 			r.Get("/me", s.me)
 			r.Patch("/me", s.updateMe)
 		})
+
+		// Управление пользователями — только модерации (ТЗ §4.1, п.3).
+		r.Route("/moderation/users", func(r chi.Router) {
+			r.Use(s.requireAuth, s.requireModerator)
+			r.Get("/", s.searchUsers)
+			r.Get("/{id}", s.userCard)
+			r.Post("/{id}/status", s.setUserStatus)
+		})
 	})
 
 	// Внутренний маршрут для других сервисов: публичные карточки пользователей.
@@ -176,6 +184,11 @@ func (s *Server) otpVerify(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, service.ErrTooManyAttempts):
 			problem(w, http.StatusLocked, "Слишком много попыток. Попробуйте позже")
+		case errors.Is(err, service.ErrBanned):
+			// Причину пишем прямо: человек всё равно узнает её от поддержки,
+			// а туманное «ошибка входа» он прочитает как поломку и будет
+			// пробовать снова.
+			problem(w, http.StatusForbidden, "Доступ закрыт модерацией. Напишите в поддержку")
 		default:
 			problem(w, http.StatusUnauthorized, "Код неверный")
 		}

@@ -22,6 +22,8 @@ class TkTextField extends StatefulWidget {
     this.obscure = false,
     this.autofocus = false,
     this.onChanged,
+    this.onSubmitted,
+    this.textInputAction,
   }) : assert(controller == null || initialValue == null,
             'Задайте либо controller, либо initialValue');
 
@@ -45,6 +47,12 @@ class TkTextField extends StatefulWidget {
   final bool obscure;
   final bool autofocus;
   final ValueChanged<String>? onChanged;
+
+  /// Нажатие «Готово» на клавиатуре. Нужно там, где ввод сам по себе является
+  /// действием — например поиск: заставлять тянуться к отдельной кнопке после
+  /// набора запроса неудобно.
+  final ValueChanged<String>? onSubmitted;
+  final TextInputAction? textInputAction;
 
   @override
   State<TkTextField> createState() => _TkTextFieldState();
@@ -95,6 +103,9 @@ class _TkTextFieldState extends State<TkTextField> {
             setState(() => _length = v.characters.length);
             widget.onChanged?.call(v);
           },
+          onSubmitted: widget.onSubmitted,
+          textInputAction: widget.textInputAction ??
+              (widget.onSubmitted != null ? TextInputAction.search : null),
           maxLength: widget.maxLength,
           // Свой счётчик снизу — вместе с helper, поэтому стандартный убираем.
           buildCounter: (_, {required currentLength, maxLength, required isFocused}) => null,

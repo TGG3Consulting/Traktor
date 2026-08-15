@@ -199,6 +199,13 @@ class _Body extends ConsumerWidget {
               ),
               const Divider(height: 1),
               ListTile(
+                leading: const TkIcon(TkIcons.usersThree),
+                title: const Text('Пользователи'),
+                trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                onTap: () => context.push('/moderation/users'),
+              ),
+              const Divider(height: 1),
+              ListTile(
                 leading: const TkIcon(TkIcons.shield),
                 title: const Text('Проверка техники'),
                 trailing: const TkIcon(TkIcons.caretRight, size: 16),

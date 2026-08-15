@@ -1349,3 +1349,92 @@ class PlatformStats {
     );
   }
 }
+
+/// Карточка человека для модерации (ТЗ §4.1, п.3).
+///
+/// Телефон виден только здесь: модератор разбирает жалобы и должен связаться
+/// с человеком. Раздел закрыт ролью.
+class AdminUser {
+  const AdminUser({
+    required this.id,
+    this.phone = '',
+    this.name = '',
+    this.city = '',
+    this.roles = const [],
+    this.verified = false,
+    this.status = 'active',
+    this.statusRu = '',
+    this.reason = '',
+    this.statusAt,
+    this.createdAt,
+    this.history = const [],
+  });
+
+  final String id;
+  final String phone;
+  final String name;
+  final String city;
+  final List<String> roles;
+  final bool verified;
+
+  /// active | frozen | banned
+  final String status;
+  final String statusRu;
+
+  /// Причина ограничения — её видит и человек, и следующий модератор.
+  final String reason;
+
+  final DateTime? statusAt;
+  final DateTime? createdAt;
+
+  /// История решений: отличает единичный срыв от привычки.
+  final List<AdminAction> history;
+
+  bool get isActive => status == 'active';
+  bool get isFrozen => status == 'frozen';
+  bool get isBanned => status == 'banned';
+
+  String get displayName => name.trim().isEmpty ? 'Без имени' : name;
+
+  factory AdminUser.fromJson(Map<String, dynamic> j) => AdminUser(
+        id: j['id'] as String? ?? '',
+        phone: j['phone'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+        city: j['city'] as String? ?? '',
+        roles: ((j['roles'] as List?) ?? const []).map((e) => '$e').toList(),
+        verified: j['verified'] as bool? ?? false,
+        status: j['status'] as String? ?? 'active',
+        statusRu: j['statusRu'] as String? ?? '',
+        reason: j['reason'] as String? ?? '',
+        statusAt: DateTime.tryParse(j['statusAt'] as String? ?? '')?.toLocal(),
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+        history: ((j['history'] as List?) ?? const [])
+            .map((e) => AdminAction.fromJson((e as Map).cast<String, dynamic>()))
+            .toList(),
+      );
+}
+
+/// Запись журнала действий модерации (ТЗ §4.1, п.8).
+class AdminAction {
+  const AdminAction({
+    required this.id,
+    this.action = '',
+    this.actionRu = '',
+    this.reason = '',
+    this.createdAt,
+  });
+
+  final String id;
+  final String action;
+  final String actionRu;
+  final String reason;
+  final DateTime? createdAt;
+
+  factory AdminAction.fromJson(Map<String, dynamic> j) => AdminAction(
+        id: j['id'] as String? ?? '',
+        action: j['action'] as String? ?? '',
+        actionRu: j['actionRu'] as String? ?? '',
+        reason: j['reason'] as String? ?? '',
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+      );
+}

@@ -2038,6 +2038,85 @@ paths:
               schema: { $ref: "#/components/schemas/PlatformStats" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /moderation/users:
+    get:
+      tags: [identity]
+      summary: Поиск пользователей (ТЗ §4.1, п.3)
+      description: >
+        Доступно роли moderator или admin. Телефон ищется целиком (с плюсом),
+        идентификатор — точно, имя — по части без учёта регистра. Пустой запрос
+        отдаёт последних зарегистрированных.
+      operationId: searchUsers
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, default: 25 } }
+      responses:
+        "200":
+          description: Найденные люди
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/AdminUser" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /moderation/users/{id}:
+    get:
+      tags: [identity]
+      summary: Карточка человека с историей решений
+      description: >
+        История отличает единичный срыв от привычки. Телефон виден: модератор
+        разбирает жалобы и должен связаться с человеком.
+      operationId: adminUser
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Карточка
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminUser" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /moderation/users/{id}/status:
+    post:
+      tags: [identity]
+      summary: Заморозка, бан или снятие ограничений
+      description: >
+        frozen запрещает отклики и ставки, но оставляет вход и переписку:
+        у человека могут быть незакрытые сделки. banned закрывает вход и
+        обрывает активные сессии. Бан обратимый. Причина обязательна и
+        попадает в журнал действий модерации (§4.1, п.8).
+      operationId: setUserStatus
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reason]
+              properties:
+                status: { type: string, enum: [active, frozen, banned] }
+                reason: { type: string, minLength: 10, maxLength: 300 }
+      responses:
+        "200":
+          description: Состояние изменено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminUser" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2501,3 +2580,34 @@ components:
             deals: { type: integer }
             gmv: { type: integer, format: int64 }
             conversion: { type: integer }
+
+    AdminUser:
+      type: object
+      description: Карточка человека для модерации (ТЗ §4.1, п.3).
+      properties:
+        id: { type: string, format: uuid }
+        phone: { type: string, description: "Виден только модерации" }
+        name: { type: string }
+        city: { type: string }
+        roles: { type: array, items: { type: string } }
+        verified: { type: boolean }
+        status: { type: string, enum: [active, frozen, banned] }
+        statusRu: { type: string }
+        reason: { type: string, description: "Причина ограничения" }
+        statusAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        history:
+          type: array
+          description: Журнал решений по этому человеку (§4.1, п.8).
+          items: { $ref: "#/components/schemas/AdminAction" }
+
+    AdminAction:
+      type: object
+      description: Запись журнала действий модерации (ТЗ §4.1, п.8).
+      properties:
+        id: { type: string, format: uuid }
+        action: { type: string, example: "status:frozen" }
+        actionRu: { type: string }
+        reason: { type: string }
+        actorId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }

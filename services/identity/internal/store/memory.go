@@ -212,3 +212,16 @@ func (m *Memory) AdminActionsFor(_ context.Context, targetID string, limit int) 
 	}
 	return out, nil
 }
+
+// RevokeAllRefresh обрывает все сессии человека (бан, ТЗ §4.1 п.3).
+func (m *Memory) RevokeAllRefresh(_ context.Context, userID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for k, r := range m.refresh {
+		if r.UserID == userID {
+			r.Revoked = true
+			m.refresh[k] = r
+		}
+	}
+	return nil
+}

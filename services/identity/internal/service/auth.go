@@ -162,6 +162,10 @@ func (a *Auth) VerifyOTP(ctx context.Context, phone, code string) (*Session, err
 		}
 	} else if err != nil {
 		return nil, err
+	} else if u.Status == store.StatusBanned {
+		// Забаненному вход закрыт: пускать его и обрывать действия по одному —
+		// значит показать, что запрет обходится (ТЗ §4.1, п.3).
+		return nil, ErrBanned
 	} else if a.isModerator(phone) && !hasRole(u.Roles, roleModerator) {
 		// Телефон добавили в список модерации уже после регистрации —
 		// выдаём роль при первом же входе, без ручной правки базы.
@@ -207,8 +211,12 @@ func hasRole(roles []string, want string) bool {
 
 func (a *Auth) issue(ctx context.Context, u store.User) (*Session, error) {
 	now := a.now()
+	status := u.Status
+	if status == "" {
+		status = store.StatusActive
+	}
 	claims := token.Claims{
-		Sub: u.ID, Roles: u.Roles, ActiveRole: u.ActiveRole,
+		Sub: u.ID, Roles: u.Roles, ActiveRole: u.ActiveRole, Status: status,
 		Typ: "access", Iat: now.Unix(), Exp: now.Add(accessTTL).Unix(),
 	}
 	access, err := a.signer.Sign(claims)
@@ -256,6 +264,11 @@ func (a *Auth) Refresh(ctx context.Context, refreshToken string) (*Session, erro
 	u, err := a.store.GetUserByID(ctx, rec.UserID)
 	if err != nil {
 		return nil, ErrRefreshInvalid
+	}
+	// Бан действует и на продление: иначе он начинает работать только через
+	// 30 дней, когда истечёт refresh.
+	if u.Status == store.StatusBanned {
+		return nil, ErrBanned
 	}
 	return a.issue(ctx, *u)
 }

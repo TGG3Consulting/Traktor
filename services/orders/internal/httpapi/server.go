@@ -60,7 +60,7 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/{id}/cancel", s.cancel)
 
 			// Отклики по заданию (ТЗ §2.10) — именные действия, только с входом.
-			r.Post("/{id}/offers", s.makeOffer)
+			r.With(s.denyFrozen).Post("/{id}/offers", s.makeOffer)
 			r.Get("/{id}/offers", s.jobOffers)
 			r.Get("/{id}/offers/my", s.myOfferForJob)
 
@@ -72,7 +72,7 @@ func (s *Server) Routes() http.Handler {
 			r.Post("/{id}/chat", s.openChat)
 
 			// Аукцион (ТЗ §2.9).
-			r.Post("/{id}/bids", s.placeBid)
+			r.With(s.denyFrozen).Post("/{id}/bids", s.placeBid)
 			r.Get("/{id}/bids/my", s.myBidForJob)
 			r.Post("/{id}/bids/decline-all", s.declineAllBids)
 			r.Post("/{id}/auction/finish", s.finishAuction)
@@ -164,6 +164,20 @@ func (s *Server) Routes() http.Handler {
 		r.Post("/{offerId}/counter", s.counterOffer)
 	})
 	return r
+}
+
+// denyFrozen отклоняет действия, которыми злоупотребляют: отклики и ставки
+// (ТЗ §4.1, п.3). Заморозка не трогает вход, переписку и текущие сделки —
+// оборвать их значило бы навредить второй стороне, а не нарушителю.
+func (s *Server) denyFrozen(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-User-Status") == "frozen" {
+			problem(w, http.StatusForbidden, "account_frozen",
+				"отклики и ставки заморожены модерацией — напишите в поддержку")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // requireUser отклоняет запросы без пользователя: шлюз обязан подставить

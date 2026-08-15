@@ -852,4 +852,39 @@ class JobsApi {
         headers: _headers(token));
     return PlatformStats.fromJson(_handle(resp));
   }
+
+  // ── пользователи в модерации (ТЗ §4.1, п.3) ────────────────────────────────
+
+  /// GET /moderation/users?q= — поиск по телефону, ID или части имени.
+  Future<List<AdminUser>> searchUsers(String token, {String query = ''}) async {
+    final resp = await _http.get(
+      _u('/moderation/users?q=${Uri.encodeQueryComponent(query)}'),
+      headers: _headers(token),
+    );
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => AdminUser.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// GET /moderation/users/{id} — карточка с историей решений.
+  Future<AdminUser> adminUser(String token, String userId) async {
+    final resp = await _http.get(_u('/moderation/users/$userId'), headers: _headers(token));
+    return AdminUser.fromJson(_handle(resp));
+  }
+
+  /// POST /moderation/users/{id}/status — заморозка, бан или снятие.
+  Future<AdminUser> setUserStatus(
+    String token,
+    String userId, {
+    required String status,
+    required String reason,
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.post(
+      _u('/moderation/users/$userId/status'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'status': status, 'reason': reason}),
+    );
+    return AdminUser.fromJson(_handle(resp));
+  }
 }

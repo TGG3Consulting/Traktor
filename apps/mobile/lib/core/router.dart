@@ -25,6 +25,8 @@ import '../features/equipment/equipment_list_screen.dart';
 import '../features/equipment/equipment_new_screen.dart';
 import '../features/equipment/equipment_wizard_screen.dart';
 import '../features/moderation/moderation_screen.dart';
+import '../features/moderation/user_card_screen.dart';
+import '../features/moderation/users_screen.dart';
 import '../features/notifications/settings_screen.dart';
 import '../features/profile/public_profile_screen.dart';
 import '../features/reviews/review_screen.dart';
@@ -108,6 +110,13 @@ final appRouter = GoRouter(
 
     // Сводка площадки (ТЗ §4.1, п.1) — доступна модерации.
     GoRoute(path: '/moderation/dashboard', builder: (_, __) => const DashboardScreen()),
+
+    // Пользователи (ТЗ §4.1, п.3) — поиск, карточка, ограничения.
+    GoRoute(path: '/moderation/users', builder: (_, __) => const AdminUsersScreen()),
+    GoRoute(
+      path: '/moderation/users/:id',
+      builder: (_, state) => AdminUserCardScreen(userId: state.pathParameters['id']!),
+    ),
 
     // Очередь проверки техники (ТЗ §4.1) — доступна модерации.
     GoRoute(path: '/moderation', builder: (_, __) => const ModerationScreen()),

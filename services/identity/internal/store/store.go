@@ -107,4 +107,7 @@ type Store interface {
 	GetRefresh(ctx context.Context, tokenHash string) (*Refresh, error)
 	MarkRefreshUsed(ctx context.Context, tokenHash string) error
 	RevokeFamily(ctx context.Context, familyID string) error
+	// RevokeAllRefresh — обрыв всех сессий человека. Нужен при бане: иначе
+	// забаненный работает ещё до истечения access-токена.
+	RevokeAllRefresh(ctx context.Context, userID string) error
 }

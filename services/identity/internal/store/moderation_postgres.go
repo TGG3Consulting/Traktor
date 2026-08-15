@@ -26,25 +26,32 @@ func (p *Postgres) SearchUsers(ctx context.Context, query string, limit int) ([]
 	var arg any
 	switch {
 	case strings.HasPrefix(query, "+"):
-		where, arg = "phone_hash = $3", PhoneHash(query)
+		where, arg = "phone_hash = $2", PhoneHash(query)
 	case isUUID(query):
-		where, arg = "id = $3::uuid", query
+		where, arg = "id = $2::uuid", query
 	case query == "":
 		// Пустой запрос — последние зарегистрированные: панель модерации
 		// должна что-то показывать до того, как в неё что-то ввели.
-		where, arg = "$3 = ''", ""
+		where, arg = "$2 = ''", ""
 	default:
-		where, arg = "lower(name) LIKE '%' || lower($3) || '%'", query
+		where, arg = "lower(name) LIKE '%' || lower($2) || '%'", query
 	}
 
-	// $1 в списке колонок не участвует, но нумерацию менять нельзя: ключ
-	// расшифровки везде идёт вторым параметром.
-	q := `SELECT ` + userCols + `
+	// Свой список колонок: ключ расшифровки здесь идёт первым параметром,
+	// а не вторым, как в выборках по одному человеку.
+	const cols = `
+		id::text,
+		pgp_sym_decrypt(phone_enc, $1)::text AS phone,
+		COALESCE(name, ''), COALESCE(city, ''),
+		roles, active_role, verified, created_at,
+		status, status_reason, status_at, COALESCE(status_by::text, '')`
+
+	q := `SELECT ` + cols + `
 	        FROM identity.users
 	       WHERE deleted_at IS NULL AND ` + where + `
 	    ORDER BY created_at DESC
-	       LIMIT $4`
-	rows, err := p.pool.Query(ctx, q, "", p.encKey, arg, limit)
+	       LIMIT $3`
+	rows, err := p.pool.Query(ctx, q, p.encKey, arg, limit)
 	if err != nil {
 		return nil, fmt.Errorf("identity: поиск пользователей: %w", err)
 	}
