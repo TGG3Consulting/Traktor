@@ -56,7 +56,7 @@ if (-not $pg) { Write-Output '  PROVAL: baza ne otvechaet'; exit 1 }
 Write-Output '  OK: baza gotova'
 
 Write-Output '--- 2. Sborka servisov ---'
-foreach ($svc in 'identity','notifications','catalog','orders','gateway') {
+foreach ($svc in 'identity','notifications','catalog','orders','media','gateway') {
     Push-Location "C:\Traktor\services\$svc"
     & $go build -o "$bin\$svc.exe" "./cmd/$svc" 2>&1 | ForEach-Object { "    $_" }
     if ($LASTEXITCODE -ne 0) { Pop-Location; Write-Output "  PROVAL: sborka $svc"; exit 1 }
@@ -65,7 +65,7 @@ foreach ($svc in 'identity','notifications','catalog','orders','gateway') {
 Write-Output '  OK: sobrany'
 
 Write-Output '--- 3. Gasim staroe ---'
-foreach ($n in 'identity','notifications','catalog','orders','gateway') {
+foreach ($n in 'identity','notifications','catalog','orders','media','gateway') {
     Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 Start-Sleep -Seconds 1
@@ -95,6 +95,16 @@ $env:IDENTITY_URL = 'http://127.0.0.1:18081'
 Start-Process -FilePath "$bin\orders.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-orders.log" -RedirectStandardError "$out\svc-orders.err" | Out-Null
 
+# media razdaet vremennye ssylki na zagruzku foto v MinIO
+$env:PORT = '18085'
+$env:S3_ENDPOINT = '127.0.0.1:19000'
+$env:S3_ACCESS_KEY = 'traktor'
+$env:S3_SECRET_KEY = 'traktor-local-secret'
+$env:S3_BUCKET = 'traktor-media'
+$env:MEDIA_PUBLIC_URL = 'http://127.0.0.1:19000/traktor-media'
+Start-Process -FilePath "$bin\media.exe" -WindowStyle Hidden `
+    -RedirectStandardOutput "$out\svc-media.log" -RedirectStandardError "$out\svc-media.err" | Out-Null
+
 $env:PORT = '18080'
 # Krome boevogo adresa razreshaem lokalnuyu razdachu: po ney idet otladka
 # s etogo kompyutera, poka domashniy router otdaet staryy adres homly.am.
@@ -104,10 +114,11 @@ $env:IDENTITY_URL = 'http://127.0.0.1:18081'
 $env:NOTIFICATIONS_URL = 'http://127.0.0.1:18082'
 $env:CATALOG_URL = 'http://127.0.0.1:18083'
 $env:ORDERS_URL = 'http://127.0.0.1:18084'
+$env:MEDIA_URL = 'http://127.0.0.1:18085'
 Start-Process -FilePath "$bin\gateway.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-gateway.log" -RedirectStandardError "$out\svc-gateway.err" | Out-Null
 
-foreach ($p in 18081, 18082, 18083, 18084, 18080) {
+foreach ($p in 18081, 18082, 18083, 18084, 18085, 18080) {
     $ok = $false
     foreach ($i in 1..40) {
         try { Invoke-WebRequest "http://127.0.0.1:$p/healthz" -TimeoutSec 2 -UseBasicParsing | Out-Null; $ok = $true; break }

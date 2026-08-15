@@ -80,7 +80,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   /// модулях; пока раздел не готов, честно говорим об этом, а не молчим.
   Future<void> _onCreate(BuildContext context, bool isClient) async {
     if (!isClient) {
-      _notReady(context, 'Добавление техники');
+      context.push('/equipment/new');
       return;
     }
     final type = await showTkOrderTypeSheet(context);
@@ -154,6 +154,16 @@ class _ProfileTab extends ConsumerWidget {
                 ),
               ),
               const Divider(height: 1),
+              // «Моя техника» — вход исполнителя в свой парк (ТЗ §2.5).
+              if (!isClient) ...[
+                ListTile(
+                  leading: const TkIcon(TkIcons.wrench),
+                  title: const Text('Моя техника'),
+                  trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                  onTap: () => context.push('/equipment'),
+                ),
+                const Divider(height: 1),
+              ],
               ListTile(
                 leading: const TkIcon(TkIcons.bell),
                 title: const Text('Уведомления'),

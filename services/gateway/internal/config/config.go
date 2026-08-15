@@ -15,6 +15,7 @@ type Config struct {
 	NotificationsURL string
 	CatalogURL       string
 	OrdersURL        string
+	MediaURL         string
 	RateLimit        int
 	RateWindow       time.Duration
 	AllowOrigin      string
@@ -28,6 +29,7 @@ func Load() *Config {
 		NotificationsURL: getenv("NOTIFICATIONS_URL", "http://localhost:8082"),
 		CatalogURL:       getenv("CATALOG_URL", "http://localhost:8083"),
 		OrdersURL:        getenv("ORDERS_URL", "http://localhost:8084"),
+		MediaURL:         getenv("MEDIA_URL", "http://localhost:8085"),
 		RateLimit:        getenvInt("RATE_LIMIT", 100),
 		RateWindow:       time.Duration(getenvInt("RATE_WINDOW_SEC", 60)) * time.Second,
 		AllowOrigin:      getenv("ALLOW_ORIGIN", "*"),

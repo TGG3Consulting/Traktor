@@ -3,13 +3,21 @@ package store
 import (
 	"context"
 	"sort"
+	"sync"
 
 	"traktor/catalog/internal/catalog"
 )
 
 // Memory — справочник в памяти для запуска без базы (dev, тесты). Содержит
 // сокращённый набор: полный список живёт в миграции-сиде.
-type Memory struct{ items []catalog.Category }
+type Memory struct {
+	items []catalog.Category
+
+	// Техника исполнителя (ТЗ §2.5) — заводится лениво: справочник нужен
+	// всегда, а техника только там, где её создают.
+	once sync.Once
+	eq   *equipmentMem
+}
 
 func NewMemory() *Memory {
 	work := func(id, slug, ru, hy, en, icon string, order int) catalog.Category {

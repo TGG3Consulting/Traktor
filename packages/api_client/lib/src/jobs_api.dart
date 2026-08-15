@@ -317,6 +317,123 @@ class JobsApi {
     return Job.fromJson(_handle(resp));
   }
 
+  // ── загрузка файлов (ТЗ §2.5, ADR-5) ───────────────────────────────────────
+
+  /// POST /media/uploads — временные ссылки на загрузку.
+  Future<List<UploadLink>> uploadLinks(
+    String token, {
+    required String contentType,
+    required String folder,
+    int count = 1,
+  }) async {
+    final resp = await _http.post(
+      _u('/media/uploads'),
+      headers: _headers(token, json: true),
+      body: jsonEncode({'contentType': contentType, 'folder': folder, 'count': count}),
+    );
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => UploadLink.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// Загрузка байтов по временной ссылке — напрямую в хранилище.
+  Future<void> uploadBytes(String uploadUrl, List<int> bytes, String contentType) async {
+    final resp = await _http.put(
+      Uri.parse(uploadUrl),
+      headers: {'Content-Type': contentType},
+      body: bytes,
+    );
+    if (resp.statusCode >= 300) {
+      throw ApiException(resp.statusCode, 'Файл не загрузился');
+    }
+  }
+
+  // ── техника исполнителя (ТЗ §2.5) ──────────────────────────────────────────
+
+  /// GET /equipment/my — список «Моя техника».
+  Future<List<Equipment>> myEquipment(String token) async {
+    final resp = await _http.get(_u('/equipment/my'), headers: _headers(token));
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => Equipment.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// POST /equipment/drafts — начать визард.
+  Future<Equipment> createEquipmentDraft(String token,
+      {String? categoryId, required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/equipment/drafts'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({if (categoryId != null) 'categoryId': categoryId}),
+    );
+    return Equipment.fromJson(_handle(resp));
+  }
+
+  /// PATCH /equipment/{id} — шаг визарда: уходят только заполненные поля.
+  Future<Equipment> patchEquipment(
+    String token,
+    String id, {
+    String? categoryId,
+    String? brand,
+    String? model,
+    int? year,
+    Map<String, dynamic>? specs,
+    int? priceHour,
+    int? priceShift,
+    int? priceDay,
+    int? minHours,
+    int? delivery,
+    int? crewSize,
+    int? crewPrice,
+    List<String>? photos,
+    List<String>? docs,
+    int? draftStep,
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.patch(
+      _u('/equipment/$id'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({
+        if (categoryId != null) 'categoryId': categoryId,
+        if (brand != null) 'brand': brand,
+        if (model != null) 'model': model,
+        if (year != null) 'year': year,
+        if (specs != null) 'specs': specs,
+        if (priceHour != null) 'priceHour': priceHour,
+        if (priceShift != null) 'priceShift': priceShift,
+        if (priceDay != null) 'priceDay': priceDay,
+        if (minHours != null) 'minHours': minHours,
+        if (delivery != null) 'delivery': delivery,
+        if (crewSize != null) 'crewSize': crewSize,
+        if (crewPrice != null) 'crewPrice': crewPrice,
+        if (photos != null) 'photos': photos,
+        if (docs != null) 'docs': docs,
+        if (draftStep != null) 'draftStep': draftStep,
+      }),
+    );
+    return Equipment.fromJson(_handle(resp));
+  }
+
+  /// POST /equipment/{id}/submit — опубликовать карточку.
+  Future<Equipment> submitEquipment(String token, String id,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/equipment/$id/submit'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    return Equipment.fromJson(_handle(resp));
+  }
+
+  /// POST /equipment/{id}/archive — снять технику с площадки.
+  Future<Equipment> archiveEquipment(String token, String id,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/equipment/$id/archive'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    return Equipment.fromJson(_handle(resp));
+  }
+
   // ── оценки и отзывы (ТЗ §2.13) ─────────────────────────────────────────────
 
   /// GET /deals/{id}/review — что показать на экране оценки.

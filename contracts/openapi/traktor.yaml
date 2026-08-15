@@ -1367,6 +1367,162 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/NotificationPrefs" }
 
+  /equipment/my:
+    get:
+      tags: [catalog]
+      summary: Моя техника (ТЗ §2.5)
+      operationId: myEquipment
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Список машин исполнителя, свежие сверху
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Equipment" }
+
+  /equipment/drafts:
+    post:
+      tags: [catalog]
+      summary: Начать визард техники
+      operationId: createEquipmentDraft
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoryId: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Черновик создан
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Equipment" }
+
+  /equipment/{id}:
+    get:
+      tags: [catalog]
+      summary: Карточка техники
+      operationId: getEquipment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Карточка
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Equipment" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [catalog]
+      summary: Шаг визарда или правка карточки
+      description: >
+        Приходят только изменённые поля. Пока карточка на проверке, правки
+        отклоняются: модерация смотрит на то, что было отправлено.
+      operationId: patchEquipment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Equipment" }
+      responses:
+        "200":
+          description: Сохранено
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Equipment" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /equipment/{id}/submit:
+    post:
+      tags: [catalog]
+      summary: Опубликовать карточку техники
+      description: >
+        С документами карточка уходит на проверку (≤24 ч), без них публикуется
+        сразу как «Без проверки»: работать можно, но в скоринге ниже.
+      operationId: submitEquipment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Опубликовано или отправлено на проверку
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Equipment" }
+        "422":
+          description: Карточка заполнена не полностью
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationProblem" }
+
+  /equipment/{id}/archive:
+    post:
+      tags: [catalog]
+      summary: Снять технику с площадки
+      operationId: archiveEquipment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Снято
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Equipment" }
+
+  /media/uploads:
+    post:
+      tags: [media]
+      summary: Временные ссылки на загрузку файлов (ADR-5)
+      description: >
+        Клиент грузит файл прямо в хранилище по временной ссылке, минуя наш
+        бэкенд: фотографии весят мегабайты. Принимаем JPEG, PNG, WebP, HEIC и
+        PDF; имя файла придумывает сервер.
+      operationId: createUploadLinks
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contentType]
+              properties:
+                contentType: { type: string, example: image/jpeg }
+                folder: { type: string, enum: [equipment, jobs, docs, misc] }
+                count: { type: integer, minimum: 1, maximum: 8, default: 1 }
+      responses:
+        "200":
+          description: Ссылки на загрузку
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/UploadLink" }
+        "415": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1423,6 +1579,46 @@ components:
           description: "route — куда вести по нажатию, плюс данные экрана"
         read: { type: boolean }
         createdAt: { type: string, format: date-time }
+    Equipment:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        categoryId: { type: string, format: uuid }
+        categoryName: { $ref: "#/components/schemas/LocalizedName" }
+        brand: { type: string, example: JCB }
+        model: { type: string, example: 3CX }
+        year: { type: integer, minimum: 1980 }
+        specs:
+          type: object
+          additionalProperties: true
+          description: "значения по specTemplate категории"
+        priceHour: { type: integer, format: int64 }
+        priceShift: { type: integer, format: int64 }
+        priceDay: { type: integer, format: int64 }
+        minHours: { type: integer }
+        delivery: { type: integer, format: int64 }
+        crewSize: { type: integer, description: "бригада рабочих с техникой" }
+        crewPrice: { type: integer, format: int64 }
+        photos:
+          type: array
+          items: { type: string }
+          maxItems: 8
+        status:
+          type: string
+          enum: [draft, pending, verified, unverified, rejected, archived]
+        rejectReason: { type: string }
+        draftStep: { type: integer, minimum: 1, maximum: 4 }
+        wins: { type: integer, description: "выиграно работ этой машиной" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    UploadLink:
+      type: object
+      properties:
+        key: { type: string }
+        uploadUrl: { type: string, description: "временная ссылка для PUT" }
+        publicUrl: { type: string, description: "постоянный адрес файла" }
+        expiresIn: { type: integer, example: 900 }
     Review:
       type: object
       required: [id, stars]

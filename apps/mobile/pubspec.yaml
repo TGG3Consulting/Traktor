@@ -20,6 +20,9 @@ dependencies:
   flutter_riverpod: ^2.5.1
   go_router: ^14.2.0
   shared_preferences: ^2.2.3
+  # Выбор фотографий техники и заданий (ТЗ §2.5): работает и на телефоне,
+  # и в вебе, поэтому отдельной реализации под каждую платформу не нужно.
+  image_picker: ^1.1.2
 
 dev_dependencies:
   http: ^1.2.0

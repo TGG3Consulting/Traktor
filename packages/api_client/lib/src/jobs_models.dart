@@ -778,3 +778,119 @@ class ReviewResult {
   final bool published;
   final bool asksWhatWentWrong;
 }
+
+/// Единица техники исполнителя (ТЗ §2.5).
+class Equipment {
+  const Equipment({
+    required this.id,
+    this.categoryId = '',
+    this.categoryName,
+    this.brand = '',
+    this.model = '',
+    this.year,
+    this.specs = const {},
+    this.priceHour,
+    this.priceShift,
+    this.priceDay,
+    this.minHours,
+    this.delivery,
+    this.crewSize = 0,
+    this.crewPrice,
+    this.photos = const [],
+    this.status = 'draft',
+    this.rejectReason = '',
+    this.draftStep = 1,
+    this.wins = 0,
+  });
+
+  final String id;
+  final String categoryId;
+
+  /// Название категории на трёх языках — приходит с сервера для карточки.
+  final Map<String, dynamic>? categoryName;
+  final String brand;
+  final String model;
+  final int? year;
+  final Map<String, dynamic> specs;
+
+  /// Тарифы аренды: пусто — техника только под задания.
+  final int? priceHour;
+  final int? priceShift;
+  final int? priceDay;
+  final int? minHours;
+  final int? delivery;
+
+  final int crewSize;
+  final int? crewPrice;
+  final List<String> photos;
+
+  /// draft | pending | verified | unverified | rejected | archived
+  final String status;
+  final String rejectReason;
+  final int draftStep;
+  final int wins;
+
+  String get title => '$brand $model'.trim();
+  bool get isDraft => status == 'draft';
+  bool get isPending => status == 'pending';
+  bool get isVerified => status == 'verified';
+  bool get isRejected => status == 'rejected';
+
+  /// Участвует в откликах и ставках.
+  bool get isActive => status == 'verified' || status == 'unverified';
+
+  String categoryTitle(String lang) {
+    final n = categoryName;
+    if (n == null) return '';
+    return (n[lang] ?? n['ru'] ?? '') as String;
+  }
+
+  factory Equipment.fromJson(Map<String, dynamic> j) => Equipment(
+        id: j['id'] as String? ?? '',
+        categoryId: j['categoryId'] as String? ?? '',
+        categoryName: (j['categoryName'] as Map?)?.cast<String, dynamic>(),
+        brand: j['brand'] as String? ?? '',
+        model: j['model'] as String? ?? '',
+        year: j['year'] as int?,
+        specs: ((j['specs'] as Map?) ?? const {}).cast<String, dynamic>(),
+        priceHour: (j['priceHour'] as num?)?.toInt(),
+        priceShift: (j['priceShift'] as num?)?.toInt(),
+        priceDay: (j['priceDay'] as num?)?.toInt(),
+        minHours: j['minHours'] as int?,
+        delivery: (j['delivery'] as num?)?.toInt(),
+        crewSize: j['crewSize'] as int? ?? 0,
+        crewPrice: (j['crewPrice'] as num?)?.toInt(),
+        photos: ((j['photos'] as List?) ?? const []).map((e) => '$e').toList(),
+        status: j['status'] as String? ?? 'draft',
+        rejectReason: j['rejectReason'] as String? ?? '',
+        draftStep: j['draftStep'] as int? ?? 1,
+        wins: j['wins'] as int? ?? 0,
+      );
+}
+
+/// Временная ссылка на загрузку файла в хранилище (ТЗ §2.5, ADR-5).
+///
+/// Файл уходит от клиента прямо в хранилище: фотографии весят мегабайты, и
+/// прогонять их через наш сервер — лишний трафик и лишняя точка отказа.
+class UploadLink {
+  const UploadLink({
+    required this.key,
+    required this.uploadUrl,
+    required this.publicUrl,
+    this.expiresIn = 900,
+  });
+
+  final String key;
+  final String uploadUrl;
+
+  /// Постоянный адрес — именно он сохраняется в карточке техники.
+  final String publicUrl;
+  final int expiresIn;
+
+  factory UploadLink.fromJson(Map<String, dynamic> j) => UploadLink(
+        key: j['key'] as String? ?? '',
+        uploadUrl: j['uploadUrl'] as String? ?? '',
+        publicUrl: j['publicUrl'] as String? ?? '',
+        expiresIn: j['expiresIn'] as int? ?? 900,
+      );
+}

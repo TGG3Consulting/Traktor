@@ -34,6 +34,16 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/", s.list)
 		r.Get("/{id}", s.byID)
 	})
+
+	// Техника исполнителя (ТЗ §2.5).
+	r.Route("/v1/equipment", func(r chi.Router) {
+		r.Get("/my", s.myEquipment)
+		r.Post("/drafts", s.createEquipment)
+		r.Get("/{id}", s.equipmentByID)
+		r.Patch("/{id}", s.patchEquipment)
+		r.Post("/{id}/submit", s.submitEquipment)
+		r.Post("/{id}/archive", s.archiveEquipment)
+	})
 	return r
 }
 

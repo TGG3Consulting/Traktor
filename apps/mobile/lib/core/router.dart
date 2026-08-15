@@ -15,6 +15,9 @@ import '../features/jobs/auction/auction_screen.dart';
 import '../features/jobs/deal/deal_screen.dart';
 import '../features/jobs/job_detail_screen.dart';
 import '../features/jobs/offers/offers_screen.dart';
+import '../features/equipment/equipment_list_screen.dart';
+import '../features/equipment/equipment_new_screen.dart';
+import '../features/equipment/equipment_wizard_screen.dart';
 import '../features/notifications/settings_screen.dart';
 import '../features/reviews/review_screen.dart';
 import '../features/onboarding/language_screen.dart';
@@ -65,6 +68,17 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/deals/:id',
       builder: (_, state) => DealScreen(dealId: state.pathParameters['id']!),
+    ),
+
+    // Техника исполнителя (ТЗ §2.5): список и визард из четырёх шагов.
+    GoRoute(path: '/equipment', builder: (_, __) => const EquipmentListScreen()),
+    GoRoute(path: '/equipment/new', builder: (_, __) => const EquipmentNewScreen()),
+    GoRoute(
+      path: '/equipment/:id/edit/:step',
+      builder: (_, state) => EquipmentWizardScreen(
+        equipmentId: state.pathParameters['id']!,
+        step: int.tryParse(state.pathParameters['step'] ?? '1') ?? 1,
+      ),
     ),
 
     // Настройки уведомлений (ТЗ §2.14).
