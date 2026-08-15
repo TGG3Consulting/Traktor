@@ -54,8 +54,11 @@ class WizardScaffold extends StatelessWidget {
                 tooltip: l.back,
               ),
       ),
+      // Визард — это форма: на мониторе она не должна растягиваться во всю
+      // ширину, иначе плитки категорий превращаются в полотна (ТЗ §1.8).
       body: SafeArea(
-        child: Column(
+        child: TkReadable(
+          child: Column(
           children: [
             TkWizardSteps(total: total, current: step),
             Padding(
@@ -128,7 +131,8 @@ class WizardScaffold extends StatelessWidget {
                 ],
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

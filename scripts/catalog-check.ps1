@@ -149,5 +149,14 @@ $row = docker exec traktor-postgres psql -U traktor -d traktor -t -A -c `
     "SELECT slug, active FROM catalog.categories WHERE id='$($created.id)'"
 Check ($row -match "$slug\|t") "zapis v baze: $row"
 
+Write-Output "`n--- 13. Ubiraem za soboy ---"
+# Proverka sozdaet nastoyashchuyu kategoriyu v spravochnike. Ostavlyat ee -
+# znachit zasoryat vizard testovym musorom, poetomu pryachem ee srazu.
+Invoke-RestMethod "$base/v1/moderation/categories/$($created.id)/visibility" -Method Post `
+    -Headers (Hdr $moder.accessToken) -ContentType 'application/json; charset=utf-8' `
+    -Body (@{ active = $false } | ConvertTo-Json) | Out-Null
+$after = Invoke-RestMethod "$base/v1/categories?kind=work"
+Check (@($after.items | Where-Object { $_.id -eq $created.id }).Count -eq 0) 'testovaya kategoriya ubrana iz vizarda'
+
 Write-Output "`n=================================="
 if ($failed) { Write-Output 'ITOG: EST PROVALY'; exit 1 } else { Write-Output 'ITOG: SPRAVOCHNIK PRAVITSYA BEZ VYKATA'; exit 0 }
