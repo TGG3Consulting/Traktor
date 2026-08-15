@@ -362,5 +362,22 @@
   "quietHoursHint": "From {from}:00 to {to}:00 the phone stays silent. Events still wait in notifications",
   "wakeOnOutbid": "Wake me if I am outbid",
   "wakeOnOutbidHint": "In an auction minutes matter — an exception to the silence",
-  "pushOnlyHint": "Turning a group off only disables push. The event still lands in the notification centre — nothing is lost."
+  "pushOnlyHint": "Turning a group off only disables push. The event still lands in the notification centre — nothing is lost.",
+  "myEquipment": "My machinery",
+  "noEquipTitle": "No machinery yet",
+  "noEquipDesc": "Add your first machine — you cannot bid without one",
+  "addEquipment": "Add machinery",
+  "equipDraft": "Card draft",
+  "yearShort": "{year}",
+  "rentHour": "Rent: {price}/h",
+  "rentShift": " · {price}/shift",
+  "worksDone": "{n, plural, one{{n} job} other{{n} jobs}}",
+  "rejectedWith": "Rejected: {reason}",
+  "eqVerified": "Verified",
+  "eqPending": "Under review",
+  "eqUnverified": "Not verified",
+  "eqRejected": "Rejected",
+  "eqDraft": "Draft",
+  "verifyBoost": "Verified machines get noticeably more orders — add documents for “{title}”",
+  "addEquipmentTitle": "Add machinery"
 }

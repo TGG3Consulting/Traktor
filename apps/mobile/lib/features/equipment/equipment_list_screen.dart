@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../core/app_settings.dart';
 import 'equipment_providers.dart';
@@ -16,14 +17,15 @@ class EquipmentListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final items = ref.watch(myEquipmentProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Моя техника'),
+        title: Text(l.myEquipment),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -36,10 +38,10 @@ class EquipmentListScreen extends ConsumerWidget {
         ),
         data: (list) {
           if (list.isEmpty) {
-            return const TkEmptyState(
+            return TkEmptyState(
               icon: TkIcons.wrench,
-              title: 'Техники пока нет',
-              description: 'Добавьте первую машину — без техники нельзя делать ставки',
+              title: l.noEquipTitle,
+              description: l.noEquipDesc,
             );
           }
           final unverified = list.where((e) => e.status == 'unverified').toList();
@@ -67,7 +69,7 @@ class EquipmentListScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/equipment/new'),
         icon: const TkIcon(TkIcons.plus, size: 18, color: Colors.white),
-        label: const Text('Добавить технику'),
+        label: Text(l.addEquipment),
       ),
     );
   }
@@ -80,6 +82,7 @@ class _EquipmentCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final lang = (ref.watch(appSettingsProvider).locale ?? const Locale('ru')).languageCode;
     final category = item.categoryTitle(lang);
@@ -107,7 +110,7 @@ class _EquipmentCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.title.isEmpty ? 'Черновик карточки' : item.title,
+                  item.title.isEmpty ? l.equipDraft : item.title,
                   style: TkText.h3,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -116,15 +119,17 @@ class _EquipmentCard extends ConsumerWidget {
                 Text(
                   [
                     if (category.isNotEmpty) category,
-                    if (item.year != null) '${item.year} г',
+                    if (item.year != null) l.yearShort(item.year!),
                   ].join(' · '),
                   style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                 ),
                 if (item.priceHour != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Аренда: ${tkMoney(item.priceHour)}/ч'
-                    '${item.priceShift != null ? ' · ${tkMoney(item.priceShift)}/смена' : ''}',
+                    l.rentHour(tkMoney(item.priceHour)) +
+                        (item.priceShift != null
+                            ? l.rentShift(tkMoney(item.priceShift))
+                            : ''),
                     style: TkText.caption.copyWith(
                       color: TkColors.primary,
                       fontWeight: FontWeight.w600,
@@ -138,7 +143,7 @@ class _EquipmentCard extends ConsumerWidget {
                     if (item.wins > 0) ...[
                       const SizedBox(width: 8),
                       Text(
-                        '${item.wins} ${tkPlural(item.wins, 'работа', 'работы', 'работ')}',
+                        l.worksDone(item.wins),
                         style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                       ),
                     ],
@@ -147,7 +152,7 @@ class _EquipmentCard extends ConsumerWidget {
                 if (item.isRejected && item.rejectReason.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
-                    'Отклонено: ${item.rejectReason}',
+                    l.rejectedWith(item.rejectReason),
                     style: TkText.caption.copyWith(color: TkColors.error),
                   ),
                 ],
@@ -167,12 +172,13 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final (label, color) = switch (status) {
-      'verified' => ('Проверен', TkColors.success),
-      'pending' => ('На проверке', TkColors.warning),
-      'unverified' => ('Без проверки', Theme.of(context).colorScheme.outline),
-      'rejected' => ('Отклонено', TkColors.error),
-      _ => ('Черновик', Theme.of(context).colorScheme.outline),
+      'verified' => (l.eqVerified, TkColors.success),
+      'pending' => (l.eqPending, TkColors.warning),
+      'unverified' => (l.eqUnverified, Theme.of(context).colorScheme.outline),
+      'rejected' => (l.eqRejected, TkColors.error),
+      _ => (l.eqDraft, Theme.of(context).colorScheme.outline),
     };
 
     return Container(
@@ -198,6 +204,7 @@ class _VerifyHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return InkWell(
       onTap: onTap,
       borderRadius: TkRadius.cardR,
@@ -213,8 +220,7 @@ class _VerifyHint extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Проверенные получают заметно больше заказов — добавьте документы '
-                'для «$title»',
+                l.verifyBoost(title),
                 style: TkText.caption.copyWith(color: TkColors.primary),
               ),
             ),

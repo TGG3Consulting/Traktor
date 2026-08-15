@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import 'equipment_providers.dart';
 
@@ -36,8 +37,9 @@ class _EquipmentNewScreenState extends ConsumerState<EquipmentNewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Добавление техники')),
+      appBar: AppBar(title: Text(l.addEquipmentTitle)),
       body: _error == null
           ? const Center(child: CircularProgressIndicator())
           : TkErrorState(
