@@ -614,5 +614,20 @@
   "whatHappened": "Что случилось",
   "disputeExample": "Например: договаривались на 40 метров траншеи, выкопано 20",
   "sendToArbitration": "Отправить на разбор",
-  "noRatingsDuringDispute": "Пока идёт разбор, оценки по сделке не выставляются."
+  "noRatingsDuringDispute": "Пока идёт разбор, оценки по сделке не выставляются.",
+  "optSoft": "Мягкий",
+  "optClay": "Глина",
+  "optRocky": "Скальный",
+  "optUnknown": "Не знаю",
+  "optMine": "Погрузка моя",
+  "optNeedWorkers": "Нужны грузчики",
+  "optPlowing": "Вспашка",
+  "optHarrowing": "Боронование",
+  "optSowing": "Посев",
+  "optHarvest": "Уборка",
+  "optOther": "Другое",
+  "yesShort": "Да",
+  "noShort": "Нет",
+  "complaintHint": "Своими словами — модератор будет смотреть по этому описанию",
+  "complaintQueueHint": "Модерация смотрит жалобы по очереди. О решении вы узнаете в уведомлениях."
 }

@@ -540,5 +540,20 @@
   "whatHappened": "What happened",
   "disputeExample": "For example: we agreed on 40 metres of trench, 20 were dug",
   "sendToArbitration": "Send for arbitration",
-  "noRatingsDuringDispute": "While the review is on, ratings are not accepted."
+  "noRatingsDuringDispute": "While the review is on, ratings are not accepted.",
+  "optSoft": "Soft",
+  "optClay": "Clay",
+  "optRocky": "Rocky",
+  "optUnknown": "Not sure",
+  "optMine": "I load it myself",
+  "optNeedWorkers": "Loaders needed",
+  "optPlowing": "Plowing",
+  "optHarrowing": "Harrowing",
+  "optSowing": "Sowing",
+  "optHarvest": "Harvest",
+  "optOther": "Other",
+  "yesShort": "Yes",
+  "noShort": "No",
+  "complaintHint": "In your own words — the moderator will look based on it",
+  "complaintQueueHint": "Moderation reviews reports in order. You will learn about the decision in notifications."
 }

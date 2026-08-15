@@ -2,6 +2,7 @@ import 'package:api_client/api_client.dart';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import 'complaint_providers.dart';
 
@@ -102,6 +103,7 @@ class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final left = _minLength - _reason.text.trim().length;
     final hints = widget.targetKind == 'job' ? _jobReasons : _userReasons;
@@ -119,7 +121,7 @@ class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Пожаловаться', style: TkText.h2),
+              Text(l.complain, style: TkText.h2),
               const SizedBox(height: 4),
               if (widget.targetTitle.isNotEmpty)
                 Text(
@@ -140,12 +142,12 @@ class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
               const SizedBox(height: 12),
               TkTextField(
                 controller: _reason,
-                label: 'В чём проблема',
-                hint: 'Своими словами — модератор будет смотреть по этому описанию',
+                label: l.whatHappened,
+                hint: l.complaintHint,
                 maxLines: 4,
                 maxLength: 500,
                 onChanged: (_) => setState(() {}),
-                helper: left > 0 ? 'Ещё $left символов' : null,
+                helper: left > 0 ? l.charsLeft(left) : null,
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -165,12 +167,11 @@ class _ComplaintSheetState extends ConsumerState<_ComplaintSheet> {
                     ? const SizedBox(
                         width: 20, height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Отправить'),
+                    : Text(l.sendAction),
               ),
               const SizedBox(height: 8),
               Text(
-                'Модерация смотрит жалобы по очереди. О решении вы узнаете '
-                'в уведомлениях.',
+                l.complaintQueueHint,
                 textAlign: TextAlign.center,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),

@@ -1,4 +1,5 @@
 import 'package:api_client/api_client.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 /// Человеческие подписи для значений справочника.
 ///
@@ -6,18 +7,18 @@ import 'package:api_client/api_client.dart';
 /// можно переводить и менять текст, не трогая данные. Один общий словарь на
 /// приложение: иначе в визарде будет «Мягкий», а в деталке — «soft», как и
 /// случилось при первой сборке.
-String tkOptionLabel(String key) => switch (key) {
-      'soft' => 'Мягкий',
-      'clay' => 'Глина',
-      'rocky' => 'Скальный',
-      'unknown' => 'Не знаю',
-      'mine' => 'Погрузка моя',
-      'need_workers' => 'Нужны грузчики',
-      'plowing' => 'Вспашка',
-      'harrowing' => 'Боронование',
-      'sowing' => 'Посев',
-      'harvest' => 'Уборка',
-      'other' => 'Другое',
+String tkOptionLabel(String key, AppLocalizations l) => switch (key) {
+      'soft' => l.optSoft,
+      'clay' => l.optClay,
+      'rocky' => l.optRocky,
+      'unknown' => l.optUnknown,
+      'mine' => l.optMine,
+      'need_workers' => l.optNeedWorkers,
+      'plowing' => l.optPlowing,
+      'harrowing' => l.optHarrowing,
+      'sowing' => l.optSowing,
+      'harvest' => l.optHarvest,
+      'other' => l.optOther,
       _ => key,
     };
 
@@ -29,11 +30,11 @@ String tkSpecTitle(Category? category, String key, String lang) {
 }
 
 /// Значение характеристики с единицей измерения и человеческой подписью.
-String tkSpecValue(Category? category, String key, Object? value) {
-  if (value is bool) return value ? 'Да' : 'Нет';
+String tkSpecValue(Category? category, String key, Object? value, AppLocalizations l) {
+  if (value is bool) return value ? l.yesShort : l.noShort;
 
   final field = _fieldOf(category, key);
-  if (field?.type == 'select') return tkOptionLabel('$value');
+  if (field?.type == 'select') return tkOptionLabel('$value', l);
 
   final unit = field?.unit ?? '';
   final text = value is double && value == value.roundToDouble()

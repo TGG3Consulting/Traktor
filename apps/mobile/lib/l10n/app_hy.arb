@@ -540,5 +540,20 @@
   "whatHappened": "Ինչ պատահեց",
   "disputeExample": "Օրինակ՝ պայմանավորվել էինք 40 մետր խրամատի շուրջ, փորվել է 20",
   "sendToArbitration": "Ուղարկել քննարկման",
-  "noRatingsDuringDispute": "Քննարկման ընթացքում գործարքի գնահատականներ չեն դրվում։"
+  "noRatingsDuringDispute": "Քննարկման ընթացքում գործարքի գնահատականներ չեն դրվում։",
+  "optSoft": "Փափուկ",
+  "optClay": "Կավ",
+  "optRocky": "Ժայռոտ",
+  "optUnknown": "Չգիտեմ",
+  "optMine": "Բեռնումն իմն է",
+  "optNeedWorkers": "Պետք են բեռնիչներ",
+  "optPlowing": "Հերկ",
+  "optHarrowing": "Փոցխում",
+  "optSowing": "Ցանք",
+  "optHarvest": "Բերքահավաք",
+  "optOther": "Այլ",
+  "yesShort": "Այո",
+  "noShort": "Ոչ",
+  "complaintHint": "Ձեր բառերով — մոդերատորը կնայի հենց այս նկարագրությամբ",
+  "complaintQueueHint": "Մոդերացիան դիտում է բողոքները հերթով։ Որոշման մասին կիմանաք ծանուցումներում։"
 }

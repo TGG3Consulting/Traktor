@@ -224,7 +224,7 @@ class _SpecInput extends StatelessWidget {
                 runSpacing: 8,
                 children: field.options
                     .map((o) => TkChip(
-                          label: tkOptionLabel(o),
+                          label: tkOptionLabel(o, AppLocalizations.of(context)),
                           selected: value == o,
                           onTap: () => onChanged(value == o ? null : o),
                         ))

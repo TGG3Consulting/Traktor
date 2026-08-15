@@ -179,7 +179,7 @@ class _Content extends ConsumerWidget {
                     if (job.params.isNotEmpty)
                       ...job.params.entries.map((e) => _Line(
                             label: tkSpecTitle(category, e.key, lang),
-                            value: tkSpecValue(category, e.key, e.value),
+                            value: tkSpecValue(category, e.key, e.value, l),
                           )),
                     _Line(label: l.access, value: switch (job.access) {
                       'yes' => l.yes,
