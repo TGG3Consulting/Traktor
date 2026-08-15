@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/session_refresh.dart';
+import '../../core/share_link.dart';
 import '../auth/auth_controller.dart';
 import 'deal/deal_providers.dart';
 import '../chat/open_chat.dart';
@@ -41,6 +42,9 @@ class JobDetailScreen extends ConsumerWidget {
               color: Theme.of(context).colorScheme.onSurface),
         ),
         actions: [
+          // Ссылками на задание делятся в мессенджерах — это основной канал
+          // сарафана (ТЗ §4.2).
+          TkShare.button(context, TkShare.job(jobId)),
           // Пожаловаться на чужое задание (ТЗ §4.1, п.6). На своё жаловаться
           // незачем, гостю сначала нужно войти — поэтому кнопка появляется
           // только у вошедшего и не у автора.

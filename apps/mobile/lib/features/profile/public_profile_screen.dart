@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_settings.dart';
+import '../../core/share_link.dart';
 import '../auth/auth_controller.dart';
 import '../complaints/complaint_sheet.dart';
 import '../jobs/jobs_providers.dart';
@@ -48,6 +49,7 @@ class PublicProfileScreen extends ConsumerWidget {
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
         actions: [
+          TkShare.button(context, TkShare.user(userId)),
           // Пожаловаться на человека (ТЗ §4.1, п.6). На себя — незачем,
           // гостю сначала нужно войти.
           if (ref.watch(sessionProvider)?.user.id case final me?

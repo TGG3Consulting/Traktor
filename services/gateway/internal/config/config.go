@@ -21,6 +21,9 @@ type Config struct {
 	RateLimit        int
 	RateWindow       time.Duration
 	AllowOrigin      string
+	// AppURL — адрес веб-приложения. Нужен превью ссылок (ТЗ §4.2): бот
+	// мессенджера получает страницу с og-тегами, человек уходит сюда.
+	AppURL string
 }
 
 func Load() *Config {
@@ -36,6 +39,7 @@ func Load() *Config {
 		RateLimit:        getenvInt("RATE_LIMIT", 100),
 		RateWindow:       time.Duration(getenvInt("RATE_WINDOW_SEC", 60)) * time.Second,
 		AllowOrigin:      getenv("ALLOW_ORIGIN", "*"),
+		AppURL:           getenv("APP_URL", "https://app.homly.am"),
 	}
 }
 

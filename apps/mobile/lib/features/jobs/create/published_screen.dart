@@ -1,8 +1,9 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../core/share_link.dart';
 
 /// Экран после публикации (ТЗ §2.6): подтверждение и ссылка для шеринга.
 ///
@@ -16,7 +17,9 @@ class JobPublishedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final link = 'https://app.homly.am/#/jobs/$jobId';
+    // Без решётки: этот адрес открывает бот мессенджера, чтобы собрать
+    // превью карточки (ТЗ §4.2).
+    final link = 'https://app.homly.am/jobs/$jobId';
 
     return Scaffold(
       body: SafeArea(
@@ -49,13 +52,7 @@ class JobPublishedScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: link));
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Ссылка скопирована')),
-                    );
-                  },
+                  onPressed: () => TkShare.copy(context, link),
                   icon: TkIcon(TkIcons.share, size: 16, color: scheme.onSurface),
                   label: const Text('Поделиться ссылкой'),
                 ),

@@ -27,6 +27,7 @@ import (
 	"traktor/gateway/internal/jwks"
 	"traktor/gateway/internal/middleware"
 	"traktor/gateway/internal/proxy"
+	"traktor/gateway/internal/share"
 )
 
 // realtimeToken подписывает билет на подключение к Centrifugo.
@@ -172,6 +173,11 @@ func run(log *slog.Logger) error {
 	)
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+
+	// Превью ссылок в мессенджерах (ТЗ §4.2). Открыто без входа: карточку
+	// задания и профиль исполнителя и так видно гостю, а бот WhatsApp токена
+	// не предъявит.
+	r.Mount("/share", share.New(cfg.OrdersURL, cfg.IdentityURL, cfg.AppURL).Routes())
 
 	// Всё остальное: авторизация → идемпотентность → прокси к сервисам.
 	r.Group(func(r chi.Router) {

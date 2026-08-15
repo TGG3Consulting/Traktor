@@ -12,6 +12,10 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  # Адреса без решётки в вебе: часть после # на сервер не уходит, и превью
+  # ссылки в мессенджере собрать не из чего (ТЗ §4.2).
+  flutter_web_plugins:
+    sdk: flutter
   intl: any
   design_system:
     path: ../../packages/design_system
