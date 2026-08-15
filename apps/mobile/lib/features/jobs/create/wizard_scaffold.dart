@@ -1,5 +1,6 @@
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 /// Общий каркас шага визарда: заголовок, степпер, подпись «Шаг N из 5»,
 /// содержимое и закреплённая внизу кнопка.
@@ -41,15 +42,16 @@ class WizardScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Новое задание'),
+        title: Text(l.newJob),
         leading: onBack == null
             ? null
             : IconButton(
                 onPressed: onBack,
                 icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
-                tooltip: 'Назад',
+                tooltip: l.back,
               ),
       ),
       body: SafeArea(
@@ -62,7 +64,7 @@ class WizardScaffold extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Шаг $step из $total · $subtitle',
+                      l.wizardStep(step, total, subtitle),
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                     ),
                   ),
@@ -71,7 +73,7 @@ class WizardScaffold extends StatelessWidget {
                       children: [
                         const TkIcon(TkIcons.check, size: 13, color: TkColors.success),
                         const SizedBox(width: 4),
-                        Text('черновик сохранён',
+                        Text(l.draftSaved,
                             style: TkText.caption.copyWith(color: TkColors.success)),
                       ],
                     ),

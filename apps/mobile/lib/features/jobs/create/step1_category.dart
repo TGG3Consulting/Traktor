@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../jobs_providers.dart';
 import 'wizard_controller.dart';
@@ -49,16 +50,17 @@ class _CreateStep1State extends ConsumerState<CreateStep1> {
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(workCategoriesProvider);
+    final l = AppLocalizations.of(context);
     final state = ref.watch(wizardControllerProvider);
 
     return WizardScaffold(
       step: 1,
-      subtitle: 'Что нужно сделать?',
+      subtitle: l.step1Title,
       onBack: () => context.go('/home'),
       error: state.error,
-      primaryLabel: 'Далее',
+      primaryLabel: l.nextStep,
       onPrimary: _canContinue && !state.saving ? _next : null,
-      hint: _canContinue ? null : 'Выберите вид работ — или включите «пусть предложат сами»',
+      hint: _canContinue ? null : l.step1Hint,
       child: categories.when(
         loading: () => const TkSkeletonList(count: 4),
         error: (e, _) => TkErrorState(
@@ -82,9 +84,9 @@ class _CreateStep1State extends ConsumerState<CreateStep1> {
                 children: [
                   const TkIcon(TkIcons.chatCircle, size: 22, color: TkColors.primary),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Опишу задачу — пусть исполнители сами предложат технику',
+                      l.openToAny,
                       style: TkText.body,
                     ),
                   ),

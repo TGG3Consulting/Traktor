@@ -128,5 +128,20 @@
   "statusDeclinedAll": "All declined",
   "statusNoBids": "No bids",
   "statusExpired": "Expired",
-  "auctionEndsIn": "{time} left"
+  "auctionEndsIn": "{time} left",
+  "step1Title": "What needs doing?",
+  "nextStep": "Next",
+  "step1Hint": "Pick the kind of work — or let contractors suggest it",
+  "openToAny": "I will describe the task — let contractors suggest the machine",
+  "notAJobHint": "Need a machine for a few hours, a truck or workers rather than a full job? Go back and pick another order type.",
+  "newJob": "New job",
+  "wizardStep": "Step {step} of {total} · {subtitle}",
+  "draftSaved": "draft saved",
+  "jobPublished": "Job published",
+  "firstOffersSoon": "The first offers usually arrive within an hour. We will notify you as soon as they do.",
+  "shareLink": "Share the link",
+  "toMyJobs": "To my jobs",
+  "viewJob": "View the job",
+  "needSignInToCreate": "Sign in to create a job",
+  "draftNotSaved": "The draft is not saved yet"
 }

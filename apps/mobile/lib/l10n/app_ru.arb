@@ -145,5 +145,21 @@
   "statusNoBids": "Без ставок",
   "statusExpired": "Истекло",
   "auctionEndsIn": "до финиша {time}",
-  "@auctionEndsIn": { "placeholders": { "time": {} } }
+  "@auctionEndsIn": { "placeholders": { "time": {} } },
+  "step1Title": "Что нужно сделать?",
+  "nextStep": "Далее",
+  "step1Hint": "Выберите вид работ — или включите «пусть предложат сами»",
+  "openToAny": "Опишу задачу — пусть исполнители сами предложат технику",
+  "notAJobHint": "Нужна не работа под ключ, а техника на время, грузовик или люди? Вернитесь назад и выберите другой тип заказа.",
+  "newJob": "Новое задание",
+  "wizardStep": "Шаг {step} из {total} · {subtitle}",
+  "@wizardStep": { "placeholders": { "step": {}, "total": {}, "subtitle": {} } },
+  "draftSaved": "черновик сохранён",
+  "jobPublished": "Задание опубликовано",
+  "firstOffersSoon": "Обычно первые отклики приходят в течение часа. Мы пришлём уведомление, как только они появятся.",
+  "shareLink": "Поделиться ссылкой",
+  "toMyJobs": "К моим заданиям",
+  "viewJob": "Посмотреть задание",
+  "needSignInToCreate": "Нужен вход, чтобы создать задание",
+  "draftNotSaved": "Черновик ещё не сохранён"
 }

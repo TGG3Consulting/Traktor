@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../../core/share_link.dart';
 
@@ -17,6 +18,7 @@ class JobPublishedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     // Без решётки: этот адрес открывает бот мессенджера, чтобы собрать
     // превью карточки (ТЗ §4.2).
     final link = 'https://app.homly.am/jobs/$jobId';
@@ -40,11 +42,10 @@ class JobPublishedScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              const Text('Задание опубликовано', style: TkText.h1, textAlign: TextAlign.center),
+              Text(l.jobPublished, style: TkText.h1, textAlign: TextAlign.center),
               const SizedBox(height: 8),
               Text(
-                'Обычно первые отклики приходят в течение часа. '
-                'Мы пришлём уведомление, как только они появятся.',
+                l.firstOffersSoon,
                 textAlign: TextAlign.center,
                 style: TkText.body.copyWith(color: scheme.onSurfaceVariant),
               ),
@@ -54,7 +55,7 @@ class JobPublishedScreen extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => TkShare.copy(context, link),
                   icon: TkIcon(TkIcons.share, size: 16, color: scheme.onSurface),
-                  label: const Text('Поделиться ссылкой'),
+                  label: Text(l.shareLink),
                 ),
               ),
               const SizedBox(height: 10),
@@ -62,13 +63,13 @@ class JobPublishedScreen extends ConsumerWidget {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () => context.go('/home'),
-                  child: const Text('К моим заданиям'),
+                  child: Text(l.toMyJobs),
                 ),
               ),
               const SizedBox(height: 10),
               TextButton(
                 onPressed: () => context.go('/jobs/$jobId'),
-                child: const Text('Посмотреть задание'),
+                child: Text(l.viewJob),
               ),
             ],
           ),
