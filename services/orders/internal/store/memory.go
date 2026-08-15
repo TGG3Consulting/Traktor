@@ -21,6 +21,7 @@ type Memory struct {
 	bids     map[string]job.Bid         // ставки аукциона
 	chats    map[string]job.Chat        // переписка по заданиям
 	messages map[string]job.Message     // сообщения чатов
+	reviews  map[string]job.Review      // взаимные оценки по сделкам
 	views    map[string]map[string]bool // jobID → кто смотрел
 	idemp    map[string]string          // ключ идемпотентности → jobID
 }

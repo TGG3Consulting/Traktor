@@ -68,7 +68,15 @@ func (s *Server) dealWithNames(r *http.Request, d *job.Deal) map[string]any {
 	}
 	if p, ok := people[d.OwnerID]; ok {
 		out["ownerName"] = profiles.DisplayName(p, "Исполнитель")
-		out["ownerRating"] = p.Rating
+	}
+	ratings := s.svc.Ratings(r.Context(), []string{d.ClientID, d.OwnerID})
+	if rt, ok := ratings[d.OwnerID]; ok {
+		out["ownerRating"] = rt.Rating
+		out["ownerRatingCount"] = rt.Count
+	}
+	if rt, ok := ratings[d.ClientID]; ok {
+		out["clientRating"] = rt.Rating
+		out["clientRatingCount"] = rt.Count
 	}
 	return out
 }

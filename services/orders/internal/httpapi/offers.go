@@ -94,6 +94,9 @@ func (s *Server) jobOffers(w http.ResponseWriter, r *http.Request) {
 		ids = append(ids, o.OwnerID)
 	}
 	people := s.svc.Profiles(r.Context(), ids)
+	// Рейтинг считается по отзывам о сделках, а они живут здесь же, в orders
+	// (ТЗ §2.13): берём его из своей схемы, а не из карточки identity.
+	ratings := s.svc.Ratings(r.Context(), ids)
 
 	out := make([]map[string]any, 0, len(items))
 	for _, o := range items {
@@ -101,9 +104,11 @@ func (s *Server) jobOffers(w http.ResponseWriter, r *http.Request) {
 		if p, ok := people[o.OwnerID]; ok {
 			row["ownerName"] = profiles.DisplayName(p, "Исполнитель")
 			row["ownerCity"] = p.City
-			row["ownerRating"] = p.Rating
-			row["ownerRatingCount"] = p.RatingCount
 			row["ownerVerified"] = p.Verified
+		}
+		if rt, ok := ratings[o.OwnerID]; ok {
+			row["ownerRating"] = rt.Rating
+			row["ownerRatingCount"] = rt.Count
 		}
 		out = append(out, row)
 	}

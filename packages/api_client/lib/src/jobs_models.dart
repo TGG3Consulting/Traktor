@@ -669,3 +669,112 @@ class SentMessage {
   final ChatMessage message;
   final bool contactsMasked;
 }
+
+/// Взаимная оценка после сделки (ТЗ §2.13).
+class Review {
+  const Review({
+    required this.id,
+    required this.stars,
+    this.jobId = '',
+    this.tags = const [],
+    this.text = '',
+    this.authorName = '',
+    this.replyText = '',
+    this.replyAt,
+    this.publishedAt,
+    this.createdAt,
+  });
+
+  final String id;
+  final String jobId;
+  final int stars;
+  final List<String> tags;
+  final String text;
+  final String authorName;
+  final String replyText;
+  final DateTime? replyAt;
+  final DateTime? publishedAt;
+  final DateTime? createdAt;
+
+  /// Отзыв виден посторонним. Скрытый ждёт оценки второй стороны или недели.
+  bool get published => publishedAt != null;
+
+  factory Review.fromJson(Map<String, dynamic> j) => Review(
+        id: j['id'] as String? ?? '',
+        jobId: j['jobId'] as String? ?? '',
+        stars: j['stars'] as int? ?? 0,
+        tags: ((j['tags'] as List?) ?? const []).map((e) => '$e').toList(),
+        text: j['text'] as String? ?? '',
+        authorName: j['authorName'] as String? ?? '',
+        replyText: j['replyText'] as String? ?? '',
+        replyAt: DateTime.tryParse(j['replyAt'] as String? ?? '')?.toLocal(),
+        publishedAt: DateTime.tryParse(j['publishedAt'] as String? ?? '')?.toLocal(),
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+      );
+}
+
+/// Что показывать на экране оценки: чья очередь, какие отметки предлагать и
+/// не оценил ли человек эту сделку раньше.
+class ReviewForm {
+  const ReviewForm({
+    required this.dealId,
+    this.authorRole = 'client',
+    this.allowedTags = const [],
+    this.canReview = false,
+    this.targetName = '',
+    this.mine,
+  });
+
+  final String dealId;
+
+  /// client — я оценивал исполнителя, owner — заказчика.
+  final String authorRole;
+  final List<String> allowedTags;
+  final bool canReview;
+  final String targetName;
+  final Review? mine;
+
+  bool get alreadyLeft => mine != null;
+
+  factory ReviewForm.fromJson(Map<String, dynamic> j) => ReviewForm(
+        dealId: j['dealId'] as String? ?? '',
+        authorRole: j['authorRole'] as String? ?? 'client',
+        allowedTags: ((j['allowedTags'] as List?) ?? const []).map((e) => '$e').toList(),
+        canReview: j['canReview'] as bool? ?? false,
+        targetName: j['targetName'] as String? ?? '',
+        mine: j['review'] == null
+            ? null
+            : Review.fromJson((j['review'] as Map).cast<String, dynamic>()),
+      );
+}
+
+/// Карточка отзывов о человеке: список и сводка «★4,8 · 36 оценок».
+class ReviewsPage {
+  const ReviewsPage({this.items = const [], this.rating = 0, this.count = 0});
+
+  final List<Review> items;
+  final double rating;
+  final int count;
+
+  factory ReviewsPage.fromJson(Map<String, dynamic> j) => ReviewsPage(
+        items: ((j['items'] as List?) ?? const [])
+            .map((e) => Review.fromJson((e as Map).cast<String, dynamic>()))
+            .toList(),
+        rating: (j['rating'] as num?)?.toDouble() ?? 0,
+        count: j['count'] as int? ?? 0,
+      );
+}
+
+/// Ответ на отправленную оценку: опубликована ли она сразу и стоит ли
+/// спросить, что пошло не так.
+class ReviewResult {
+  const ReviewResult({
+    required this.review,
+    this.published = false,
+    this.asksWhatWentWrong = false,
+  });
+
+  final Review review;
+  final bool published;
+  final bool asksWhatWentWrong;
+}

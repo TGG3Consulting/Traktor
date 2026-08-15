@@ -80,6 +80,17 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/{dealId}", s.deal)
 		r.Post("/{dealId}/step", s.advanceDeal)
 		r.Post("/{dealId}/cancel", s.cancelDeal)
+
+		// Взаимная оценка после завершения (ТЗ §2.13).
+		r.Get("/{dealId}/review", s.myReviewForDeal)
+		r.Post("/{dealId}/review", s.leaveReview)
+	})
+
+	// Отзывы: публичная карточка человека и ответ на отзыв о себе.
+	r.Route("/v1/reviews", func(r chi.Router) {
+		r.Use(s.requireUser)
+		r.Get("/users/{userId}", s.userReviews)
+		r.Post("/{reviewId}/reply", s.replyToReview)
 	})
 
 	// Чаты и сообщения.

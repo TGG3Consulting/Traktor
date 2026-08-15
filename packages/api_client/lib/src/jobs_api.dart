@@ -317,6 +317,63 @@ class JobsApi {
     return Job.fromJson(_handle(resp));
   }
 
+  // ── оценки и отзывы (ТЗ §2.13) ─────────────────────────────────────────────
+
+  /// GET /deals/{id}/review — что показать на экране оценки.
+  Future<ReviewForm> reviewForm(String token, String dealId) async {
+    final resp = await _http.get(_u('/deals/$dealId/review'), headers: _headers(token));
+    return ReviewForm.fromJson(_handle(resp));
+  }
+
+  /// POST /deals/{id}/review — оставить оценку.
+  Future<ReviewResult> leaveReview(
+    String token,
+    String dealId, {
+    required int stars,
+    List<String> tags = const [],
+    String text = '',
+    String issue = '',
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.post(
+      _u('/deals/$dealId/review'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({
+        'stars': stars,
+        'tags': tags,
+        'text': text,
+        if (issue.isNotEmpty) 'issue': issue,
+      }),
+    );
+    final json = _handle(resp);
+    return ReviewResult(
+      review: Review.fromJson((json['review'] as Map).cast<String, dynamic>()),
+      published: json['published'] as bool? ?? false,
+      asksWhatWentWrong: json['asksWhatWentWrong'] as bool? ?? false,
+    );
+  }
+
+  /// GET /reviews/users/{id} — отзывы о человеке и его рейтинг.
+  Future<ReviewsPage> userReviews(String token, String userId,
+      {int limit = 20, int offset = 0}) async {
+    final resp = await _http.get(
+      _u('/reviews/users/$userId', {'limit': '$limit', 'offset': '$offset'}),
+      headers: _headers(token),
+    );
+    return ReviewsPage.fromJson(_handle(resp));
+  }
+
+  /// POST /reviews/{id}/reply — публичный ответ на отзыв о себе, один раз.
+  Future<Review> replyToReview(String token, String reviewId, String text,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/reviews/$reviewId/reply'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'text': text}),
+    );
+    return Review.fromJson(_handle(resp));
+  }
+
   // ── чаты (ТЗ §2.12) ────────────────────────────────────────────────────────
 
   /// POST /jobs/{id}/chat — открыть переписку по заданию.

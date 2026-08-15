@@ -15,6 +15,7 @@ import '../features/jobs/auction/auction_screen.dart';
 import '../features/jobs/deal/deal_screen.dart';
 import '../features/jobs/job_detail_screen.dart';
 import '../features/jobs/offers/offers_screen.dart';
+import '../features/reviews/review_screen.dart';
 import '../features/onboarding/language_screen.dart';
 import '../features/onboarding/role_screen.dart';
 import '../features/onboarding/splash_screen.dart';
@@ -63,6 +64,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/deals/:id',
       builder: (_, state) => DealScreen(dealId: state.pathParameters['id']!),
+    ),
+
+    // Взаимная оценка после сделки (ТЗ §2.13). Отдельный маршрут: на него
+    // ведёт и кнопка со сделки, и уведомление «оставьте оценку».
+    GoRoute(
+      path: '/deals/:id/review',
+      builder: (_, state) => ReviewScreen(dealId: state.pathParameters['id']!),
     ),
 
     // Отклики по заданию (ТЗ §2.10) — экран заказчика.

@@ -387,11 +387,30 @@ class _ActionsState extends ConsumerState<_Actions> {
       child: SafeArea(
         top: false,
         child: deal.isClosed
-            ? Text(
-                deal.status == 'completed' ? 'Сделка завершена' : 'Сделка отменена',
-                textAlign: TextAlign.center,
-                style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
-              )
+            // Завершённая работа ведёт к взаимной оценке (ТЗ §2.13): без неё
+            // рейтинг не набирается, а он — главный капитал исполнителя.
+            ? (deal.status == 'completed'
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Сделка завершена',
+                        textAlign: TextAlign.center,
+                        style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton(
+                        onPressed: () => context.push('/deals/${deal.id}/review'),
+                        child: const Text('Оценить'),
+                      ),
+                    ],
+                  )
+                : Text(
+                    'Сделка отменена',
+                    textAlign: TextAlign.center,
+                    style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
+                  ))
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 // Панель тянется на всю ширину: иначе она сжимается по кнопке

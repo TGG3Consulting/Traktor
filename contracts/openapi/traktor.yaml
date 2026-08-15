@@ -1134,6 +1134,148 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /deals/{dealId}/review:
+    get:
+      tags: [orders]
+      summary: Что показать на экране оценки (ТЗ §2.13)
+      description: >
+        Роль автора в этой сделке, допустимые отметки для этой роли, имя второй
+        стороны и уже поставленная оценка, если она есть.
+      operationId: reviewForm
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: dealId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Форма оценки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dealId: { type: string, format: uuid }
+                  authorRole: { type: string, enum: [client, owner] }
+                  allowedTags:
+                    type: array
+                    items: { type: string }
+                  canReview:
+                    type: boolean
+                    description: сделка завершена и оценка ещё не поставлена
+                  targetName: { type: string }
+                  review: { $ref: "#/components/schemas/Review" }
+        "403": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [orders]
+      summary: Оставить оценку после завершения сделки
+      description: >
+        Звёзды обязательны, отметки и текст — нет. Отзыв публикуется не сразу:
+        он открывается вместе с отзывом второй стороны либо через неделю
+        (анти-месть). Поле issue — необязательный ответ «что пошло не так» при
+        оценке ниже трёх звёзд, публично не показывается.
+      operationId: leaveReview
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: dealId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stars]
+              properties:
+                stars: { type: integer, minimum: 1, maximum: 5 }
+                tags:
+                  type: array
+                  items: { type: string }
+                text: { type: string, maxLength: 500 }
+                issue: { type: string, maxLength: 500 }
+      responses:
+        "201":
+          description: Оценка принята
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  review: { $ref: "#/components/schemas/Review" }
+                  published:
+                    type: boolean
+                    description: отзыв уже виден остальным
+                  asksWhatWentWrong:
+                    type: boolean
+                    description: стоит спросить, что пошло не так
+        "400": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /reviews/users/{userId}:
+    get:
+      tags: [orders]
+      summary: Отзывы о человеке и его рейтинг
+      description: >
+        Только опубликованные отзывы. Рейтинг — среднее за последние 12 месяцев
+        (свежая работа важнее старых промахов, ТЗ §2.13).
+      operationId: userReviews
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - { name: limit, in: query, schema: { type: integer, default: 20 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0 } }
+      responses:
+        "200":
+          description: Карточка отзывов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Review" }
+                  rating: { type: number, example: 4.8 }
+                  count: { type: integer, example: 36 }
+
+  /reviews/{reviewId}/reply:
+    post:
+      tags: [orders]
+      summary: Публичный ответ на отзыв о себе (один раз)
+      operationId: replyToReview
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 500 }
+      responses:
+        "200":
+          description: Ответ сохранён
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Review" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1159,6 +1301,25 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
   schemas:
+    Review:
+      type: object
+      required: [id, stars]
+      properties:
+        id: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        stars: { type: integer, minimum: 1, maximum: 5 }
+        tags:
+          type: array
+          items: { type: string }
+        text: { type: string }
+        authorName: { type: string }
+        replyText: { type: string, description: "ответ того, о ком отзыв" }
+        replyAt: { type: string, format: date-time }
+        publishedAt:
+          type: string
+          format: date-time
+          description: "пусто, пока отзыв ждёт вторую сторону"
+        createdAt: { type: string, format: date-time }
     Chat:
       type: object
       required: [id, jobId, kind]

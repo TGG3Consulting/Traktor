@@ -86,6 +86,18 @@ type Store interface {
 	Messages(ctx context.Context, chatID string, limit, offset int) ([]job.Message, error)
 	MarkRead(ctx context.Context, chatID, userID string) error
 
+	// Оценки и отзывы (ТЗ §2.13).
+	CreateReview(ctx context.Context, r *job.Review) error
+	UpdateReview(ctx context.Context, r *job.Review) error
+	ReviewByID(ctx context.Context, id string) (*job.Review, error)
+	// Обе оценки по сделке: по ним решается, пора ли публиковать.
+	ReviewsByDeal(ctx context.Context, dealID string) ([]job.Review, error)
+	ReviewsAbout(ctx context.Context, userID string, limit, offset int) ([]job.Review, error)
+	ReviewsByAuthor(ctx context.Context, userID string, limit, offset int) ([]job.Review, error)
+	RatingOf(ctx context.Context, userID string, since time.Time) (job.RatingSummary, error)
+	// Одинокие оценки, ждущие дольше недели: их пора открыть.
+	DueReviews(ctx context.Context, before time.Time) ([]job.Review, error)
+
 	// DueJobs — задания, у которых истёк срок: финиш аукциона, окно решения
 	// заказчика или срок приёмки работы. По ним работает фоновый обработчик.
 	DueJobs(ctx context.Context, now time.Time) ([]job.Job, error)
