@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../../chat/open_chat.dart';
 import '../jobs_providers.dart';
@@ -20,10 +21,10 @@ class JobOffersScreen extends ConsumerWidget {
   final String jobId;
 
   /// Заголовок с числом живых предложений: отклонённые в счётчике не нужны.
-  String _title(List<Offer>? offers) {
-    if (offers == null) return 'Отклики';
+  String _title(List<Offer>? offers, AppLocalizations l) {
+    if (offers == null) return l.offersTitle;
     final live = offers.where((o) => o.isActive || o.isAccepted).length;
-    return 'Отклики · $live';
+    return l.offersLive(live);
   }
 
   @override
@@ -31,12 +32,13 @@ class JobOffersScreen extends ConsumerWidget {
     final offers = ref.watch(jobOffersProvider(jobId));
     final job = ref.watch(jobProvider(jobId));
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_title(offers.valueOrNull)),
+        title: Text(_title(offers.valueOrNull, l)),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/jobs/$jobId'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -49,10 +51,10 @@ class JobOffersScreen extends ConsumerWidget {
         ),
         data: (list) {
           if (list.isEmpty) {
-            return const TkEmptyState(
+            return TkEmptyState(
               icon: TkIcons.chatCircle,
-              title: 'Откликов пока нет',
-              description: 'Обычно первые приходят в течение часа после публикации',
+              title: l.noOffersYet,
+              description: l.noOffersDesc,
             );
           }
           return RefreshIndicator(
@@ -84,6 +86,7 @@ class _OfferCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     final decided = !offer.isActive;
 
     return Opacity(
@@ -128,7 +131,7 @@ class _OfferCard extends ConsumerWidget {
                         ],
                       ),
                       Text(
-                        offer.eta.isEmpty ? _when(offer) : 'Сможет: ${offer.eta}',
+                        offer.eta.isEmpty ? _when(offer, l) : l.canStart(offer.eta),
                         style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                       ),
                     ],
@@ -137,7 +140,7 @@ class _OfferCard extends ConsumerWidget {
                 // «Вопрос» доступен всегда, в том числе по решённому отклику:
                 // уточнить детали после выбора — обычное дело (прототип §2.10).
                 IconButton(
-                  tooltip: 'Написать',
+                  tooltip: l.writeMessage,
                   onPressed: () =>
                       openChatAndGo(context, ref, jobId, ownerId: offer.ownerId),
                   icon: TkIcon(TkIcons.chatCircle, size: 20, color: scheme.onSurfaceVariant),
@@ -161,7 +164,7 @@ class _OfferCard extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 3),
                     child: Text(
-                      'ваша цена ${tkMoney(jobPrice, currency: offer.currency)}',
+                      l.yourPriceWas(tkMoney(jobPrice, currency: offer.currency)),
                       style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                     ),
                   ),
@@ -172,8 +175,8 @@ class _OfferCard extends ConsumerWidget {
             if (offer.hasCounter && offer.status == 'counter_offered') ...[
               const SizedBox(height: 6),
               Text(
-                'Вы предложили ${tkMoney(offer.clientCounterPrice, currency: offer.currency)} — '
-                'ждём ответа исполнителя',
+                l.youCountered(
+                    tkMoney(offer.clientCounterPrice, currency: offer.currency)),
                 style: TkText.caption.copyWith(color: TkColors.warning),
               ),
             ],
@@ -183,7 +186,7 @@ class _OfferCard extends ConsumerWidget {
             ],
             if (offer.declineReason.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('Отклонено: ${offer.declineReason}',
+              Text(l.declinedWith(offer.declineReason),
                   style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
             ],
             if (!decided) ...[
@@ -193,7 +196,7 @@ class _OfferCard extends ConsumerWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => _decline(context, ref),
-                      child: const Text('Отклонить'),
+                      child: Text(l.decline),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -201,14 +204,14 @@ class _OfferCard extends ConsumerWidget {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => _counter(context, ref),
-                        child: const Text('Своя цена'),
+                        child: Text(l.ownPrice),
                       ),
                     ),
                   if (!offer.hasCounter) const SizedBox(width: 8),
                   Expanded(
                     child: FilledButton(
                       onPressed: () => _accept(context, ref),
-                      child: const Text('Выбрать'),
+                      child: Text(l.choose),
                     ),
                   ),
                 ],
@@ -220,61 +223,63 @@ class _OfferCard extends ConsumerWidget {
     );
   }
 
-  String _when(Offer o) {
+  String _when(Offer o, AppLocalizations l) {
     final created = o.createdAt;
     if (created == null) return '';
     final ago = DateTime.now().difference(created);
-    if (ago.inMinutes < 1) return 'только что';
-    if (ago.inHours < 1) return '${ago.inMinutes} мин назад';
-    if (ago.inDays < 1) return '${ago.inHours} ч назад';
+    if (ago.inMinutes < 1) return l.justNow;
+    if (ago.inHours < 1) return l.minutesAgo(ago.inMinutes);
+    if (ago.inDays < 1) return l.hoursAgo(ago.inHours);
     return tkShortDate(created);
   }
 
   Future<void> _accept(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Выбрать этого исполнителя?'),
+        title: Text(l.chooseThisQ),
         content: Text(
-          'Цена ${tkMoney(offer.hasCounter ? offer.clientCounterPrice : offer.price, currency: offer.currency)} '
-          'станет ценой сделки. Остальные предложения будут отклонены, '
-          'исполнители получат уведомление.',
+          l.chooseThisBody(tkMoney(
+              offer.hasCounter ? offer.clientCounterPrice : offer.price,
+              currency: offer.currency)),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Выбрать')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.choose)),
         ],
       ),
     );
     if (ok != true || !context.mounted) return;
     await _run(context, ref, () => ref.read(offerActionsProvider).accept(jobId, offer.id),
-        success: 'Исполнитель выбран');
+        success: l.contractorChosen);
   }
 
   Future<void> _decline(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     final controller = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Отклонить предложение?'),
+        title: Text(l.declineOfferQ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Причину указывать необязательно, но исполнителю будет понятнее.'),
+            Text(l.declineOfferBody),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
-              decoration: const InputDecoration(hintText: 'Например: дорого для этого объёма'),
+              decoration: InputDecoration(hintText: l.declineHint),
               maxLength: 120,
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TkColors.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Отклонить'),
+            child: Text(l.decline),
           ),
         ],
       ),
@@ -284,22 +289,21 @@ class _OfferCard extends ConsumerWidget {
       context,
       ref,
       () => ref.read(offerActionsProvider).decline(jobId, offer.id, reason: controller.text.trim()),
-      success: 'Предложение отклонено',
+      success: l.offerDeclined,
     );
   }
 
   Future<void> _counter(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     final controller = TextEditingController(text: '${offer.price}');
     final price = await showDialog<int>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Ваша цена'),
+        title: Text(l.yourPriceTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Предложить свою цену можно один раз — дальше решает исполнитель.',
-            ),
+            Text(l.counterOnce),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
@@ -310,17 +314,17 @@ class _OfferCard extends ConsumerWidget {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(l.cancel)),
           FilledButton(
             onPressed: () => Navigator.pop(context, int.tryParse(controller.text)),
-            child: const Text('Отправить'),
+            child: Text(l.send),
           ),
         ],
       ),
     );
     if (price == null || price <= 0 || !context.mounted) return;
     await _run(context, ref, () => ref.read(offerActionsProvider).counter(jobId, offer.id, price),
-        success: 'Встречная цена отправлена');
+        success: l.counterSent);
   }
 
   /// Общая обёртка: показать результат или причину отказа. Молчаливый провал
@@ -347,12 +351,13 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final (label, color) = switch (offer.status) {
-      'accepted' => ('Выбран', TkColors.success),
-      'declined' => ('Отклонён', TkColors.error),
-      'withdrawn' => ('Отозван', Theme.of(context).colorScheme.onSurfaceVariant),
-      'counter_offered' => ('Ждём ответа', TkColors.warning),
-      _ => (offer.kind == 'counter' ? 'Своя цена' : 'Принял цену', TkColors.info),
+      'accepted' => (l.offChosen, TkColors.success),
+      'declined' => (l.offDeclined, TkColors.error),
+      'withdrawn' => (l.offWithdrawn, Theme.of(context).colorScheme.onSurfaceVariant),
+      'counter_offered' => (l.offWaiting, TkColors.warning),
+      _ => (offer.kind == 'counter' ? l.ownPrice : l.offAccepted, TkColors.info),
     };
 
     return Container(
