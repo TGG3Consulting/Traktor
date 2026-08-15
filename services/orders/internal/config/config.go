@@ -16,6 +16,10 @@ type Config struct {
 	IdentityURL string
 	// CatalogURL пуст → технику в откликах не проверяем.
 	CatalogURL string
+	// CentrifugoURL и ключ пусты → события не публикуются, всё работает
+	// как раньше, только без живых обновлений.
+	CentrifugoURL    string
+	CentrifugoAPIKey string
 }
 
 func Load() *Config {
@@ -25,6 +29,8 @@ func Load() *Config {
 		NotificationsURL: os.Getenv("NOTIFICATIONS_URL"),
 		IdentityURL:      os.Getenv("IDENTITY_URL"),
 		CatalogURL:       os.Getenv("CATALOG_URL"),
+		CentrifugoURL:    os.Getenv("CENTRIFUGO_URL"),
+		CentrifugoAPIKey: os.Getenv("CENTRIFUGO_API_KEY"),
 	}
 }
 

@@ -16,6 +16,7 @@ import (
 	"traktor/orders/internal/job"
 	"traktor/orders/internal/notify"
 	"traktor/orders/internal/profiles"
+	"traktor/orders/internal/realtime"
 	"traktor/orders/internal/units"
 	"traktor/orders/internal/store"
 )
@@ -30,6 +31,9 @@ type Service struct {
 	// units — техника исполнителя из catalog: ставку принимаем только своей
 	// активной машиной (ТЗ §2.9).
 	units units.Client
+	// live — публикация событий торга и чата: без неё участники узнают о
+	// новой ставке только при следующем открытии экрана (ADR-6).
+	live realtime.Publisher
 }
 
 func New(st store.Store, now func() time.Time) *Service {
@@ -50,6 +54,12 @@ func NewFull(st store.Store, now func() time.Time, n notify.Notifier, p profiles
 // NewWithUnits — полный набор зависимостей, включая справку по технике.
 func NewWithUnits(st store.Store, now func() time.Time, n notify.Notifier,
 	p profiles.Client, u units.Client) *Service {
+	return NewWithRealtime(st, now, n, p, u, realtime.Noop{})
+}
+
+// NewWithRealtime — полный набор зависимостей, включая живые события.
+func NewWithRealtime(st store.Store, now func() time.Time, n notify.Notifier,
+	p profiles.Client, u units.Client, live realtime.Publisher) *Service {
 	if now == nil {
 		now = time.Now
 	}
@@ -62,7 +72,10 @@ func NewWithUnits(st store.Store, now func() time.Time, n notify.Notifier,
 	if u == nil {
 		u = units.Noop{}
 	}
-	return &Service{st: st, now: now, notify: n, profiles: p, units: u}
+	if live == nil {
+		live = realtime.Noop{}
+	}
+	return &Service{st: st, now: now, notify: n, profiles: p, units: u, live: live}
 }
 
 // checkUnit проверяет технику, которой откликаются или делают ставку.

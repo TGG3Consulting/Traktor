@@ -9,6 +9,7 @@ import (
 
 	"traktor/orders/internal/job"
 	"traktor/orders/internal/notify"
+	"traktor/orders/internal/realtime"
 )
 
 // BidInput — ставка исполнителя.
@@ -97,6 +98,7 @@ func (s *Service) PlaceBid(ctx context.Context, ownerID, jobID string, in BidInp
 	}
 
 	// Антиснайпинг: продлеваем торг и говорим об этом всем участникам.
+	extended := false
 	if job.ShouldExtend(j, now) {
 		ends := j.Auction.EndsAt.Add(job.ExtendBy)
 		j.Auction.EndsAt = &ends
@@ -104,7 +106,23 @@ func (s *Service) PlaceBid(ctx context.Context, ownerID, jobID string, in BidInp
 		if err := s.st.Update(ctx, j); err != nil {
 			return nil, err
 		}
+		extended = true
 	}
+
+	// Живая лента торга: все, кто держит экран открытым, видят новую цену и
+	// новый срок за доли секунды, а не при следующем обновлении (ADR-6).
+	// Имя не публикуем: лента анонимна, это защита от сговора (ТЗ §2.9).
+	event := map[string]any{
+		"type":     "bid",
+		"jobId":    j.ID,
+		"price":    bid.Price,
+		"currency": bid.Currency,
+		"extended": extended,
+	}
+	if j.Auction != nil && j.Auction.EndsAt != nil {
+		event["endsAt"] = j.Auction.EndsAt.UTC()
+	}
+	s.live.Publish(ctx, realtime.JobChannel(j.ID), event)
 
 	s.notify.Send(ctx, j.ClientID, "Новая ставка",
 		j.Title+" · "+notify.MoneyRU(bid.Price, bid.Currency),

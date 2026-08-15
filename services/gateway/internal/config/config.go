@@ -16,6 +16,8 @@ type Config struct {
 	CatalogURL       string
 	OrdersURL        string
 	MediaURL         string
+	// CentrifugoSecret пуст → билеты на живые обновления не выдаются.
+	CentrifugoSecret string
 	RateLimit        int
 	RateWindow       time.Duration
 	AllowOrigin      string
@@ -30,6 +32,7 @@ func Load() *Config {
 		CatalogURL:       getenv("CATALOG_URL", "http://localhost:8083"),
 		OrdersURL:        getenv("ORDERS_URL", "http://localhost:8084"),
 		MediaURL:         getenv("MEDIA_URL", "http://localhost:8085"),
+		CentrifugoSecret: os.Getenv("CENTRIFUGO_SECRET"),
 		RateLimit:        getenvInt("RATE_LIMIT", 100),
 		RateWindow:       time.Duration(getenvInt("RATE_WINDOW_SEC", 60)) * time.Second,
 		AllowOrigin:      getenv("ALLOW_ORIGIN", "*"),

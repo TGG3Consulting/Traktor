@@ -19,6 +19,7 @@ import (
 	"traktor/orders/internal/httpapi"
 	"traktor/orders/internal/notify"
 	"traktor/orders/internal/profiles"
+	"traktor/orders/internal/realtime"
 	"traktor/orders/internal/units"
 	"traktor/orders/internal/service"
 	"traktor/orders/internal/store"
@@ -70,7 +71,15 @@ func run(log *slog.Logger) error {
 		log.Warn("CATALOG_URL не задан: технику в откликах не проверяем")
 	}
 
-	svc := service.NewWithUnits(st, time.Now, notifier, people, machines)
+	var live realtime.Publisher = realtime.Noop{}
+	if cfg.CentrifugoURL != "" && cfg.CentrifugoAPIKey != "" {
+		live = realtime.NewCentrifugo(cfg.CentrifugoURL, cfg.CentrifugoAPIKey, log)
+		log.Info("живые события включены", "centrifugo", cfg.CentrifugoURL)
+	} else {
+		log.Warn("CENTRIFUGO_URL не задан: экраны обновляются только при заходе")
+	}
+
+	svc := service.NewWithRealtime(st, time.Now, notifier, people, machines, live)
 
 	// Фоновый обработчик доводит до конца то, что зависит от времени: финиш
 	// аукциона, окно решения заказчика, автоприёмка работы.

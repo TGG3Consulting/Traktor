@@ -7,6 +7,7 @@
 package main
 
 import (
+	"encoding/json"
 	"context"
 	"errors"
 	"log/slog"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
@@ -26,6 +28,40 @@ import (
 	"traktor/gateway/internal/middleware"
 	"traktor/gateway/internal/proxy"
 )
+
+// realtimeToken подписывает билет на подключение к Centrifugo.
+//
+// Билет живёт час: дольше держать смысла нет, клиент переподключается сам, а
+// короткий срок ограничивает ущерб от утечки.
+func realtimeToken(secret string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Header.Get("X-User-Id")
+		if userID == "" || secret == "" {
+			w.Header().Set("Content-Type", "application/problem+json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"status":503,"detail":"живые обновления недоступны"}`))
+			return
+		}
+
+		exp := time.Now().Add(time.Hour)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"sub": userID,
+			"exp": exp.Unix(),
+			"iat": time.Now().Unix(),
+		})
+		signed, err := token.SignedString([]byte(secret))
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"token":     signed,
+			"expiresAt": exp.UTC(),
+		})
+	}
+}
 
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -129,6 +165,12 @@ func run(log *slog.Logger) error {
 	// Всё остальное: авторизация → идемпотентность → прокси к сервисам.
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cache, public), middleware.Idempotency(public))
+
+		// Токен подключения к Centrifugo (ADR-6). Выдаётся здесь, а не в
+		// отдельном сервисе: шлюз уже проверил access-токен и знает, кто
+		// пришёл, — остаётся подписать короткоживущий билет.
+		r.Get("/v1/realtime/token", realtimeToken(cfg.CentrifugoSecret))
+
 		r.Handle("/*", router)
 	})
 

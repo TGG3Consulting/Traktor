@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"traktor/orders/internal/job"
+	"traktor/orders/internal/realtime"
 )
 
 // OpenChat — открыть переписку по заданию (ТЗ §2.12).
@@ -119,6 +120,16 @@ func (s *Service) SendMessage(ctx context.Context, userID, chatID, text string) 
 	if userID == c.OwnerID {
 		target = c.ClientID
 	}
+	// Переписка обновляется у собеседника сразу: сообщение, которое доходит
+	// через минуту, превращает диалог в переписку по почте.
+	s.live.Publish(ctx, realtime.ChatChannel(c.ID), map[string]any{
+		"type":      "message",
+		"chatId":    c.ID,
+		"messageId": msg.ID,
+		"senderId":  userID,
+		"text":      body,
+	})
+
 	s.notify.Send(ctx, target, "Новое сообщение", preview(body),
 		map[string]string{"route": "/chats/" + c.ID, "chatId": c.ID})
 

@@ -1570,6 +1570,30 @@ paths:
                     type: array
                     items: { $ref: "#/components/schemas/Equipment" }
 
+  /realtime/token:
+    get:
+      tags: [gateway]
+      summary: Билет на подключение к живым обновлениям (ADR-6)
+      description: >
+        Короткоживущий токен для Centrifugo: по нему клиент подписывается на
+        канал торга (job:{id}) и переписки (chat:{id}). Живёт час — клиент
+        переподключается сам, а короткий срок ограничивает ущерб от утечки.
+      operationId: realtimeToken
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Билет
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  expiresAt: { type: string, format: date-time }
+        "401": { $ref: "#/components/responses/Problem" }
+        "503":
+          description: Живые обновления выключены на этом стенде
+
 components:
   securitySchemes:
     bearerAuth:

@@ -94,6 +94,9 @@ $env:PORT = '18084'
 $env:NOTIFICATIONS_URL = 'http://127.0.0.1:18082'
 $env:IDENTITY_URL = 'http://127.0.0.1:18081'
 $env:CATALOG_URL = 'http://127.0.0.1:18083'
+# Zhivye sobytiya torga i chata (ADR-6)
+$env:CENTRIFUGO_URL = 'http://127.0.0.1:18000'
+$env:CENTRIFUGO_API_KEY = 'traktor-local-centrifugo-api'
 Start-Process -FilePath "$bin\orders.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-orders.log" -RedirectStandardError "$out\svc-orders.err" | Out-Null
 
@@ -121,6 +124,7 @@ $env:NOTIFICATIONS_URL = 'http://127.0.0.1:18082'
 $env:CATALOG_URL = 'http://127.0.0.1:18083'
 $env:ORDERS_URL = 'http://127.0.0.1:18084'
 $env:MEDIA_URL = 'http://127.0.0.1:18085'
+$env:CENTRIFUGO_SECRET = 'traktor-local-centrifugo-secret'
 Start-Process -FilePath "$bin\gateway.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-gateway.log" -RedirectStandardError "$out\svc-gateway.err" | Out-Null
 
