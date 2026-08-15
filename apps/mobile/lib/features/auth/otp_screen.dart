@@ -16,9 +16,15 @@ class OtpScreen extends ConsumerStatefulWidget {
 class _OtpScreenState extends ConsumerState<OtpScreen> {
   final _c = TextEditingController();
 
+  /// Настоящее поле ввода спрятано под нарисованными ячейками. Без явного
+  /// фокуса тап по ячейке уводил ввод в никуда: человек видел рамку, жал по
+  /// ней и не мог набрать код — клавиатура закрывалась, символы пропадали.
+  final _focus = FocusNode();
+
   @override
   void dispose() {
     _c.dispose();
+    _focus.dispose();
     super.dispose();
   }
 
@@ -61,7 +67,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 child: Text(l.changeNumber, style: TkText.caption.copyWith(color: TkColors.info)),
               ),
               const SizedBox(height: 24),
-              _OtpBoxes(controller: _c, onChanged: _onChanged),
+              _OtpBoxes(controller: _c, focusNode: _focus, onChanged: _onChanged),
               if (st.error != null) ...[
                 const SizedBox(height: 12),
                 Text(st.error!, style: TkText.caption.copyWith(color: TkColors.error)),
@@ -79,8 +85,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 /// Визуальные 6 ячеек поверх скрытого поля ввода (простая реализация каркаса;
 /// автоподстановка SMS-кода iOS/Android — на шаге полировки).
 class _OtpBoxes extends StatelessWidget {
-  const _OtpBoxes({required this.controller, required this.onChanged});
+  const _OtpBoxes({
+    required this.controller,
+    required this.focusNode,
+    required this.onChanged,
+  });
   final TextEditingController controller;
+  final FocusNode focusNode;
   final ValueChanged<String> onChanged;
 
   @override
@@ -89,7 +100,13 @@ class _OtpBoxes extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: [
-        Row(
+        // Тап по нарисованным ячейкам возвращает ввод в скрытое поле: человек
+        // жмёт туда, где видит рамку, и это должно работать. Обработчик висит
+        // только на ряду ячеек — само поле лежит выше и принимает нажатия само.
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: focusNode.requestFocus,
+          child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: List.generate(6, (i) {
             final filled = i < controller.text.length;
@@ -105,11 +122,13 @@ class _OtpBoxes extends StatelessWidget {
               child: Text(filled ? controller.text[i] : '', style: TkText.h2),
             );
           }),
+          ),
         ),
         Opacity(
           opacity: 0,
           child: TextField(
             controller: controller,
+            focusNode: focusNode,
             autofocus: true,
             keyboardType: TextInputType.number,
             maxLength: 6,
