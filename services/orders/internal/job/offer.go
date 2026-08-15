@@ -58,6 +58,9 @@ var (
 	ErrOfferExists    = errors.New("offer: вы уже откликнулись на это задание")
 	ErrOfferNotActive = errors.New("offer: отклик уже неактивен")
 	ErrCounterUsed    = errors.New("offer: встречное предложение уже отправлено")
+	// Техника в отклике или ставке (ТЗ §2.5, §2.9).
+	ErrUnitForeign  = errors.New("offer: это чужая техника")
+	ErrUnitInactive = errors.New("offer: техника не опубликована — закончите её карточку")
 	ErrAuctionMode    = errors.New("offer: у задания идёт аукцион — здесь делаются ставки, а не отклики")
 )
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../equipment/equipment_providers.dart';
 import 'offers_providers.dart';
 
 /// Шит отклика исполнителя (ТЗ §2.8: «Предложить свою» — цена, комментарий,
@@ -53,6 +54,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
   late final TextEditingController _comment;
   late final TextEditingController _eta;
   late String _kind;
+  String? _unitId;
   bool _sending = false;
   String? _error;
 
@@ -64,6 +66,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
     _price = TextEditingController(text: '${e?.price ?? widget.jobPrice}');
     _comment = TextEditingController(text: e?.comment ?? '');
     _eta = TextEditingController(text: e?.eta ?? '');
+    _unitId = e?.unitId;
   }
 
   @override
@@ -88,6 +91,7 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
             price: _kind == 'accept' ? widget.jobPrice : _priceValue,
             comment: _comment.text.trim(),
             eta: _eta.text.trim(),
+            unitId: _unitId,
           );
       if (mounted) Navigator.pop(context, true);
     } on ValidationException catch (e) {
@@ -173,6 +177,12 @@ class _OfferSheetState extends ConsumerState<_OfferSheet> {
                   helper: 'Цена задания: ${tkMoney(widget.jobPrice, currency: widget.currency)}',
                 ),
               ],
+              // Чем откликаемся: заказчику важно видеть машину, а нам —
+              // что она своя и опубликована (ТЗ §2.5).
+              _UnitPicker(
+                selected: _unitId,
+                onSelected: (id) => setState(() => _unitId = id),
+              ),
               const SizedBox(height: 14),
               TkTextField(
                 label: 'Когда сможете',
@@ -248,6 +258,47 @@ class _KindButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+/// Выбор техники для отклика. Показывается только если техника есть: пустой
+/// блок с надписью «нет техники» в шите отклика только мешает.
+class _UnitPicker extends ConsumerWidget {
+  const _UnitPicker({required this.selected, required this.onSelected});
+
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final all = ref.watch(myEquipmentProvider).valueOrNull ?? const <Equipment>[];
+    final active = all.where((e) => e.isActive).toList();
+    if (active.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 14),
+        Text('Чем выполните', style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final e in active)
+              TkChip(
+                label: e.title,
+                selected: selected == e.id,
+                // Повторное нажатие снимает выбор: часть заданий не требует
+                // конкретной машины.
+                onTap: () => onSelected(selected == e.id ? null : e.id),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

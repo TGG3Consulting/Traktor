@@ -89,9 +89,11 @@ Start-Process -FilePath "$bin\catalog.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-catalog.log" -RedirectStandardError "$out\svc-catalog.err" | Out-Null
 
 $env:PORT = '18084'
-# orders soobshchaet notifications o sobytiyah i beret imena uchastnikov u identity
+# orders soobshchaet notifications o sobytiyah, beret imena uchastnikov u identity
+# i proveryaet tehniku v otklikah u catalog
 $env:NOTIFICATIONS_URL = 'http://127.0.0.1:18082'
 $env:IDENTITY_URL = 'http://127.0.0.1:18081'
+$env:CATALOG_URL = 'http://127.0.0.1:18083'
 Start-Process -FilePath "$bin\orders.exe" -WindowStyle Hidden `
     -RedirectStandardOutput "$out\svc-orders.log" -RedirectStandardError "$out\svc-orders.err" | Out-Null
 
@@ -109,6 +111,10 @@ $env:PORT = '18080'
 # Krome boevogo adresa razreshaem lokalnuyu razdachu: po ney idet otladka
 # s etogo kompyutera, poka domashniy router otdaet staryy adres homly.am.
 $env:ALLOW_ORIGIN = 'https://app.homly.am,https://app2.homly.am,http://localhost:18090,http://localhost:18091'
+# Na lokalnom stende vse proverki idut s odnogo IP, i boevoy limit v 100
+# zaprosov na minutu ostanavlivaet ih na polputi. Sam limit ostaetsya v boyu -
+# menyaem tolko lokalnoe znachenie.
+$env:RATE_LIMIT = '5000'
 $env:JWKS_URL = 'http://127.0.0.1:18081/.well-known/jwks.json'
 $env:IDENTITY_URL = 'http://127.0.0.1:18081'
 $env:NOTIFICATIONS_URL = 'http://127.0.0.1:18082'

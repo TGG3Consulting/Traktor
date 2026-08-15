@@ -36,6 +36,9 @@ func (s *Service) MakeOffer(ctx context.Context, ownerID, jobID string, in Offer
 	if err := job.CanAcceptOffers(j); err != nil {
 		return nil, err
 	}
+	if err := s.checkUnit(ctx, ownerID, in.UnitID); err != nil {
+		return nil, err
+	}
 
 	price := in.Price
 	if in.Kind == job.OfferAccept && j.BudgetAmount != nil {

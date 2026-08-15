@@ -35,6 +35,11 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/{id}", s.byID)
 	})
 
+	// Внутренний доступ для других сервисов: orders проверяет, что ставка
+	// сделана своей активной техникой (ТЗ §2.9). Наружу gateway этот путь не
+	// проксирует — сеть между сервисами приватная.
+	r.Get("/internal/equipment/{id}", s.internalEquipment)
+
 	// Техника исполнителя (ТЗ §2.5).
 	r.Route("/v1/equipment", func(r chi.Router) {
 		r.Get("/my", s.myEquipment)

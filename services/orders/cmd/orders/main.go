@@ -19,6 +19,7 @@ import (
 	"traktor/orders/internal/httpapi"
 	"traktor/orders/internal/notify"
 	"traktor/orders/internal/profiles"
+	"traktor/orders/internal/units"
 	"traktor/orders/internal/service"
 	"traktor/orders/internal/store"
 )
@@ -61,7 +62,15 @@ func run(log *slog.Logger) error {
 		log.Warn("IDENTITY_URL не задан: в списках будут обезличенные подписи")
 	}
 
-	svc := service.NewFull(st, time.Now, notifier, people)
+	var machines units.Client = units.Noop{}
+	if cfg.CatalogURL != "" {
+		machines = units.NewHTTP(cfg.CatalogURL)
+		log.Info("проверка техники включена", "catalog", cfg.CatalogURL)
+	} else {
+		log.Warn("CATALOG_URL не задан: технику в откликах не проверяем")
+	}
+
+	svc := service.NewWithUnits(st, time.Now, notifier, people, machines)
 
 	// Фоновый обработчик доводит до конца то, что зависит от времени: финиш
 	// аукциона, окно решения заказчика, автоприёмка работы.

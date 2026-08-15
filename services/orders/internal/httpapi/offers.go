@@ -190,6 +190,11 @@ func (s *Server) counterOffer(w http.ResponseWriter, r *http.Request) {
 // можно показать человеку без перевода.
 func failOffer(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, job.ErrUnitForeign):
+		problem(w, http.StatusForbidden, "unit_foreign", "это чужая техника")
+	case errors.Is(err, job.ErrUnitInactive):
+		problem(w, http.StatusConflict, "unit_inactive",
+			"техника не опубликована — закончите её карточку в разделе «Моя техника»")
 	case errors.Is(err, job.ErrOfferNotFound):
 		problem(w, http.StatusNotFound, "offer_not_found", "предложение не найдено")
 	case errors.Is(err, job.ErrOwnJob):

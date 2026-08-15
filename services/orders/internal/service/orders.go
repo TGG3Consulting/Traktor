@@ -16,6 +16,7 @@ import (
 	"traktor/orders/internal/job"
 	"traktor/orders/internal/notify"
 	"traktor/orders/internal/profiles"
+	"traktor/orders/internal/units"
 	"traktor/orders/internal/store"
 )
 
@@ -26,6 +27,9 @@ type Service struct {
 	now      func() time.Time
 	notify   notify.Notifier
 	profiles profiles.Client
+	// units — техника исполнителя из catalog: ставку принимаем только своей
+	// активной машиной (ТЗ §2.9).
+	units units.Client
 }
 
 func New(st store.Store, now func() time.Time) *Service {
@@ -40,6 +44,12 @@ func NewWithNotifier(st store.Store, now func() time.Time, n notify.Notifier) *S
 // NewFull — сервис со всеми зависимостями: хранилище, часы, уведомления и
 // карточки пользователей из identity.
 func NewFull(st store.Store, now func() time.Time, n notify.Notifier, p profiles.Client) *Service {
+	return NewWithUnits(st, now, n, p, units.Noop{})
+}
+
+// NewWithUnits — полный набор зависимостей, включая справку по технике.
+func NewWithUnits(st store.Store, now func() time.Time, n notify.Notifier,
+	p profiles.Client, u units.Client) *Service {
 	if now == nil {
 		now = time.Now
 	}
@@ -49,7 +59,33 @@ func NewFull(st store.Store, now func() time.Time, n notify.Notifier, p profiles
 	if p == nil {
 		p = profiles.Noop{}
 	}
-	return &Service{st: st, now: now, notify: n, profiles: p}
+	if u == nil {
+		u = units.Noop{}
+	}
+	return &Service{st: st, now: now, notify: n, profiles: p, units: u}
+}
+
+// checkUnit проверяет технику, которой откликаются или делают ставку.
+//
+// Пустой идентификатор допустим: часть заданий «исполнитель предложит технику»,
+// да и каталог может быть недоступен — тогда мы не мешаем работать. Но если
+// техника указана, она должна быть своей и активной, иначе ставка выглядит
+// подтверждённой машиной, которой у человека нет (ТЗ §2.5, §2.9).
+func (s *Service) checkUnit(ctx context.Context, ownerID string, unitID *string) error {
+	if unitID == nil || *unitID == "" {
+		return nil
+	}
+	u, ok := s.units.ByID(ctx, *unitID)
+	if !ok {
+		return nil
+	}
+	if u.OwnerID != ownerID {
+		return job.ErrUnitForeign
+	}
+	if !u.Active {
+		return job.ErrUnitInactive
+	}
+	return nil
 }
 
 // Profiles отдаёт карточки участников по идентификаторам — HTTP-слой

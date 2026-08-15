@@ -128,6 +128,11 @@ func (s *Server) finishAuction(w http.ResponseWriter, r *http.Request) {
 
 func failBid(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, job.ErrUnitForeign):
+		problem(w, http.StatusForbidden, "unit_foreign", "это чужая техника")
+	case errors.Is(err, job.ErrUnitInactive):
+		problem(w, http.StatusConflict, "unit_inactive",
+			"техника не опубликована — закончите её карточку в разделе «Моя техника»")
 	case errors.Is(err, job.ErrBidNotFound):
 		problem(w, http.StatusNotFound, "bid_not_found", "ставка не найдена")
 	case errors.Is(err, job.ErrNotAuction):

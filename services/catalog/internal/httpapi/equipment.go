@@ -194,6 +194,26 @@ func (s *Server) equipmentByID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, list[0])
 }
 
+// internalEquipment — короткая карточка для других сервисов: кому машина
+// принадлежит, активна ли она и к какой категории относится. Личные данные
+// (документы, тарифы) здесь не нужны, поэтому и не отдаются.
+func (s *Server) internalEquipment(w http.ResponseWriter, r *http.Request) {
+	e, err := s.st.EquipmentByID(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		failEquipment(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"id":         e.ID,
+		"ownerId":    e.OwnerID,
+		"categoryId": e.CategoryID,
+		"status":     e.Status,
+		"active":     e.Active(),
+		"title":      e.Title(),
+		"verified":   e.Status == catalog.StatusVerified,
+	})
+}
+
 // mine достаёт технику и проверяет, что она принадлежит запрашивающему.
 func (s *Server) mine(w http.ResponseWriter, r *http.Request) (*catalog.Equipment, bool) {
 	owner := r.Header.Get(userHeader)

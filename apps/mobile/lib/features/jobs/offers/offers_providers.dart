@@ -52,6 +52,7 @@ class OfferActions {
     required int price,
     String comment = '',
     String eta = '',
+    String? unitId,
   }) async {
     final offer = await _refresher.run((t) => _api.makeOffer(
           t,
@@ -60,6 +61,7 @@ class OfferActions {
           price: price,
           comment: comment,
           eta: eta,
+          unitId: unitId,
           idempotencyKey: _key('offer', jobId),
         ));
     _refreshAll(jobId);

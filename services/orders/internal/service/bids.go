@@ -61,6 +61,9 @@ func (s *Service) PlaceBid(ctx context.Context, ownerID, jobID string, in BidInp
 	if err := job.ValidateBid(in.Price, best, start); err != nil {
 		return nil, err
 	}
+	if err := s.checkUnit(ctx, ownerID, in.UnitID); err != nil {
+		return nil, err
+	}
 
 	// Прежняя ставка этого исполнителя уходит в историю: в ленте торга у
 	// каждого одна действующая цена.

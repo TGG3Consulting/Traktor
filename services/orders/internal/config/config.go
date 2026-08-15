@@ -14,6 +14,8 @@ type Config struct {
 	// IdentityURL пуст → в списках останутся обезличенные подписи.
 	// Задан → orders подтягивает имена участников из identity.
 	IdentityURL string
+	// CatalogURL пуст → технику в откликах не проверяем.
+	CatalogURL string
 }
 
 func Load() *Config {
@@ -22,6 +24,7 @@ func Load() *Config {
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		NotificationsURL: os.Getenv("NOTIFICATIONS_URL"),
 		IdentityURL:      os.Getenv("IDENTITY_URL"),
+		CatalogURL:       os.Getenv("CATALOG_URL"),
 	}
 }
 
