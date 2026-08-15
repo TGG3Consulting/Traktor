@@ -56,6 +56,11 @@ type Store interface {
 	GetOTP(ctx context.Context, phone string) (*OTP, error)
 	DeleteOTP(ctx context.Context, phone string) error
 
+	// CountUsers — регистрации за период. Нужен сводке площадки в orders:
+	// пользователи живут здесь, и считать их должен тот, кто ими владеет
+	// (правило 12: cross-schema JOIN запрещён).
+	CountUsers(ctx context.Context, from, to time.Time) (int, error)
+
 	GetUserByPhone(ctx context.Context, phone string) (*User, error)
 	GetUserByID(ctx context.Context, id string) (*User, error)
 	CreateUser(ctx context.Context, u User) error

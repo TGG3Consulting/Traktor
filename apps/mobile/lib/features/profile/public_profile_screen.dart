@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_settings.dart';
+import '../auth/auth_controller.dart';
+import '../complaints/complaint_sheet.dart';
 import '../jobs/jobs_providers.dart';
 import '../reviews/review_providers.dart';
 
@@ -45,6 +47,29 @@ class PublicProfileScreen extends ConsumerWidget {
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
+        actions: [
+          // Пожаловаться на человека (ТЗ §4.1, п.6). На себя — незачем,
+          // гостю сначала нужно войти.
+          if (ref.watch(sessionProvider)?.user.id case final me?
+              when me.isNotEmpty && me != userId)
+            IconButton(
+              tooltip: 'Пожаловаться',
+              onPressed: () async {
+                final sent = await showComplaintSheet(
+                  context,
+                  targetKind: 'user',
+                  targetId: userId,
+                  targetTitle: profile.valueOrNull?.name ?? '',
+                );
+                if (sent == true && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Жалоба отправлена модерации')),
+                  );
+                }
+              },
+              icon: TkIcon(TkIcons.flag, size: 20, color: scheme.onSurfaceVariant),
+            ),
+        ],
       ),
       body: profile.when(
         loading: () => const TkSkeletonList(count: 2),

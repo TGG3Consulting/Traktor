@@ -134,6 +134,8 @@ func run(log *slog.Logger) error {
 		// споры — в заказах. Роутер выбирает самый длинный совпавший префикс.
 		{Prefix: "/v1/moderation/equipment", Upstream: cfg.CatalogURL},
 		{Prefix: "/v1/moderation/disputes", Upstream: cfg.OrdersURL},
+		{Prefix: "/v1/moderation/complaints", Upstream: cfg.OrdersURL},
+		{Prefix: "/v1/moderation/dashboard", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/media", Upstream: cfg.MediaURL},
 		{Prefix: "/v1/jobs", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/offers", Upstream: cfg.OrdersURL},
@@ -142,6 +144,7 @@ func run(log *slog.Logger) error {
 		{Prefix: "/v1/chats", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/crm", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/reviews", Upstream: cfg.OrdersURL},
+		{Prefix: "/v1/complaints", Upstream: cfg.OrdersURL},
 		{Prefix: "/.well-known/", Upstream: cfg.IdentityURL},
 	})
 	if err != nil {

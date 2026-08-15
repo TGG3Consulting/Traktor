@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"sync"
+	"time"
 )
 
 // Memory — потокобезопасная in-memory реализация Store для dev/тестов.
@@ -122,4 +123,17 @@ func (m *Memory) RevokeFamily(_ context.Context, familyID string) error {
 		}
 	}
 	return nil
+}
+
+// CountUsers — регистрации за период.
+func (m *Memory) CountUsers(_ context.Context, from, to time.Time) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	n := 0
+	for _, u := range m.usersByID {
+		if !u.CreatedAt.Before(from) && !u.CreatedAt.After(to) {
+			n++
+		}
+	}
+	return n, nil
 }

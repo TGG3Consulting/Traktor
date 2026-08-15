@@ -105,6 +105,16 @@ func (s *Server) Routes() http.Handler {
 		r.Use(s.requireUser, s.requireModerator)
 		r.Get("/disputes", s.disputeQueue)
 		r.Post("/disputes/{id}/resolve", s.resolveDispute)
+		r.Get("/complaints", s.complaintQueue)
+		r.Post("/complaints/{id}/review", s.reviewComplaint)
+		// Сводка площадки: регистрации, задания, оборот, конверсия (§4.1, п.1).
+		r.Get("/dashboard", s.dashboard)
+	})
+
+	// Жалобы на контент (§4.1, п.6): подать может любой вошедший.
+	r.Route("/v1/complaints", func(r chi.Router) {
+		r.Use(s.requireUser)
+		r.Post("/", s.complain)
 	})
 
 	// Отзывы: публичная карточка человека и ответ на отзыв о себе.

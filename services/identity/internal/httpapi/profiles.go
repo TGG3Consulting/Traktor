@@ -3,6 +3,7 @@ package httpapi
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -71,4 +72,22 @@ func (s *Server) publicProfile(w http.ResponseWriter, r *http.Request) {
 		"verified":  u.Verified,
 		"createdAt": u.CreatedAt,
 	})
+}
+
+// userStats — GET /internal/stats/users?from=&to=. Регистрации за период для
+// сводки площадки (ТЗ §4.1, п.1). Внутренний маршрут: наружу не проксируется,
+// отдаёт одно число и ничего о конкретных людях.
+func (s *Server) userStats(w http.ResponseWriter, r *http.Request) {
+	from, err1 := time.Parse(time.RFC3339, r.URL.Query().Get("from"))
+	to, err2 := time.Parse(time.RFC3339, r.URL.Query().Get("to"))
+	if err1 != nil || err2 != nil {
+		problem(w, http.StatusBadRequest, "Нужны from и to в формате RFC3339")
+		return
+	}
+	n, err := s.auth.Store().CountUsers(r.Context(), from, to)
+	if err != nil {
+		problem(w, http.StatusInternalServerError, "Не удалось посчитать регистрации")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"users": n})
 }

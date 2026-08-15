@@ -1928,6 +1928,116 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /complaints:
+    post:
+      tags: [orders]
+      summary: Пожаловаться на задание или человека (ТЗ §4.1, п.6)
+      description: >
+        Пока пожаловаться некуда, единственная реакция на обман — уйти с
+        площадки. Один человек — одна открытая жалоба на объект: повторные
+        только раздувают очередь.
+      operationId: complain
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetKind, targetId, reason]
+              properties:
+                targetKind: { type: string, enum: [job, user] }
+                targetId: { type: string, format: uuid }
+                reason: { type: string, minLength: 10, maxLength: 500 }
+      responses:
+        "201":
+          description: Жалоба принята
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Complaint" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /moderation/complaints:
+    get:
+      tags: [orders]
+      summary: Очередь жалоб (ТЗ §4.1, п.6)
+      description: >
+        Доступно роли moderator или admin. Старые сверху. Поле sameTarget —
+        сколько всего жалоб на этот объект: одна может быть сведением счётов,
+        пять — уже сигнал.
+      operationId: complaintQueue
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 50 } }
+      responses:
+        "200":
+          description: Очередь
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Complaint" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /moderation/complaints/{id}/review:
+    post:
+      tags: [orders]
+      summary: Решение по жалобе
+      description: >
+        removed снимает задание с площадки, warned выносит человеку
+        предупреждение, dismissed закрывает жалобу без последствий. Автор
+        жалобы узнаёт о решении — иначе в следующий раз он не пожалуется,
+        а уйдёт.
+      operationId: reviewComplaint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [dismissed, removed, warned] }
+                note: { type: string, maxLength: 500 }
+      responses:
+        "200":
+          description: Жалоба разобрана
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Complaint" }
+        "400": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /moderation/dashboard:
+    get:
+      tags: [orders]
+      summary: Сводка площадки (ТЗ §4.1, п.1)
+      description: >
+        Регистрации, задания, сделки, оборот и конверсия задание→сделка за
+        период, плюс такой же предыдущий отрезок для сравнения. Без сводки
+        владелец узнаёт о проблеме от тех, кто уже ушёл.
+      operationId: platformDashboard
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: days, in: query, schema: { type: integer, default: 30, maximum: 365 } }
+      responses:
+        "200":
+          description: Сводка
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlatformStats" }
+        "403": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2348,3 +2458,46 @@ components:
         title: { type: string }
         status: { type: integer }
         detail: { type: string, description: "человекочитаемо, годится в тост" }
+
+    Complaint:
+      type: object
+      description: Жалоба на задание или человека (ТЗ §4.1, п.6).
+      properties:
+        id: { type: string, format: uuid }
+        targetKind: { type: string, enum: [job, user] }
+        targetId: { type: string, format: uuid }
+        targetTitle: { type: string, description: Название задания или имя человека }
+        reason: { type: string }
+        authorName: { type: string }
+        route: { type: string, description: Куда перейти, чтобы посмотреть спорный контент }
+        sameTarget: { type: integer, description: Сколько всего жалоб на этот объект }
+        status: { type: string, enum: [open, reviewed] }
+        action: { type: string, enum: [dismissed, removed, warned] }
+        createdAt: { type: string, format: date-time }
+        reviewedAt: { type: string, format: date-time }
+
+    PlatformStats:
+      type: object
+      description: Сводка площадки за период (ТЗ §4.1, п.1).
+      properties:
+        days: { type: integer }
+        from: { type: string, format: date-time }
+        to: { type: string, format: date-time }
+        users: { type: integer, description: Регистрации за период (из identity) }
+        jobs: { type: integer, description: Опубликованные задания }
+        deals: { type: integer }
+        completed: { type: integer }
+        gmv: { type: integer, format: int64, description: Оборот по завершённым сделкам, драмы }
+        avgCheck: { type: integer, format: int64 }
+        conversion: { type: integer, description: "Доля заданий, дошедших до сделки, в процентах" }
+        openDisputes: { type: integer }
+        openComplaints: { type: integer }
+        prev:
+          type: object
+          description: Предыдущий такой же отрезок — цифра без сравнения ничего не значит.
+          properties:
+            users: { type: integer }
+            jobs: { type: integer }
+            deals: { type: integer }
+            gmv: { type: integer, format: int64 }
+            conversion: { type: integer }

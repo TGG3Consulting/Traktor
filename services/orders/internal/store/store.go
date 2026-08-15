@@ -96,6 +96,15 @@ type Store interface {
 	// OpenDisputes — очередь модерации, старые сверху.
 	OpenDisputes(ctx context.Context, limit int) ([]job.Dispute, error)
 
+	// ── жалобы и сводка площадки (ТЗ §4.1, п.1 и 6) ──────────────────────────
+	CreateComplaint(ctx context.Context, c *job.Complaint) error
+	UpdateComplaint(ctx context.Context, c *job.Complaint) error
+	ComplaintByID(ctx context.Context, id string) (*job.Complaint, error)
+	// OpenComplaints — очередь модерации со счётчиком жалоб на тот же объект.
+	OpenComplaints(ctx context.Context, limit int) ([]job.Complaint, error)
+	// PlatformStats — сводка за период: задания, сделки, оборот, очереди.
+	PlatformStats(ctx context.Context, from, to time.Time) (job.PlatformStats, error)
+
 	// ── ставки аукциона (ТЗ §2.9) ────────────────────────────────────────────
 	CreateBid(ctx context.Context, b *job.Bid) error
 	UpdateBid(ctx context.Context, b *job.Bid) error

@@ -16,6 +16,8 @@ import '../features/jobs/deal/deal_screen.dart';
 import '../features/jobs/job_detail_screen.dart';
 import '../features/jobs/offers/offers_screen.dart';
 import '../features/crm/business_screen.dart';
+import '../features/complaints/complaint_queue_screen.dart';
+import '../features/complaints/dashboard_screen.dart';
 import '../features/disputes/dispute_queue_screen.dart';
 import '../features/crm/calendar_screen.dart';
 import '../features/crm/spending_screen.dart';
@@ -100,6 +102,12 @@ final appRouter = GoRouter(
 
     // Очередь споров (ТЗ §4.1) — доступна модерации.
     GoRoute(path: '/moderation/disputes', builder: (_, __) => const DisputeQueueScreen()),
+
+    // Очередь жалоб на контент (ТЗ §4.1, п.6) — доступна модерации.
+    GoRoute(path: '/moderation/complaints', builder: (_, __) => const ComplaintQueueScreen()),
+
+    // Сводка площадки (ТЗ §4.1, п.1) — доступна модерации.
+    GoRoute(path: '/moderation/dashboard', builder: (_, __) => const DashboardScreen()),
 
     // Очередь проверки техники (ТЗ §4.1) — доступна модерации.
     GoRoute(path: '/moderation', builder: (_, __) => const ModerationScreen()),

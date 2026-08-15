@@ -1224,3 +1224,128 @@ class Dispute {
         resolvedAt: DateTime.tryParse(j['resolvedAt'] as String? ?? '')?.toLocal(),
       );
 }
+
+/// Жалоба на задание или человека (ТЗ §4.1, п.6).
+///
+/// Пока пожаловаться некуда, единственная реакция на обман — уйти с площадки.
+class Complaint {
+  const Complaint({
+    required this.id,
+    this.targetKind = 'job',
+    this.targetId = '',
+    this.targetTitle = '',
+    this.reason = '',
+    this.authorName = '',
+    this.route = '',
+    this.sameTarget = 0,
+    this.status = 'open',
+    this.action = '',
+    this.createdAt,
+  });
+
+  final String id;
+
+  /// job — задание, user — человек.
+  final String targetKind;
+  final String targetId;
+  final String targetTitle;
+  final String reason;
+  final String authorName;
+
+  /// Куда перейти, чтобы посмотреть спорный контент.
+  final String route;
+
+  /// Сколько всего жалоб на этот объект: одна может быть сведением счётов,
+  /// пять — уже сигнал.
+  final int sameTarget;
+
+  final String status;
+  final String action;
+  final DateTime? createdAt;
+
+  bool get isJob => targetKind == 'job';
+
+  String get targetLabel => isJob ? 'Задание' : 'Пользователь';
+
+  factory Complaint.fromJson(Map<String, dynamic> j) => Complaint(
+        id: j['id'] as String? ?? '',
+        targetKind: j['targetKind'] as String? ?? 'job',
+        targetId: j['targetId'] as String? ?? '',
+        targetTitle: j['targetTitle'] as String? ?? '',
+        reason: j['reason'] as String? ?? '',
+        authorName: j['authorName'] as String? ?? '',
+        route: j['route'] as String? ?? '',
+        sameTarget: (j['sameTarget'] as num?)?.toInt() ?? 0,
+        status: j['status'] as String? ?? 'open',
+        action: j['action'] as String? ?? '',
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+      );
+}
+
+/// Сводка площадки за период (ТЗ §4.1, п.1).
+///
+/// Без неё владелец узнаёт о проблеме от тех, кто уже ушёл.
+class PlatformStats {
+  const PlatformStats({
+    this.days = 30,
+    this.users = 0,
+    this.jobs = 0,
+    this.deals = 0,
+    this.completed = 0,
+    this.gmv = 0,
+    this.avgCheck = 0,
+    this.conversion = 0,
+    this.openDisputes = 0,
+    this.openComplaints = 0,
+    this.prevUsers = 0,
+    this.prevJobs = 0,
+    this.prevDeals = 0,
+    this.prevGmv = 0,
+    this.prevConversion = 0,
+  });
+
+  final int days;
+  final int users;
+  final int jobs;
+  final int deals;
+  final int completed;
+  final int gmv;
+
+  /// Средний чек по завершённым сделкам.
+  final int avgCheck;
+
+  /// Доля заданий, дошедших до сделки, в процентах.
+  final int conversion;
+
+  final int openDisputes;
+  final int openComplaints;
+
+  /// Предыдущий такой же отрезок: цифра без сравнения ничего не значит.
+  final int prevUsers;
+  final int prevJobs;
+  final int prevDeals;
+  final int prevGmv;
+  final int prevConversion;
+
+  factory PlatformStats.fromJson(Map<String, dynamic> j) {
+    final prev = ((j['prev'] as Map?) ?? const {}).cast<String, dynamic>();
+    int n(Map<String, dynamic> m, String k) => (m[k] as num?)?.toInt() ?? 0;
+    return PlatformStats(
+      days: n(j, 'days'),
+      users: n(j, 'users'),
+      jobs: n(j, 'jobs'),
+      deals: n(j, 'deals'),
+      completed: n(j, 'completed'),
+      gmv: n(j, 'gmv'),
+      avgCheck: n(j, 'avgCheck'),
+      conversion: n(j, 'conversion'),
+      openDisputes: n(j, 'openDisputes'),
+      openComplaints: n(j, 'openComplaints'),
+      prevUsers: n(prev, 'users'),
+      prevJobs: n(prev, 'jobs'),
+      prevDeals: n(prev, 'deals'),
+      prevGmv: n(prev, 'gmv'),
+      prevConversion: n(prev, 'conversion'),
+    );
+  }
+}

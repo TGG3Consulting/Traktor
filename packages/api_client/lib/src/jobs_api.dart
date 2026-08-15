@@ -799,4 +799,57 @@ class JobsApi {
     );
     return Job.fromJson(_handle(resp));
   }
+
+  // ── жалобы и сводка площадки (ТЗ §4.1, п.1 и 6) ────────────────────────────
+
+  /// POST /complaints — пожаловаться на задание или человека.
+  Future<Complaint> complain(
+    String token, {
+    required String targetKind,
+    required String targetId,
+    required String reason,
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.post(
+      _u('/complaints'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({
+        'targetKind': targetKind,
+        'targetId': targetId,
+        'reason': reason,
+      }),
+    );
+    return Complaint.fromJson(_handle(resp));
+  }
+
+  /// GET /moderation/complaints — очередь жалоб, старые сверху.
+  Future<List<Complaint>> complaintQueue(String token) async {
+    final resp = await _http.get(_u('/moderation/complaints'), headers: _headers(token));
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => Complaint.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// POST /moderation/complaints/{id}/review — решение по жалобе.
+  Future<Complaint> reviewComplaint(
+    String token,
+    String complaintId, {
+    required String action,
+    required String note,
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.post(
+      _u('/moderation/complaints/$complaintId/review'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'action': action, 'note': note}),
+    );
+    return Complaint.fromJson(_handle(resp));
+  }
+
+  /// GET /moderation/dashboard — сводка площадки за период.
+  Future<PlatformStats> dashboard(String token, {int days = 30}) async {
+    final resp = await _http.get(_u('/moderation/dashboard?days=$days'),
+        headers: _headers(token));
+    return PlatformStats.fromJson(_handle(resp));
+  }
 }

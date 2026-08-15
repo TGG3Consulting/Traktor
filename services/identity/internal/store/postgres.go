@@ -10,6 +10,8 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -170,3 +172,15 @@ func (p *Postgres) RevokeFamily(ctx context.Context, familyID string) error {
 
 // Убеждаемся на этапе компиляции, что контракт Store реализован полностью.
 var _ Store = (*Postgres)(nil)
+
+// CountUsers — регистрации за период.
+func (p *Postgres) CountUsers(ctx context.Context, from, to time.Time) (int, error) {
+	var n int
+	err := p.pool.QueryRow(ctx,
+		`SELECT COUNT(*) FROM identity.users WHERE created_at BETWEEN $1 AND $2`,
+		from, to).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("identity: подсчёт регистраций: %w", err)
+	}
+	return n, nil
+}

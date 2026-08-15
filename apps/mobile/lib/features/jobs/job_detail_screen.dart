@@ -10,6 +10,7 @@ import '../../core/session_refresh.dart';
 import '../auth/auth_controller.dart';
 import 'deal/deal_providers.dart';
 import '../chat/open_chat.dart';
+import '../complaints/complaint_sheet.dart';
 import 'jobs_providers.dart';
 import 'offers/offer_sheet.dart';
 import 'offers/offers_providers.dart';
@@ -39,6 +40,30 @@ class JobDetailScreen extends ConsumerWidget {
           icon: TkIcon(TkIcons.arrowLeft, size: 20,
               color: Theme.of(context).colorScheme.onSurface),
         ),
+        actions: [
+          // Пожаловаться на чужое задание (ТЗ §4.1, п.6). На своё жаловаться
+          // незачем, гостю сначала нужно войти — поэтому кнопка появляется
+          // только у вошедшего и не у автора.
+          if (myId.isNotEmpty && job.valueOrNull != null && job.value!.clientId != myId)
+            IconButton(
+              tooltip: 'Пожаловаться',
+              onPressed: () async {
+                final sent = await showComplaintSheet(
+                  context,
+                  targetKind: 'job',
+                  targetId: job.value!.id,
+                  targetTitle: job.value!.title,
+                );
+                if (sent == true && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Жалоба отправлена модерации')),
+                  );
+                }
+              },
+              icon: TkIcon(TkIcons.flag, size: 20,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+        ],
       ),
       body: job.when(
         loading: () => const TkSkeletonList(count: 2),

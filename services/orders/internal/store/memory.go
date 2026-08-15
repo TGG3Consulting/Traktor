@@ -27,6 +27,7 @@ type Memory struct {
 	reviews  map[string]job.Review      // взаимные оценки по сделкам
 	busyDays map[string]string          // «не работаю»: владелец+день → пометка
 	disputes map[string]job.Dispute     // споры по сделкам
+	complaints map[string]job.Complaint // жалобы на задания и людей
 	views    map[string]map[string]bool // jobID → кто смотрел
 	idemp    map[string]string          // ключ идемпотентности → jobID
 }
@@ -43,6 +44,7 @@ func NewMemory() *Memory {
 		reviews:  map[string]job.Review{},
 		busyDays: map[string]string{},
 		disputes: map[string]job.Dispute{},
+		complaints: map[string]job.Complaint{},
 		views:    map[string]map[string]bool{},
 		idemp:    map[string]string{},
 	}
