@@ -85,7 +85,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               leading: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: TkCreateButton(
-                  tooltip: isClient ? 'Создать заказ' : 'Добавить технику',
+                  tooltip: isClient ? l.createOrder : l.addMachine,
                   onPressed: () => _onCreate(context, isClient),
                 ),
               ),
@@ -107,7 +107,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     return Scaffold(
       body: content,
       floatingActionButton: TkCreateButton(
-        tooltip: isClient ? 'Создать заказ' : 'Добавить технику',
+        tooltip: isClient ? l.createOrder : l.addMachine,
         onPressed: () => _onCreate(context, isClient),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -123,6 +123,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   /// добавление техники. Экраны этих сценариев делаются в соответствующих
   /// модулях; пока раздел не готов, честно говорим об этом, а не молчим.
   Future<void> _onCreate(BuildContext context, bool isClient) async {
+    final l = AppLocalizations.of(context);
     if (!isClient) {
       context.push('/equipment/new');
       return;
@@ -136,18 +137,19 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ref.read(wizardControllerProvider.notifier).startNew();
         context.go('/jobs/create/1');
       case TkOrderType.rental:
-        _notReady(context, 'Аренда техники');
+        _notReady(context, l.rentMachine);
       case TkOrderType.transport:
-        _notReady(context, 'Перевозка А→Б');
+        _notReady(context, l.transportAB);
       case TkOrderType.workers:
-        _notReady(context, 'Заказ разнорабочих');
+        _notReady(context, l.hireWorkers);
     }
   }
 
   void _notReady(BuildContext context, String what) {
+    final l = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$what — в работе, появится в следующем обновлении'),
+        content: Text(l.comingSoon(what)),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -167,6 +169,7 @@ class _ProfileTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final settings = ref.watch(appSettingsProvider);
     final ctrl = ref.read(appSettingsProvider.notifier);
     final isClient = settings.role != TkRole.owner;
@@ -174,13 +177,13 @@ class _ProfileTab extends ConsumerWidget {
     return ListView(
       padding: TkSpace.screenMobile,
       children: [
-        const Text('Профиль', style: TkText.h1),
+        Text(l.tabProfile, style: TkText.h1),
         const SizedBox(height: 16),
         // Переключатель роли (ТЗ §2.4) — мгновенно перестраивает таб-бар.
         SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(value: true, label: Text('Я заказчик')),
-            ButtonSegment(value: false, label: Text('Я исполнитель')),
+          segments: [
+            ButtonSegment(value: true, label: Text(l.iAmClient)),
+            ButtonSegment(value: false, label: Text(l.iAmOwner)),
           ],
           selected: {isClient},
           onSelectionChanged: (s) => ctrl.setRole(s.first ? TkRole.client : TkRole.owner),
@@ -191,7 +194,7 @@ class _ProfileTab extends ConsumerWidget {
             children: [
               ListTile(
                 leading: const TkIcon(TkIcons.moon),
-                title: const Text('Тёмная тема'),
+                title: Text(l.darkTheme),
                 trailing: Switch(
                   value: settings.themeMode == ThemeMode.dark,
                   onChanged: (_) => ctrl.toggleTheme(),
@@ -202,49 +205,49 @@ class _ProfileTab extends ConsumerWidget {
               if (ref.watch(isModeratorProvider)) ...[
                 ListTile(
                   leading: const TkIcon(TkIcons.shield),
-                  title: const Text('Проверка техники'),
+                  title: Text(l.modEquipment),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/moderation'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const TkIcon(TkIcons.scales),
-                  title: const Text('Споры'),
+                  title: Text(l.modDisputes),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/moderation/disputes'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const TkIcon(TkIcons.flag),
-                  title: const Text('Жалобы'),
+                  title: Text(l.modComplaints),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/moderation/complaints'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const TkIcon(TkIcons.idCard),
-                  title: const Text('Проверка людей'),
+                  title: Text(l.modVerifications),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/moderation/verifications'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const TkIcon(TkIcons.usersThree),
-                  title: const Text('Пользователи'),
+                  title: Text(l.modUsers),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/moderation/users'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const TkIcon(TkIcons.clipboardText),
-                  title: const Text('Справочник'),
+                  title: Text(l.modCatalog),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/moderation/catalog'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const TkIcon(TkIcons.chartLineUp),
-                  title: const Text('Сводка площадки'),
+                  title: Text(l.modDashboard),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/moderation/dashboard'),
                 ),
@@ -254,7 +257,7 @@ class _ProfileTab extends ConsumerWidget {
               if (isClient) ...[
                 ListTile(
                   leading: const TkIcon(TkIcons.chartBar),
-                  title: const Text('Мои расходы'),
+                  title: Text(l.mySpending),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/crm/spending'),
                 ),
@@ -264,21 +267,21 @@ class _ProfileTab extends ConsumerWidget {
               if (!isClient) ...[
                 ListTile(
                   leading: const TkIcon(TkIcons.chartBar),
-                  title: const Text('Мой бизнес'),
+                  title: Text(l.myBusiness),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/crm/business'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const TkIcon(TkIcons.calendar),
-                  title: const Text('Занятость'),
+                  title: Text(l.myCalendar),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/crm/calendar'),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const TkIcon(TkIcons.wrench),
-                  title: const Text('Моя техника'),
+                  title: Text(l.myEquipment),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/equipment'),
                 ),
@@ -289,8 +292,8 @@ class _ProfileTab extends ConsumerWidget {
               if (!(ref.watch(sessionProvider)?.user.verified ?? false)) ...[
                 ListTile(
                   leading: const TkIcon(TkIcons.idCard),
-                  title: const Text('Пройти проверку'),
-                  subtitle: const Text('Бейдж «Проверен» в карточке'),
+                  title: Text(l.passVerification),
+                  subtitle: Text(l.verifiedBadgeHint),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
                   onTap: () => context.push('/profile/verification'),
                 ),
@@ -298,14 +301,14 @@ class _ProfileTab extends ConsumerWidget {
               ],
               ListTile(
                 leading: const TkIcon(TkIcons.bell),
-                title: const Text('Уведомления'),
+                title: Text(l.notifications),
                 trailing: const TkIcon(TkIcons.caretRight, size: 16),
                 onTap: () => context.push('/settings/notifications'),
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const TkIcon(TkIcons.globe),
-                title: const Text('Язык'),
+                title: Text(l.languageLabel),
                 trailing: DropdownButton<String>(
                   value: (settings.locale ?? const Locale('ru')).languageCode,
                   underline: const SizedBox.shrink(),
@@ -327,8 +330,8 @@ class _ProfileTab extends ConsumerWidget {
           onPressed: () => context.push('/profile/delete'),
           child: Text(
             (ref.watch(sessionProvider)?.user.deleteAfter) == null
-                ? 'Удалить аккаунт'
-                : 'Аккаунт готовится к удалению',
+                ? l.deleteAccount
+                : l.deletionPending,
             style: TkText.caption.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
@@ -336,7 +339,7 @@ class _ProfileTab extends ConsumerWidget {
         const SizedBox(height: 4),
         // Выход из аккаунта: чистит локальную сессию, возвращает на онбординг.
         TkButton(
-          label: 'Выйти',
+          label: l.signOut,
           kind: TkButtonKind.ghost,
           onPressed: () async {
             await ref.read(authControllerProvider.notifier).logout();
