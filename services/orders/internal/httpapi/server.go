@@ -119,6 +119,9 @@ func (s *Server) Routes() http.Handler {
 		r.Use(s.requireUser)
 		r.Get("/business", s.business)
 		r.Get("/spending", s.spending)
+		r.Get("/calendar", s.calendar)
+		r.Post("/calendar", s.markBusy)
+		r.Delete("/calendar/{day}", s.unmarkBusy)
 	})
 
 	// Ставки исполнителя и решения заказчика по ним.

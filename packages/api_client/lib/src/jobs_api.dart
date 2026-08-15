@@ -351,6 +351,38 @@ class JobsApi {
     return Spending.fromJson(_handle(resp));
   }
 
+  /// GET /crm/calendar — занятость на месяц (ТЗ §3.1).
+  Future<List<BusyDay>> calendar(String token, {required String month}) async {
+    final resp = await _http.get(
+      _u('/crm/calendar', {'month': month}),
+      headers: _headers(token),
+    );
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => BusyDay.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// POST /crm/calendar — отметить день «не работаю».
+  Future<void> markBusy(String token, String day,
+      {String note = '', required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/crm/calendar'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({'day': day, 'note': note}),
+    );
+    _handle(resp);
+  }
+
+  /// DELETE /crm/calendar/{day} — снять свою отметку.
+  Future<void> unmarkBusy(String token, String day,
+      {required String idempotencyKey}) async {
+    final resp = await _http.delete(
+      _u('/crm/calendar/$day'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    if (resp.statusCode >= 300 && resp.statusCode != 204) _handle(resp);
+  }
+
   // ── модерация техники (ТЗ §4.1) ────────────────────────────────────────────
 
   /// GET /moderation/equipment — очередь проверки, старые сверху.

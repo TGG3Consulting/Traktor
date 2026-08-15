@@ -72,6 +72,14 @@ type Store interface {
 	FunnelOf(ctx context.Context, ownerID string, from, to time.Time) (job.Funnel, error)
 	ClientsOf(ctx context.Context, ownerID string, from, to time.Time, limit int) ([]job.Client, error)
 
+	// Календарь занятости (ТЗ §3.1).
+	// BusyByDeals — дни, занятые подтверждёнными сделками.
+	BusyByDeals(ctx context.Context, ownerID string, from, to time.Time) ([]job.BusyDay, error)
+	// ManualBusy — дни, отмеченные вручную («не работаю»).
+	ManualBusy(ctx context.Context, ownerID string, from, to time.Time) ([]job.BusyDay, error)
+	SetBusyDay(ctx context.Context, ownerID string, day time.Time, note string) error
+	ClearBusyDay(ctx context.Context, ownerID string, day time.Time) error
+
 	// CRM заказчика (ТЗ §3.2).
 	SpendingOf(ctx context.Context, clientID string, from, to time.Time) (int64, int, error)
 	SpendingByCategory(ctx context.Context, clientID string, from, to time.Time) ([]job.CategorySpend, error)

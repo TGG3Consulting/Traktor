@@ -25,6 +25,7 @@ type Memory struct {
 	// и без него три сообщения одной минуты выстраиваются как попало.
 	msgSeq map[string]int
 	reviews  map[string]job.Review      // взаимные оценки по сделкам
+	busyDays map[string]string          // «не работаю»: владелец+день → пометка
 	views    map[string]map[string]bool // jobID → кто смотрел
 	idemp    map[string]string          // ключ идемпотентности → jobID
 }
@@ -39,6 +40,7 @@ func NewMemory() *Memory {
 		messages: map[string]job.Message{},
 		msgSeq:   map[string]int{},
 		reviews:  map[string]job.Review{},
+		busyDays: map[string]string{},
 		views:    map[string]map[string]bool{},
 		idemp:    map[string]string{},
 	}

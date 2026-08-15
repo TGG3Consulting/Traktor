@@ -1735,6 +1735,71 @@ paths:
         "400": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
 
+  /crm/calendar:
+    get:
+      tags: [orders]
+      summary: Календарь занятости исполнителя (ТЗ §3.1)
+      description: >
+        Дни с подтверждёнными сделками и собственные отметки «не работаю» в
+        одном списке. День со сделкой сильнее своей пометки: работу уже
+        подтвердили.
+      operationId: calendar
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: month
+          in: query
+          schema: { type: string, example: "2026-08" }
+      responses:
+        "200":
+          description: Занятость месяца
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  month: { type: string }
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/BusyDay" }
+    post:
+      tags: [orders]
+      summary: Отметить день «не работаю»
+      description: >
+        Отпуск, ремонт техники, занятость на стороне. Такие дни учитываются при
+        ставке: без них человек получает работу на даты, в которые не выйдет.
+      operationId: markBusy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [day]
+              properties:
+                day: { type: string, example: "2026-08-20" }
+                note: { type: string, example: "ремонт техники" }
+      responses:
+        "200":
+          description: Отмечено
+
+  /crm/calendar/{day}:
+    delete:
+      tags: [orders]
+      summary: Снять свою отметку с дня
+      description: >
+        Дни со сделками так не снимаются: их занятость определяется работой.
+      operationId: unmarkBusy
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: day, in: path, required: true, schema: { type: string, example: "2026-08-20" } }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204":
+          description: Отметка снята
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1791,6 +1856,17 @@ components:
           description: "route — куда вести по нажатию, плюс данные экрана"
         read: { type: boolean }
         createdAt: { type: string, format: date-time }
+    BusyDay:
+      type: object
+      properties:
+        day: { type: string, example: "2026-08-20" }
+        source:
+          type: string
+          enum: [deal, manual]
+          description: "deal — занят сделкой, manual — отметил сам"
+        note: { type: string }
+        dealId: { type: string, format: uuid }
+        title: { type: string }
     Equipment:
       type: object
       required: [id, status]

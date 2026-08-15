@@ -167,3 +167,40 @@ func (s Spending) Delta() (percent int, comparable bool) {
 	diff := float64(s.Spent-s.PrevSpent) / float64(s.PrevSpent) * 100
 	return int(diff), true
 }
+
+// BusyDay — день, в который исполнитель не работает или уже занят (ТЗ §3.1).
+type BusyDay struct {
+	Day time.Time `json:"day"`
+	// Source: deal — день занят подтверждённой сделкой, manual — человек
+	// отметил его сам. Разделение важно: сделку из календаря не убрать,
+	// а свою пометку — можно.
+	Source string `json:"source"`
+	Note   string `json:"note,omitempty"`
+	// DealID заполняется у дней, занятых сделкой: по нему открывается сделка.
+	DealID string `json:"dealId,omitempty"`
+	Title  string `json:"title,omitempty"`
+}
+
+const (
+	BusySourceDeal   = "deal"
+	BusySourceManual = "manual"
+)
+
+// SameDay — сравнение по календарному дню, без времени: занятость измеряется
+// днями, а не минутами.
+func SameDay(a, b time.Time) bool {
+	ay, am, ad := a.Date()
+	by, bm, bd := b.Date()
+	return ay == by && am == bm && ad == bd
+}
+
+// DayKey — ключ дня в формате 2006-01-02: по нему календарь ищет отметки.
+func DayKey(t time.Time) string { return t.Format("2006-01-02") }
+
+// MonthRange — границы месяца, в котором лежит дата. Календарь всегда
+// открывается месяцем целиком.
+func MonthRange(at time.Time) (from, to time.Time) {
+	from = time.Date(at.Year(), at.Month(), 1, 0, 0, 0, 0, time.UTC)
+	to = from.AddDate(0, 1, 0).Add(-time.Nanosecond)
+	return from, to
+}

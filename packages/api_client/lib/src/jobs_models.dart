@@ -1124,3 +1124,32 @@ class ModerationItem {
         waitingHours: j['waitingHours'] as int? ?? 0,
       );
 }
+
+/// День календаря занятости (ТЗ §3.1).
+class BusyDay {
+  const BusyDay({
+    required this.day,
+    this.source = 'manual',
+    this.note = '',
+    this.dealId = '',
+    this.title = '',
+  });
+
+  final DateTime day;
+
+  /// deal — день занят подтверждённой сделкой, manual — человек отметил сам.
+  final String source;
+  final String note;
+  final String dealId;
+  final String title;
+
+  bool get fromDeal => source == 'deal';
+
+  factory BusyDay.fromJson(Map<String, dynamic> j) => BusyDay(
+        day: DateTime.tryParse(j['day'] as String? ?? '') ?? DateTime.now(),
+        source: j['source'] as String? ?? 'manual',
+        note: j['note'] as String? ?? '',
+        dealId: j['dealId'] as String? ?? '',
+        title: j['title'] as String? ?? '',
+      );
+}

@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"sort"
+	"strings"
+	"time"
 
 	"traktor/orders/internal/job"
 )
@@ -80,4 +83,75 @@ func (s *Service) Spending(ctx context.Context, clientID string, period job.Peri
 		Owners:     owners,
 		Saved:      saved,
 	}, nil
+}
+
+// Calendar — календарь занятости исполнителя на месяц (ТЗ §3.1).
+//
+// В одном списке и дни со сделками, и собственные отметки «не работаю»:
+// человеку важно видеть занятость целиком, а не в двух разных местах.
+func (s *Service) Calendar(ctx context.Context, ownerID string, month time.Time) ([]job.BusyDay, error) {
+	from, to := job.MonthRange(month)
+
+	deals, err := s.st.BusyByDeals(ctx, ownerID, from, to)
+	if err != nil {
+		return nil, err
+	}
+	manual, err := s.st.ManualBusy(ctx, ownerID, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	// День со сделкой сильнее собственной отметки: сделку уже подтвердили,
+	// и «не работаю» её не отменяет.
+	busy := make(map[string]job.BusyDay, len(deals)+len(manual))
+	for _, d := range manual {
+		busy[job.DayKey(d.Day)] = d
+	}
+	for _, d := range deals {
+		busy[job.DayKey(d.Day)] = d
+	}
+
+	out := make([]job.BusyDay, 0, len(busy))
+	for _, d := range busy {
+		out = append(out, d)
+	}
+	sort.Slice(out, func(i, k int) bool { return out[i].Day.Before(out[k].Day) })
+	return out, nil
+}
+
+// MarkBusy — отметить день «не работаю».
+func (s *Service) MarkBusy(ctx context.Context, ownerID string, day time.Time, note string) error {
+	if ownerID == "" {
+		return job.ErrForbidden
+	}
+	return s.st.SetBusyDay(ctx, ownerID, day, strings.TrimSpace(note))
+}
+
+// UnmarkBusy — снять свою отметку. Дни со сделками так не снимаются: их
+// занятость определяется работой, а не желанием.
+func (s *Service) UnmarkBusy(ctx context.Context, ownerID string, day time.Time) error {
+	if ownerID == "" {
+		return job.ErrForbidden
+	}
+	return s.st.ClearBusyDay(ctx, ownerID, day)
+}
+
+// BusyOn — занят ли исполнитель в этот день. По этому вопросу экран ставки
+// предупреждает: «на эту дату у вас уже есть работа» (ТЗ §3.1).
+func (s *Service) BusyOn(ctx context.Context, ownerID string, day time.Time) (bool, error) {
+	from := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, time.UTC)
+	to := from.AddDate(0, 0, 1).Add(-time.Nanosecond)
+
+	deals, err := s.st.BusyByDeals(ctx, ownerID, from, to)
+	if err != nil {
+		return false, err
+	}
+	if len(deals) > 0 {
+		return true, nil
+	}
+	manual, err := s.st.ManualBusy(ctx, ownerID, from, to)
+	if err != nil {
+		return false, err
+	}
+	return len(manual) > 0, nil
 }

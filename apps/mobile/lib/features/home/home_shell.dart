@@ -185,6 +185,13 @@ class _ProfileTab extends ConsumerWidget {
                 ),
                 const Divider(height: 1),
                 ListTile(
+                  leading: const TkIcon(TkIcons.calendar),
+                  title: const Text('Занятость'),
+                  trailing: const TkIcon(TkIcons.caretRight, size: 16),
+                  onTap: () => context.push('/crm/calendar'),
+                ),
+                const Divider(height: 1),
+                ListTile(
                   leading: const TkIcon(TkIcons.wrench),
                   title: const Text('Моя техника'),
                   trailing: const TkIcon(TkIcons.caretRight, size: 16),
