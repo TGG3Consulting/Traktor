@@ -2,6 +2,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import 'job_detail_screen.dart';
 import 'jobs_providers.dart';
@@ -40,6 +41,7 @@ class _FeedList extends ConsumerWidget {
     final feed = ref.watch(feedProvider);
     final filters = ref.watch(feedFiltersProvider);
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
 
     return Column(
       children: [
@@ -47,7 +49,7 @@ class _FeedList extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: TextField(
             decoration: InputDecoration(
-              hintText: 'Поиск заданий',
+              hintText: l.feedSearchHint,
               prefixIcon: Padding(
                 padding: const EdgeInsets.all(12),
                 child: TkIcon(TkIcons.magnifyingGlass, size: 18, color: scheme.onSurfaceVariant),
@@ -72,9 +74,9 @@ class _FeedList extends ConsumerWidget {
               if (jobs.isEmpty) {
                 return TkEmptyState(
                   icon: TkIcons.magnifyingGlass,
-                  title: 'Заданий поблизости нет',
-                  description: 'Попробуйте увеличить радиус или снять фильтр по режиму',
-                  actionLabel: 'Радиус 100 км',
+                  title: l.feedEmptyTitle,
+                  description: l.feedEmptyDesc,
+                  actionLabel: l.feedEmptyAction,
                   onAction: () => ref
                       .read(feedFiltersProvider.notifier)
                       .update((f) => f.copyWith(radiusKm: 100, mode: '')),
@@ -138,10 +140,10 @@ class _TwoPane extends ConsumerWidget {
         VerticalDivider(width: 1, color: scheme.outlineVariant),
         Expanded(
           child: selected == null
-              ? const TkEmptyState(
+              ? TkEmptyState(
                   icon: TkIcons.clipboardText,
-                  title: 'Выберите задание',
-                  description: 'Слева — лента, справа откроется карточка',
+                  title: AppLocalizations.of(context).pickJobTitle,
+                  description: AppLocalizations.of(context).pickJobDesc,
                 )
               : JobDetailScreen(key: ValueKey(selected), jobId: selected, embedded: true),
         ),
@@ -160,6 +162,7 @@ class _Filters extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     void update(FeedFilters Function(FeedFilters) fn) =>
         ref.read(feedFiltersProvider.notifier).update(fn);
+    final l = AppLocalizations.of(context);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -168,7 +171,7 @@ class _Filters extends ConsumerWidget {
         children: [
           for (final km in [10.0, 25.0, 50.0, 100.0]) ...[
             TkChip(
-              label: '${km.round()} км',
+              label: l.radiusKm(km.round()),
               selected: filters.radiusKm == km,
               onTap: () => update((f) => f.copyWith(radiusKm: km)),
             ),
@@ -177,19 +180,19 @@ class _Filters extends ConsumerWidget {
           Container(width: 1, height: 22, color: Theme.of(context).colorScheme.outlineVariant),
           const SizedBox(width: 8),
           TkChip(
-            label: 'Все режимы',
+            label: l.feedAllModes,
             selected: filters.mode.isEmpty,
             onTap: () => update((f) => f.copyWith(mode: '')),
           ),
           const SizedBox(width: 8),
           TkChip(
-            label: 'Аукцион',
+            label: l.feedAuction,
             selected: filters.mode == 'auction',
             onTap: () => update((f) => f.copyWith(mode: 'auction')),
           ),
           const SizedBox(width: 8),
           TkChip(
-            label: 'Фикс-цена',
+            label: l.feedFixed,
             selected: filters.mode == 'fixed',
             onTap: () => update((f) => f.copyWith(mode: 'fixed')),
           ),
@@ -197,25 +200,25 @@ class _Filters extends ConsumerWidget {
           Container(width: 1, height: 22, color: Theme.of(context).colorScheme.outlineVariant),
           const SizedBox(width: 8),
           TkChip(
-            label: 'Новые',
+            label: l.sortNew,
             selected: filters.sort == 'new',
             onTap: () => update((f) => f.copyWith(sort: 'new')),
           ),
           const SizedBox(width: 8),
           TkChip(
-            label: 'Ближе',
+            label: l.sortNear,
             selected: filters.sort == 'near',
             onTap: () => update((f) => f.copyWith(sort: 'near')),
           ),
           const SizedBox(width: 8),
           TkChip(
-            label: 'Дороже',
+            label: l.sortPrice,
             selected: filters.sort == 'price',
             onTap: () => update((f) => f.copyWith(sort: 'price')),
           ),
           const SizedBox(width: 8),
           TkChip(
-            label: 'Скоро финиш',
+            label: l.sortEnding,
             selected: filters.sort == 'ending',
             onTap: () => update((f) => f.copyWith(sort: 'ending')),
           ),

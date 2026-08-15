@@ -36,15 +36,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final items = isClient
         ? [
             TkTabItem(icon: TkIcons.house, label: l.homeClient),
-            const TkTabItem(icon: TkIcons.magnifyingGlass, label: 'Поиск'),
-            const TkTabItem(icon: TkIcons.chatCircle, label: 'Сообщения'),
-            const TkTabItem(icon: TkIcons.user, label: 'Профиль'),
+            TkTabItem(icon: TkIcons.magnifyingGlass, label: l.tabSearch),
+            TkTabItem(icon: TkIcons.chatCircle, label: l.tabMessages),
+            TkTabItem(icon: TkIcons.user, label: l.tabProfile),
           ]
         : [
             TkTabItem(icon: TkIcons.clipboardText, label: l.homeOwner),
-            const TkTabItem(icon: TkIcons.chartBar, label: 'Мои ставки'),
-            const TkTabItem(icon: TkIcons.chatCircle, label: 'Сообщения'),
-            const TkTabItem(icon: TkIcons.user, label: 'Профиль'),
+            TkTabItem(icon: TkIcons.chartBar, label: l.tabMyBids),
+            TkTabItem(icon: TkIcons.chatCircle, label: l.tabMessages),
+            TkTabItem(icon: TkIcons.user, label: l.tabProfile),
           ];
 
     // На широком экране навигация уезжает вбок (ТЗ §1.8): нижняя панель на
@@ -52,19 +52,25 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     // край — там же, где взгляд начинает читать.
     final wide = !TkLayout.isPhone(context);
 
+    // Лента на десктопе сама занимает ширину двумя колонками, остальные
+    // вкладки держат колонку чтения: кнопка во весь монитор выглядит нелепо.
+    final feedTab = (isClient && _tab == 1) || (!isClient && _tab == 0);
+    Widget readable(Widget child) =>
+        wide && !feedTab ? TkReadable(child: child) : child;
+
     final content = SafeArea(
         child: switch (_tab) {
           // Первая вкладка зависит от роли: заказчик ведёт свои задания,
           // исполнитель смотрит ленту (ТЗ §1.9).
-          0 => isClient ? const ClientJobsTab() : const FeedTab(),
+          0 => isClient ? readable(const ClientJobsTab()) : const FeedTab(),
           1 => isClient
               // «Поиск» заказчика — та же лента; «Мои ставки» исполнителя —
               // его предложения по чужим заданиям.
               ? const FeedTab()
-              : const MyOffersTab(),
-          2 => const MessagesTab(),
-          3 => const _ProfileTab(),
-          _ => _Placeholder(title: items[_tab].label),
+              : readable(const MyOffersTab()),
+          2 => readable(const MessagesTab()),
+          3 => readable(const _ProfileTab()),
+          _ => readable(_Placeholder(title: items[_tab].label)),
         },
       );
 

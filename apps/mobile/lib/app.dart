@@ -22,6 +22,17 @@ class TraktorApp extends ConsumerWidget {
       themeMode: settings.themeMode,
       locale: settings.locale,
       supportedLocales: AppLocalizations.supportedLocales,
+      // Пока язык не выбран, берём системный; если он не наш — русский.
+      // По умолчанию Flutter взял бы первую поддерживаемую локаль (армянскую),
+      // и человек с английской системой видел бы незнакомый алфавит.
+      localeResolutionCallback: (device, supported) {
+        if (device != null) {
+          for (final l in supported) {
+            if (l.languageCode == device.languageCode) return l;
+          }
+        }
+        return const Locale('ru');
+      },
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

@@ -31,11 +31,16 @@ Write-Output '  OK: sobrano'
 
 Write-Output '--- Razdacha na 18091 ---'
 docker rm -f traktor-web-dev 2>&1 | Out-Null
+# Tot zhe konfig, chto i v boevoy razdache: prilozhenie hodit po adresam bez
+# reshetki (TZ 4.2), i bez try_files lyuboy pryamoy adres vernul by 404.
 docker run -d --name traktor-web-dev -p 18091:80 `
-    -v "${outDir}:/usr/share/nginx/html:ro" nginx:alpine 2>&1 | ForEach-Object { "  $_" }
+    -v "${outDir}:/usr/share/nginx/html:ro" `
+    -v "C:\Traktor\infra\local\nginx-web.conf:/etc/nginx/conf.d/default.conf:ro" `
+    --add-host "host.docker.internal:host-gateway" nginx:alpine 2>&1 | ForEach-Object { "  $_" }
 Start-Sleep -Seconds 3
 try {
-    $r = Invoke-WebRequest 'http://localhost:18091/' -UseBasicParsing -TimeoutSec 10
+    # Proveryaem imenno pryamoy adres: on lomalsya pri perehode na puti bez reshetki.
+    $r = Invoke-WebRequest 'http://localhost:18091/home' -UseBasicParsing -TimeoutSec 10
     if ($r.Content -match 'Traktor') { Write-Output '  OK: http://localhost:18091 otdaet prilozhenie' }
     else { Write-Output '  PROVAL: otvet bez prilozheniya' }
 } catch { Write-Output "  PROVAL: $_" }
