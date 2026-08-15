@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import '../job_detail_screen.dart';
 import '../../../core/realtime.dart';
@@ -64,15 +65,16 @@ class _AuctionScreenState extends ConsumerState<AuctionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final jobId = widget.jobId;
     final job = ref.watch(jobProvider(jobId));
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Торг'),
+        title: Text(l.auctionTitle),
         leading: IconButton(
-          tooltip: 'Назад',
+          tooltip: l.back,
           onPressed: () => context.canPop() ? context.pop() : context.go('/jobs/$jobId'),
           icon: TkIcon(TkIcons.arrowLeft, size: 20, color: scheme.onSurface),
         ),
@@ -96,6 +98,7 @@ class _Content extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final bids = ref.watch(jobBidsProvider(job.id));
     final myId = ref.watch(sessionUserIdProvider);
     final isMine = job.clientId == myId;
@@ -113,10 +116,10 @@ class _Content extends ConsumerWidget {
             data: (list) {
               final active = list.where((b) => b.isActive || b.isWinner).toList();
               if (active.isEmpty) {
-                return const TkEmptyState(
+                return TkEmptyState(
                   icon: TkIcons.lightning,
-                  title: 'Ставок пока нет',
-                  description: 'Первая ставка обычно приходит в первые часы торга',
+                  title: l.noBidsYet,
+                  description: l.noBidsDesc,
                 );
               }
               return RefreshIndicator(
@@ -151,17 +154,17 @@ class _Content extends ConsumerWidget {
   }
 
   Future<void> _choose(BuildContext context, WidgetRef ref, BidRow bid) async {
+    final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Выбрать этого исполнителя?'),
+        title: Text(l.chooseThisQ),
         content: Text(
-          'Цена ${tkMoney(bid.price, currency: bid.currency)} станет ценой сделки. '
-          'Остальные участники торга получат уведомление.',
+          l.chooseBidBody(tkMoney(bid.price, currency: bid.currency)),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Выбрать')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(l.choose)),
         ],
       ),
     );
@@ -170,7 +173,7 @@ class _Content extends ConsumerWidget {
       await ref.read(auctionActionsProvider).accept(job.id, bid.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Исполнитель выбран — подтвердите сделку')),
+          SnackBar(content: Text(l.contractorChosenConfirm)),
         );
       }
     } on ApiException catch (e) {
@@ -212,6 +215,7 @@ class _HeaderState extends State<_Header> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     final endsAt = widget.job.auction?.endsAt;
     final left = endsAt?.difference(DateTime.now());
     final finishing = left != null && !left.isNegative && left.inMinutes < 5;
@@ -236,14 +240,14 @@ class _HeaderState extends State<_Header> {
                   color: finishing ? TkColors.error : TkColors.warning),
               const SizedBox(width: 6),
               Text(
-                over ? 'Торг завершён' : 'До финиша ${tkTimeLeft(left)}',
+                over ? l.auctionOver : l.auctionLeftLong(tkTimeLeft(left)),
                 style: TkText.h3.copyWith(
                   color: finishing ? TkColors.error : TkColors.warning,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
               const Spacer(),
-              Text('${active.length} ${tkPlural(active.length, 'ставка', 'ставки', 'ставок')}',
+              Text(l.bidsCount(active.length),
                   style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
             ],
           ),
@@ -279,7 +283,7 @@ class _HeaderState extends State<_Header> {
                 borderRadius: TkRadius.cardR,
               ),
               child: Text(
-                'Финальный отсчёт. Ставка в последние 5 минут продлевает торг на 10 минут.',
+                l.finalCountdown,
                 style: TkText.caption.copyWith(color: TkColors.error),
               ),
             ),
@@ -301,6 +305,7 @@ class _BidRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     final leading = bid.rank == 1 || bid.isWinner;
 
     return Container(
@@ -321,14 +326,14 @@ class _BidRow extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    bid.mine ? 'Ваша ставка' : 'Исполнитель №${bid.rank}',
+                    bid.mine ? l.yourBid : l.contractorNo(bid.rank),
                     style: TkText.body.copyWith(
                       fontWeight: bid.mine ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                   if (bid.isWinner) ...[
                     const SizedBox(width: 6),
-                    Text('победитель',
+                    Text(l.winner,
                         style: TkText.caption.copyWith(
                             color: TkColors.success, fontWeight: FontWeight.w600)),
                   ],
@@ -355,7 +360,7 @@ class _BidRow extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 minimumSize: Size.zero,
               ),
-              child: const Text('Выбрать'),
+              child: Text(l.choose),
             ),
           ],
         ],
@@ -374,6 +379,7 @@ class _OwnerPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final l = AppLocalizations.of(context);
     final deciding = job.status == JobStatus.deciding;
 
     return Container(
@@ -390,19 +396,19 @@ class _OwnerPanel extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Торг завершён — выберите исполнителя из списка',
+                    l.auctionOverPick,
                     textAlign: TextAlign.center,
                     style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton(
                     onPressed: () => _declineAll(context, ref),
-                    child: const Text('Отказаться от всех'),
+                    child: Text(l.declineAll),
                   ),
                 ],
               )
             : Text(
-                'Идёт торг. Исполнители снижают цену — вы выберете победителя после финиша.',
+                l.auctionRunning,
                 textAlign: TextAlign.center,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
@@ -411,20 +417,18 @@ class _OwnerPanel extends ConsumerWidget {
   }
 
   Future<void> _declineAll(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Отказаться от всех ставок?'),
-        content: const Text(
-          'Задание будет закрыто, участники получат уведомление. Штрафа нет — '
-          'можно опубликовать заново с другими условиями.',
-        ),
+        title: Text(l.declineAllQ),
+        content: Text(l.declineAllBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Назад')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.back)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: TkColors.error),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Отказаться'),
+            child: Text(l.declineAllYes),
           ),
         ],
       ),
@@ -434,7 +438,7 @@ class _OwnerPanel extends ConsumerWidget {
       await ref.read(auctionActionsProvider).declineAll(job.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Задание закрыто')),
+          SnackBar(content: Text(l.jobClosedNow)),
         );
       }
     } on ApiException catch (e) {
@@ -497,19 +501,17 @@ class _BidPanelState extends ConsumerState<_BidPanel> {
   }
 
   Future<void> _place() async {
+    final l = AppLocalizations.of(context);
     // Ставка — обязательство: подтверждаем явно (ТЗ §2.9).
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Поставить ${tkMoney(_value, currency: widget.job.currency)}?'),
-        content: const Text(
-          'Ставка — это обязательство выполнить работу за эту цену. '
-          'Отозвать её можно не позднее чем за 2 часа до финиша торга.',
-        ),
+        title: Text(l.placeBidQ(tkMoney(_value, currency: widget.job.currency))),
+        content: Text(l.placeBidBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(l.cancel)),
           FilledButton(
-              onPressed: () => Navigator.pop(context, true), child: const Text('Поставить')),
+              onPressed: () => Navigator.pop(context, true), child: Text(l.placeBid)),
         ],
       ),
     );
@@ -520,7 +522,7 @@ class _BidPanelState extends ConsumerState<_BidPanel> {
       await ref.read(auctionActionsProvider).place(widget.job.id, _value);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ставка принята')),
+          SnackBar(content: Text(l.bidAccepted)),
         );
       }
     } on ValidationException catch (e) {
@@ -539,6 +541,7 @@ class _BidPanelState extends ConsumerState<_BidPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final mine = ref.watch(myBidProvider(widget.job.id)).valueOrNull;
     final open = widget.job.status == JobStatus.bidding;
@@ -555,8 +558,8 @@ class _BidPanelState extends ConsumerState<_BidPanel> {
           top: false,
           child: Text(
             mine != null && mine.isWinner
-                ? 'Ваша ставка лучшая — ждём решения заказчика'
-                : 'Торг завершён',
+                ? l.yourBidBest
+                : l.auctionOver,
             textAlign: TextAlign.center,
             style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
           ),
@@ -580,7 +583,7 @@ class _BidPanelState extends ConsumerState<_BidPanel> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'Ваша текущая ставка: ${tkMoney(mine.price, currency: mine.currency)}',
+                  l.yourCurrentBid(tkMoney(mine.price, currency: mine.currency)),
                   textAlign: TextAlign.center,
                   style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
                 ),
@@ -622,8 +625,8 @@ class _BidPanelState extends ConsumerState<_BidPanel> {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   widget.best != null && _value >= widget.best!
-                      ? 'Ставка должна быть ниже текущей лучшей'
-                      : 'Слишком низкая цена — уточните задачу с заказчиком',
+                      ? l.bidMustBeLower
+                      : l.bidTooLow,
                   textAlign: TextAlign.center,
                   style: TkText.caption.copyWith(color: TkColors.error),
                 ),
@@ -633,7 +636,7 @@ class _BidPanelState extends ConsumerState<_BidPanel> {
               child: _busy
                   ? const SizedBox(
                       width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text('Сделать ставку ${tkMoney(_value, currency: widget.job.currency)}'),
+                  : Text(l.makeBidWith(tkMoney(_value, currency: widget.job.currency))),
             ),
           ],
         ),
