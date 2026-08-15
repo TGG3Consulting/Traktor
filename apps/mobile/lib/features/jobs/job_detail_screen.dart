@@ -267,8 +267,14 @@ class _Actions extends ConsumerWidget {
         const SizedBox(width: 10),
         Expanded(
           child: FilledButton(
-            onPressed: job.offersCount > 0 ? () => context.go('/jobs/${job.id}/offers') : null,
-            child: Text(job.offersCount > 0 ? 'Отклики (${job.offersCount})' : 'Откликов пока нет'),
+            // У аукциона решения принимаются в ленте торга, у фикс-цены — в
+            // списке откликов.
+            onPressed: job.isAuction
+                ? () => context.go('/jobs/${job.id}/bids')
+                : (job.offersCount > 0 ? () => context.go('/jobs/${job.id}/offers') : null),
+            child: Text(job.isAuction
+                ? 'Смотреть торг'
+                : (job.offersCount > 0 ? 'Отклики (${job.offersCount})' : 'Откликов пока нет')),
           ),
         ),
       ],
@@ -298,10 +304,8 @@ class _Actions extends ConsumerWidget {
       return SizedBox(
         width: double.infinity,
         child: FilledButton(
-          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ставки появятся в модуле аукциона')),
-          ),
-          child: const Text('Сделать ставку'),
+          onPressed: () => context.go('/jobs/${job.id}/bids'),
+          child: const Text('Перейти к торгу'),
         ),
       );
     }

@@ -507,3 +507,48 @@ class Deal {
         closedAt: DateTime.tryParse(j['closedAt'] as String? ?? '')?.toLocal(),
       );
 }
+
+/// Строка в ленте торга (ТЗ §2.9). Имена участников площадка не раскрывает —
+/// только цена, место в списке и признак «это моя ставка».
+class BidRow {
+  const BidRow({
+    required this.id,
+    required this.price,
+    required this.status,
+    this.currency = 'AMD',
+    this.rank = 0,
+    this.comment = '',
+    this.mine = false,
+    this.score,
+    this.createdAt,
+  });
+
+  final String id;
+  final int price;
+  final String currency;
+
+  /// active | withdrawn | outbid | won | lost | expired
+  final String status;
+
+  /// Место по цене: 1 — лучшая.
+  final int rank;
+  final String comment;
+  final bool mine;
+  final double? score;
+  final DateTime? createdAt;
+
+  bool get isActive => status == 'active';
+  bool get isWinner => status == 'won';
+
+  factory BidRow.fromJson(Map<String, dynamic> j) => BidRow(
+        id: j['id'] as String? ?? '',
+        price: (j['price'] as num?)?.toInt() ?? 0,
+        currency: j['currency'] as String? ?? 'AMD',
+        status: j['status'] as String? ?? 'active',
+        rank: j['rank'] as int? ?? 0,
+        comment: j['comment'] as String? ?? '',
+        mine: j['mine'] as bool? ?? false,
+        score: (j['score'] as num?)?.toDouble(),
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
+      );
+}

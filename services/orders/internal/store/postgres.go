@@ -29,7 +29,7 @@ const columns = `
   budget_amount, currency, mode,
   auction_duration_h, auction_ends_at, reserve_amount, auto_extend, decision_window_h,
   workers_count, status, draft_step, views_count, offers_count, winner_bid_id,
-  published_at, created_at, updated_at`
+  published_at, created_at, updated_at, decision_deadline`
 
 func (p *Postgres) Create(ctx context.Context, j *job.Job) error {
 	params, photos, err := encodeJSON(j)
@@ -77,7 +77,7 @@ func (p *Postgres) Update(ctx context.Context, j *job.Job) error {
 	  budget_amount=$16, currency=$17, mode=$18, auction_duration_h=$19,
 	  auction_ends_at=$20, reserve_amount=$21, auto_extend=$22, decision_window_h=$23,
 	  workers_count=$24, status=$25, draft_step=$26, winner_bid_id=$27,
-	  published_at=$28, updated_at=$29
+	  published_at=$28, updated_at=$29, decision_deadline=$30
 	WHERE id=$1`
 
 	lat, lng := geoParts(j.Geo)
@@ -88,7 +88,7 @@ func (p *Postgres) Update(ctx context.Context, j *job.Job) error {
 		params, photos, lat, lng, j.Address, string(j.Access), string(j.DateMode),
 		j.DateStart, j.DateEnd, j.BudgetAmount, j.Currency, string(j.Mode), dur, endsAt,
 		reserve, autoExt, decision, j.WorkersCount, string(j.Status), j.DraftStep,
-		j.WinnerBidID, j.PublishedAt, j.UpdatedAt)
+		j.WinnerBidID, j.PublishedAt, j.UpdatedAt, j.DecisionDeadline)
 	if err != nil {
 		return fmt.Errorf("orders: обновление задания: %w", err)
 	}
@@ -315,7 +315,7 @@ func scan(rows pgx.Rows, withDistance bool) (*job.Job, error) {
 		&j.BudgetAmount, &j.Currency, &j.Mode,
 		&dur, &endsAt, &reserve, &autoExtend, &decision,
 		&j.WorkersCount, &j.Status, &j.DraftStep, &j.ViewsCount, &j.OffersCount, &j.WinnerBidID,
-		&j.PublishedAt, &j.CreatedAt, &j.UpdatedAt,
+		&j.PublishedAt, &j.CreatedAt, &j.UpdatedAt, &j.DecisionDeadline,
 	}
 
 	if withDistance {
@@ -360,4 +360,25 @@ func scan(rows pgx.Rows, withDistance bool) (*job.Job, error) {
 	}
 	j.DistanceM = distance
 	return &j, nil
+}
+
+// DueJobs — что пора закрыть по времени: торг с истёкшим финишем, задание с
+// истёкшим окном решения, работа с истёкшим сроком приёмки.
+func (p *Postgres) DueJobs(ctx context.Context, now time.Time) ([]job.Job, error) {
+	q := `SELECT` + columns + `
+	      FROM orders.jobs j
+	      WHERE (status = 'bidding'  AND auction_ends_at   IS NOT NULL AND auction_ends_at   <= $1)
+	         OR (status = 'deciding' AND decision_deadline IS NOT NULL AND decision_deadline <= $1)
+	         OR (status = 'work_done' AND EXISTS (
+	               SELECT 1 FROM orders.deals d
+	               WHERE d.job_id = j.id AND d.status = 'work_done'
+	                 AND d.acceptance_deadline IS NOT NULL AND d.acceptance_deadline <= $1))
+	      ORDER BY updated_at ASC
+	      LIMIT 100`
+	rows, err := p.pool.Query(ctx, q, now)
+	if err != nil {
+		return nil, fmt.Errorf("orders: задания по времени: %w", err)
+	}
+	defer rows.Close()
+	return collect(rows)
 }

@@ -111,14 +111,17 @@ type Job struct {
 	Auction      *Auction `json:"auction,omitempty"`
 	WorkersCount int      `json:"workersCount"`
 
-	Status      Status     `json:"status"`
-	DraftStep   int        `json:"draftStep"`
-	ViewsCount  int        `json:"viewsCount"`
-	OffersCount int        `json:"offersCount"`
-	WinnerBidID *string    `json:"winnerBidId,omitempty"`
-	PublishedAt *time.Time `json:"publishedAt,omitempty"`
-	CreatedAt   time.Time  `json:"createdAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
+	Status      Status  `json:"status"`
+	DraftStep   int     `json:"draftStep"`
+	ViewsCount  int     `json:"viewsCount"`
+	OffersCount int     `json:"offersCount"`
+	WinnerBidID *string `json:"winnerBidId,omitempty"`
+	// DecisionDeadline — до какого момента заказчик выбирает победителя
+	// аукциона; молчание закрывает задание (ТЗ §2.9).
+	DecisionDeadline *time.Time `json:"decisionDeadline,omitempty"`
+	PublishedAt      *time.Time `json:"publishedAt,omitempty"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
 
 	// DistanceM заполняется только в ленте: расстояние от точки поиска.
 	DistanceM *float64 `json:"distanceM,omitempty"`

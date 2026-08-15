@@ -794,6 +794,204 @@ paths:
             application/problem+json:
               schema: { $ref: "#/components/schemas/ValidationProblem" }
 
+  /jobs/{id}/bids:
+    post:
+      tags: [orders]
+      summary: Поставить ставку в обратном аукционе (ТЗ §2.9)
+      description: >
+        Каждая следующая ставка ниже текущей лучшей и не ниже трети стартовой
+        цены. Ставка в последние 5 минут продлевает торг на 10 минут.
+      operationId: placeBid
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [price]
+              properties:
+                price: { type: integer, format: int64 }
+                comment: { type: string }
+                unitId: { type: string, format: uuid, nullable: true }
+      responses:
+        "201":
+          description: Ставка принята
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bid" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422":
+          description: Цена не проходит правила торга
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ValidationProblem" }
+    get:
+      tags: [orders]
+      summary: Лента торга (анонимная)
+      description: >
+        Открыта всем, кто видит задание. Имена участников не раскрываются до
+        конца аукциона — только цена, место в списке и признак «моя ставка».
+      operationId: listJobBids
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Ставки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Bid" }
+
+  /jobs/{id}/bids/my:
+    get:
+      tags: [orders]
+      summary: Своя ставка по заданию
+      operationId: myBidForJob
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Ставка или null
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bid:
+                    oneOf:
+                      - $ref: "#/components/schemas/Bid"
+                      - type: "null"
+
+  /jobs/{id}/bids/decline-all:
+    post:
+      tags: [orders]
+      summary: Отказаться от всех ставок (без штрафа)
+      operationId: declineAllBids
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Задание закрыто
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /jobs/{id}/auction/finish:
+    post:
+      tags: [orders]
+      summary: Подвести итоги торга
+      description: >
+        Обычно вызывается фоновым обработчиком по времени финиша. Считает
+        скоринг (0.6 цена + 0.25 рейтинг + 0.15 близость), помечает лучшую
+        ставку и открывает окно решения заказчика.
+      operationId: finishAuction
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Задание после подведения итогов
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+
+  /bids/my:
+    get:
+      tags: [orders]
+      summary: Мои ставки
+      operationId: myBids
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Ставки
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Bid" }
+
+  /bids/{bidId}/withdraw:
+    post:
+      tags: [orders]
+      summary: Снять свою ставку (не позднее чем за 2 часа до финиша)
+      operationId: withdrawBid
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: bidId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Ставка снята
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bid" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /bids/{bidId}/accept:
+    post:
+      tags: [orders]
+      summary: Выбрать победителя аукциона
+      operationId: acceptBid
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: bidId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Ставка признана победившей
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Bid" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -819,6 +1017,22 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
   schemas:
+    Bid:
+      type: object
+      required: [id, price, status]
+      properties:
+        id: { type: string, format: uuid }
+        jobId: { type: string, format: uuid }
+        price: { type: integer, format: int64 }
+        currency: { type: string, default: AMD }
+        comment: { type: string }
+        status:
+          type: string
+          enum: [active, withdrawn, outbid, won, lost, expired]
+        rank: { type: integer, description: "место по цене, 1 — лучшая" }
+        mine: { type: boolean, description: "это ставка запрашивающего" }
+        score: { type: number, description: "оценка скоринга, появляется после финиша" }
+        createdAt: { type: string, format: date-time }
     DealEvent:
       type: object
       required: [status, at]

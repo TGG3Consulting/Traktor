@@ -91,6 +91,7 @@ func run(log *slog.Logger) error {
 		{Prefix: "/v1/jobs", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/offers", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/deals", Upstream: cfg.OrdersURL},
+		{Prefix: "/v1/bids", Upstream: cfg.OrdersURL},
 		{Prefix: "/.well-known/", Upstream: cfg.IdentityURL},
 	})
 	if err != nil {
@@ -169,6 +170,8 @@ func publicJobsPath(path string) bool {
 		return false // мои задания и черновики
 	case strings.HasPrefix(rest, "/drafts"):
 		return false
+	case strings.HasSuffix(rest, "/bids"):
+		return true // лента торга: цены видны всем, имена участников скрыты
 	case strings.Contains(strings.TrimPrefix(rest, "/"), "/"):
 		return false // действия вида /{id}/publish
 	default:

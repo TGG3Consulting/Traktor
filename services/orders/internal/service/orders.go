@@ -19,6 +19,8 @@ import (
 )
 
 type Service struct {
+	// Планировщик в этом же пакете обращается к хранилищу напрямую: ему нужны
+	// выборки по времени, которые незачем выносить в публичный API сервиса.
 	st     store.Store
 	now    func() time.Time
 	notify notify.Notifier
@@ -179,7 +181,8 @@ func (s *Service) View(ctx context.Context, viewerID, id string) (*job.Job, erro
 	if err != nil {
 		return nil, err
 	}
-	if j.ClientID != viewerID && job.IsOpen(j.Status) {
+	// Пустой viewerID — гость: показываем задание, но просмотр не считаем.
+	if viewerID != "" && j.ClientID != viewerID && job.IsOpen(j.Status) {
 		if _, err := s.st.AddView(ctx, id, viewerID); err != nil {
 			return nil, err
 		}

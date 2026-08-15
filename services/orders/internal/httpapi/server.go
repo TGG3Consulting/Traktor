@@ -7,6 +7,7 @@ package httpapi
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -56,8 +57,16 @@ func (s *Server) Routes() http.Handler {
 			// Сделка по заданию (ТЗ §2.11).
 			r.Post("/{id}/deal", s.confirmDeal)
 			r.Get("/{id}/deal", s.dealByJob)
+
+			// Аукцион (ТЗ §2.9).
+			r.Post("/{id}/bids", s.placeBid)
+			r.Get("/{id}/bids/my", s.myBidForJob)
+			r.Post("/{id}/bids/decline-all", s.declineAllBids)
+			r.Post("/{id}/auction/finish", s.finishAuction)
 		})
 
+		// Лента торга видна всем, кто видит задание: цены публичны, имена нет.
+		r.Get("/{id}/bids", s.jobBids)
 		r.Get("/{id}", s.view)
 	})
 
@@ -68,6 +77,14 @@ func (s *Server) Routes() http.Handler {
 		r.Get("/{dealId}", s.deal)
 		r.Post("/{dealId}/step", s.advanceDeal)
 		r.Post("/{dealId}/cancel", s.cancelDeal)
+	})
+
+	// Ставки исполнителя и решения заказчика по ним.
+	r.Route("/v1/bids", func(r chi.Router) {
+		r.Use(s.requireUser)
+		r.Get("/my", s.myBids)
+		r.Post("/{bidId}/withdraw", s.withdrawBid)
+		r.Post("/{bidId}/accept", s.acceptBid)
 	})
 
 	// Решения по конкретному предложению.
@@ -221,11 +238,10 @@ func (s *Server) feed(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) view(w http.ResponseWriter, r *http.Request) {
-	// Гость тоже может открыть деталку — просмотр тогда не считаем.
+	// Гость тоже может открыть деталку (ТЗ §2.1 «просто посмотреть»), но его
+	// просмотр не считается: у него нет идентификатора, а придумывать
+	// «guest» нельзя — счётчик хранит настоящие идентификаторы людей.
 	viewer := r.Header.Get(userHeader)
-	if viewer == "" {
-		viewer = "guest"
-	}
 	j, err := s.svc.View(r.Context(), viewer, chi.URLParam(r, "id"))
 	if err != nil {
 		fail(w, err)
@@ -397,6 +413,9 @@ func fail(w http.ResponseWriter, err error) {
 	case errors.Is(err, job.ErrBadTransition):
 		problem(w, http.StatusConflict, "bad_transition", "недопустимое действие для текущего статуса")
 	default:
+		// Внутреннюю ошибку обязательно пишем в лог: без этого «500» на экране
+		// невозможно разобрать — ни причины, ни места.
+		slog.Error("внутренняя ошибка", "err", err)
 		problem(w, http.StatusInternalServerError, "internal", "внутренняя ошибка")
 	}
 }

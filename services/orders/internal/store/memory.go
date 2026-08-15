@@ -18,6 +18,7 @@ type Memory struct {
 	jobs   map[string]job.Job
 	offers map[string]job.Offer       // отклики по идентификатору
 	deals  map[string]job.Deal        // сделки по идентификатору
+	bids   map[string]job.Bid         // ставки аукциона
 	views  map[string]map[string]bool // jobID → кто смотрел
 	idemp  map[string]string          // ключ идемпотентности → jobID
 }
@@ -27,6 +28,7 @@ func NewMemory() *Memory {
 		jobs:   map[string]job.Job{},
 		offers: map[string]job.Offer{},
 		deals:  map[string]job.Deal{},
+		bids:   map[string]job.Bid{},
 		views:  map[string]map[string]bool{},
 		idemp:  map[string]string{},
 	}
@@ -214,4 +216,34 @@ func distanceM(lat1, lng1, lat2, lng2 float64) float64 {
 	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
 		math.Cos(lat1*rad)*math.Cos(lat2*rad)*math.Sin(dLng/2)*math.Sin(dLng/2)
 	return 2 * earthR * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+}
+
+// DueJobs — то же, что в Postgres: что пора закрыть по времени.
+func (m *Memory) DueJobs(_ context.Context, now time.Time) ([]job.Job, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	out := []job.Job{}
+	for _, j := range m.jobs {
+		switch j.Status {
+		case job.StatusBidding:
+			if j.Auction != nil && j.Auction.EndsAt != nil && !j.Auction.EndsAt.After(now) {
+				out = append(out, j)
+			}
+		case job.StatusDeciding:
+			if j.DecisionDeadline != nil && !j.DecisionDeadline.After(now) {
+				out = append(out, j)
+			}
+		case job.StatusWorkDone:
+			for _, d := range m.deals {
+				if d.JobID == j.ID && d.Status == job.DealWorkDone &&
+					d.AcceptanceDeadline != nil && !d.AcceptanceDeadline.After(now) {
+					out = append(out, j)
+					break
+				}
+			}
+		}
+	}
+	sort.Slice(out, func(i, k int) bool { return out[i].UpdatedAt.Before(out[k].UpdatedAt) })
+	return out, nil
 }

@@ -3,6 +3,7 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"traktor/orders/internal/job"
 )
@@ -63,6 +64,20 @@ type Store interface {
 	// DealByJob — сделка по заданию: на задание она одна.
 	DealByJob(ctx context.Context, jobID string) (*job.Deal, error)
 	DealsByUser(ctx context.Context, userID string, limit, offset int) ([]job.Deal, error)
+
+	// ── ставки аукциона (ТЗ §2.9) ────────────────────────────────────────────
+	CreateBid(ctx context.Context, b *job.Bid) error
+	UpdateBid(ctx context.Context, b *job.Bid) error
+	BidByID(ctx context.Context, id string) (*job.Bid, error)
+	BidsByJob(ctx context.Context, jobID string) ([]job.Bid, error)
+	BidsByOwner(ctx context.Context, ownerID string, limit, offset int) ([]job.Bid, error)
+	// BestBid — текущая лучшая (самая низкая) действующая ставка.
+	BestBid(ctx context.Context, jobID string) (*job.Bid, error)
+	MyBidForJob(ctx context.Context, jobID, ownerID string) (*job.Bid, error)
+
+	// DueJobs — задания, у которых истёк срок: финиш аукциона, окно решения
+	// заказчика или срок приёмки работы. По ним работает фоновый обработчик.
+	DueJobs(ctx context.Context, now time.Time) ([]job.Job, error)
 
 	// Идемпотентность мутаций: повтор запроса с тем же ключом возвращает
 	// прежнее задание, а не создаёт новое (§2.3.12).

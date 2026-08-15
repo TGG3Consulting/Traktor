@@ -10,6 +10,7 @@ import '../features/jobs/create/step2_params.dart';
 import '../features/jobs/create/step3_place.dart';
 import '../features/jobs/create/step4_price.dart';
 import '../features/jobs/create/step5_review.dart';
+import '../features/jobs/auction/auction_screen.dart';
 import '../features/jobs/deal/deal_screen.dart';
 import '../features/jobs/job_detail_screen.dart';
 import '../features/jobs/offers/offers_screen.dart';
@@ -42,6 +43,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/jobs/published/:id',
       builder: (_, state) => JobPublishedScreen(jobId: state.pathParameters['id']!),
+    ),
+
+    // Аукцион (ТЗ §2.9) — лента торга и ставки.
+    GoRoute(
+      path: '/jobs/:id/bids',
+      builder: (_, state) => AuctionScreen(jobId: state.pathParameters['id']!),
     ),
 
     // Сделка (ТЗ §2.11) — общий экран обеих сторон.

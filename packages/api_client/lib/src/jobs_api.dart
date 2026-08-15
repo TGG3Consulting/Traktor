@@ -248,6 +248,75 @@ class JobsApi {
     return Offer.fromJson(_handle(resp));
   }
 
+  // ── аукцион (ТЗ §2.9) ──────────────────────────────────────────────────────
+
+  /// POST /jobs/{id}/bids — поставить или снизить ставку.
+  Future<BidRow> placeBid(
+    String token,
+    String jobId, {
+    required int price,
+    String comment = '',
+    String? unitId,
+    required String idempotencyKey,
+  }) async {
+    final resp = await _http.post(
+      _u('/jobs/$jobId/bids'),
+      headers: _headers(token, idempotencyKey: idempotencyKey, json: true),
+      body: jsonEncode({
+        'price': price,
+        'comment': comment,
+        if (unitId != null) 'unitId': unitId,
+      }),
+    );
+    return BidRow.fromJson(_handle(resp));
+  }
+
+  /// GET /jobs/{id}/bids — лента торга (анонимная).
+  Future<List<BidRow>> jobBids(String jobId, {String? token}) async {
+    final resp = await _http.get(_u('/jobs/$jobId/bids'), headers: _headers(token));
+    return (_handle(resp)['items'] as List? ?? const [])
+        .map((e) => BidRow.fromJson((e as Map).cast<String, dynamic>()))
+        .toList();
+  }
+
+  /// GET /jobs/{id}/bids/my — своя ставка; null, если её нет.
+  Future<BidRow?> myBidForJob(String token, String jobId) async {
+    final resp = await _http.get(_u('/jobs/$jobId/bids/my'), headers: _headers(token));
+    final bid = _handle(resp)['bid'];
+    if (bid == null) return null;
+    return BidRow.fromJson((bid as Map).cast<String, dynamic>());
+  }
+
+  /// POST /bids/{id}/withdraw — снять свою ставку.
+  Future<BidRow> withdrawBid(String token, String bidId,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/bids/$bidId/withdraw'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    return BidRow.fromJson(_handle(resp));
+  }
+
+  /// POST /bids/{id}/accept — заказчик выбирает победителя аукциона.
+  Future<BidRow> acceptBid(String token, String bidId,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/bids/$bidId/accept'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    return BidRow.fromJson(_handle(resp));
+  }
+
+  /// POST /jobs/{id}/bids/decline-all — отказаться от всех ставок.
+  Future<Job> declineAllBids(String token, String jobId,
+      {required String idempotencyKey}) async {
+    final resp = await _http.post(
+      _u('/jobs/$jobId/bids/decline-all'),
+      headers: _headers(token, idempotencyKey: idempotencyKey),
+    );
+    return Job.fromJson(_handle(resp));
+  }
+
   // ── сделки (ТЗ §2.11) ──────────────────────────────────────────────────────
 
   /// POST /jobs/{id}/deal — подтвердить выбор и открыть сделку.

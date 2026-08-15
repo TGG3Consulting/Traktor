@@ -28,18 +28,39 @@ func (s *Service) ConfirmDeal(ctx context.Context, clientID, jobID string) (*job
 		return nil, job.ErrBadTransition
 	}
 
+	// Победитель приходит двумя путями: отклик на фикс-цену или ставка
+	// аукциона. Сделка одинаковая — отличается только источник цены.
+	var (
+		winnerID string
+		ownerID  string
+		price    int64
+		currency string
+	)
 	offers, err := s.st.OffersByJob(ctx, jobID)
 	if err != nil {
 		return nil, err
 	}
-	var accepted *job.Offer
 	for i := range offers {
 		if offers[i].Status == job.OfferAccepted {
-			accepted = &offers[i]
+			winnerID, ownerID = offers[i].ID, offers[i].OwnerID
+			price, currency = offers[i].Price, offers[i].Currency
 			break
 		}
 	}
-	if accepted == nil {
+	if winnerID == "" {
+		bids, err := s.st.BidsByJob(ctx, jobID)
+		if err != nil {
+			return nil, err
+		}
+		for i := range bids {
+			if bids[i].Status == job.BidWon {
+				winnerID, ownerID = bids[i].ID, bids[i].OwnerID
+				price, currency = bids[i].Price, bids[i].Currency
+				break
+			}
+		}
+	}
+	if winnerID == "" {
 		return nil, job.ErrDealStep
 	}
 
@@ -47,11 +68,11 @@ func (s *Service) ConfirmDeal(ctx context.Context, clientID, jobID string) (*job
 	deal := &job.Deal{
 		ID:       uuid.NewString(),
 		JobID:    jobID,
-		OfferID:  &accepted.ID,
+		OfferID:  &winnerID,
 		ClientID: j.ClientID,
-		OwnerID:  accepted.OwnerID,
-		Price:    accepted.Price,
-		Currency: accepted.Currency,
+		OwnerID:  ownerID,
+		Price:    price,
+		Currency: currency,
 		Status:   job.DealConfirmed,
 		Timeline: []job.TimelineEvent{{
 			Status: job.DealConfirmed,

@@ -52,9 +52,15 @@ func run(log *slog.Logger) error {
 		log.Warn("NOTIFICATIONS_URL не задан: уведомления о заданиях не отправляются")
 	}
 
+	svc := service.NewWithNotifier(st, time.Now, notifier)
+
+	// Фоновый обработчик доводит до конца то, что зависит от времени: финиш
+	// аукциона, окно решения заказчика, автоприёмка работы.
+	go service.NewScheduler(svc, log, time.Minute).Run(ctx)
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           httpapi.New(service.NewWithNotifier(st, time.Now, notifier)).Routes(),
+		Handler:           httpapi.New(svc).Routes(),
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
