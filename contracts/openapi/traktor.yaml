@@ -1276,6 +1276,61 @@ paths:
         "403": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
+  /notifications:
+    get:
+      tags: [notifications]
+      summary: Центр уведомлений (ТЗ §2.14)
+      description: >
+        Лента событий и счётчик непрочитанного. Push доходит не всегда —
+        телефон выключен, разрешение не выдано, баннер смахнули; лента остаётся
+        надёжным каналом. Хранение 90 дней.
+      operationId: notificationsFeed
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 30 } }
+        - { name: offset, in: query, schema: { type: integer, default: 0 } }
+      responses:
+        "200":
+          description: Лента, свежие сверху
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/AppNotification" }
+                  unread: { type: integer }
+
+  /notifications/read:
+    post:
+      tags: [notifications]
+      summary: Отметить уведомления прочитанными
+      description: Пустой список идентификаторов — «Прочитать все».
+      operationId: markNotificationsRead
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids:
+                  type: array
+                  items: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Отмечено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1301,6 +1356,23 @@ components:
         application/problem+json:
           schema: { $ref: "#/components/schemas/Problem" }
   schemas:
+    AppNotification:
+      type: object
+      required: [id, title, kind]
+      properties:
+        id: { type: string, format: uuid }
+        kind:
+          type: string
+          description: "тип события из push-матрицы"
+          enum: [offer, auction, deal, message, review, job, system]
+        title: { type: string }
+        body: { type: string }
+        data:
+          type: object
+          additionalProperties: { type: string }
+          description: "route — куда вести по нажатию, плюс данные экрана"
+        read: { type: boolean }
+        createdAt: { type: string, format: date-time }
     Review:
       type: object
       required: [id, stars]

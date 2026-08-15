@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -36,6 +37,9 @@ func (s *Server) Routes() http.Handler {
 	// Клиентские (через gateway, требуют X-User-Id).
 	r.Post("/v1/devices", s.registerDevice)
 	r.Delete("/v1/devices/{token}", s.unregisterDevice)
+	// Центр уведомлений (ТЗ §2.14).
+	r.Get("/v1/notifications", s.feed)
+	r.Post("/v1/notifications/read", s.markRead)
 	// Внутренние (сервис-сервис, не проксируются gateway наружу).
 	r.Post("/internal/notify", s.notify)
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
@@ -118,6 +122,7 @@ func (s *Server) unregisterDevice(w http.ResponseWriter, r *http.Request) {
 func (s *Server) notify(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		UserID string            `json:"userId"`
+		Kind   string            `json:"kind"`
 		Title  string            `json:"title"`
 		Body   string            `json:"body"`
 		Data   map[string]string `json:"data"`
@@ -127,6 +132,7 @@ func (s *Server) notify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	delivered, err := s.svc.Notify(r.Context(), body.UserID, service.Notification{
+		Kind:  body.Kind,
 		Title: body.Title,
 		Body:  body.Body,
 		Data:  body.Data,
@@ -142,4 +148,62 @@ func (s *Server) notify(w http.ResponseWriter, r *http.Request) {
 	slog.Info("уведомление отправлено",
 		"user", body.UserID, "title", body.Title, "delivered", delivered)
 	writeJSON(w, 200, map[string]any{"delivered": delivered})
+}
+
+// feed — GET /v1/notifications. Центр уведомлений: лента событий и счётчик
+// непрочитанного (ТЗ §2.14). Push мог не дойти — здесь событие есть всегда.
+func (s *Server) feed(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-Id")
+	if userID == "" {
+		problem(w, http.StatusUnauthorized, "Нужен вход")
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+
+	items, unread, err := s.svc.Feed(r.Context(), userID, limit, offset)
+	if err != nil {
+		slog.Error("центр уведомлений недоступен", "user", userID, "err", err)
+		problem(w, http.StatusInternalServerError, "Не удалось загрузить уведомления")
+		return
+	}
+
+	out := make([]map[string]any, 0, len(items))
+	for _, n := range items {
+		out = append(out, map[string]any{
+			"id":        n.ID,
+			"kind":      n.Kind,
+			"title":     n.Title,
+			"body":      n.Body,
+			"data":      n.Data,
+			"read":      n.ReadAt != nil,
+			"createdAt": n.CreatedAt,
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"items": out, "unread": unread})
+}
+
+// markRead — POST /v1/notifications/read. Без списка идентификаторов отмечает
+// прочитанным всё: это кнопка «Прочитать все» в шапке центра.
+func (s *Server) markRead(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-Id")
+	if userID == "" {
+		problem(w, http.StatusUnauthorized, "Нужен вход")
+		return
+	}
+	var body struct {
+		IDs []string `json:"ids"`
+	}
+	if r.ContentLength > 0 {
+		if err := decode(r, &body); err != nil {
+			problem(w, http.StatusBadRequest, "Неверный запрос")
+			return
+		}
+	}
+	if err := s.svc.MarkRead(r.Context(), userID, body.IDs); err != nil {
+		slog.Error("отметка прочтения не прошла", "user", userID, "err", err)
+		problem(w, http.StatusInternalServerError, "Не удалось отметить прочитанным")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

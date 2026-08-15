@@ -17,42 +17,32 @@ class ChatsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final chats = ref.watch(chatsProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 10, 16, 10),
-          child: Text('Сообщения', style: TkText.h1),
-        ),
-        Expanded(
-          child: chats.when(
-            loading: () => const TkSkeletonList(count: 3),
-            error: (e, _) => TkErrorState(
-              message: '$e',
-              onRetry: () => ref.invalidate(chatsProvider),
-            ),
-            data: (list) {
-              if (list.isEmpty) {
-                return const TkEmptyState(
-                  icon: TkIcons.chatCircle,
-                  title: 'Переписок пока нет',
-                  description:
-                      'Напишите по заданию из отклика или деталки — переписка появится здесь',
-                );
-              }
-              return RefreshIndicator(
-                onRefresh: () async => ref.invalidate(chatsProvider),
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
-                  itemCount: list.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1, indent: 70),
-                  itemBuilder: (context, i) => _ChatRowTile(row: list[i]),
-                ),
-              );
-            },
+    // Заголовок вкладки рисует MessagesTab: здесь только список.
+    return chats.when(
+      loading: () => const TkSkeletonList(count: 3),
+      error: (e, _) => TkErrorState(
+        message: '$e',
+        onRetry: () => ref.invalidate(chatsProvider),
+      ),
+      data: (list) {
+        if (list.isEmpty) {
+          return const TkEmptyState(
+            icon: TkIcons.chatCircle,
+            title: 'Переписок пока нет',
+            description:
+                'Напишите по заданию из отклика или деталки — переписка появится здесь',
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: () async => ref.invalidate(chatsProvider),
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
+            itemCount: list.length,
+            separatorBuilder: (_, __) => const Divider(height: 1, indent: 70),
+            itemBuilder: (context, i) => _ChatRowTile(row: list[i]),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

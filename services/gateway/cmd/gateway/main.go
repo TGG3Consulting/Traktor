@@ -87,6 +87,7 @@ func run(log *slog.Logger) error {
 		{Prefix: "/v1/auth/", Upstream: cfg.IdentityURL},
 		{Prefix: "/v1/me", Upstream: cfg.IdentityURL},
 		{Prefix: "/v1/devices", Upstream: cfg.NotificationsURL},
+		{Prefix: "/v1/notifications", Upstream: cfg.NotificationsURL},
 		{Prefix: "/v1/categories", Upstream: cfg.CatalogURL},
 		{Prefix: "/v1/jobs", Upstream: cfg.OrdersURL},
 		{Prefix: "/v1/offers", Upstream: cfg.OrdersURL},

@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -45,9 +46,13 @@ func (h *HTTP) Send(ctx context.Context, userID, title, body string, data map[st
 	}
 	payload, err := json.Marshal(map[string]any{
 		"userId": userID,
-		"title":  title,
-		"body":   body,
-		"data":   data,
+		// Тип события из push-матрицы (ТЗ §2.14): по нему центр уведомлений
+		// рисует иконку. Передаём его же в data — экран назначения читает
+		// оттуда всё, что ему нужно.
+		"kind":  kindOf(data),
+		"title": title,
+		"body":  body,
+		"data":  data,
 	})
 	if err != nil {
 		return
@@ -68,6 +73,33 @@ func (h *HTTP) Send(ctx context.Context, userID, title, body string, data map[st
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		h.log.Warn("сервис уведомлений отказал", "status", resp.StatusCode, "user", userID)
+	}
+}
+
+// kindOf — тип события для центра уведомлений (ТЗ §2.14). Если вызывающий не
+// указал его явно, выводим из маршрута перехода: тип нужен только для иконки и
+// группировки, и держать его вторым списком рядом с маршрутами — лишний повод
+// для расхождений.
+func kindOf(data map[string]string) string {
+	if k := data["kind"]; k != "" {
+		return k
+	}
+	route := data["route"]
+	switch {
+	case strings.HasPrefix(route, "/chats"):
+		return "message"
+	case strings.Contains(route, "/bids"):
+		return "auction"
+	case strings.Contains(route, "/offers"):
+		return "offer"
+	case strings.Contains(route, "/review"):
+		return "review"
+	case strings.HasPrefix(route, "/deals"):
+		return "deal"
+	case strings.HasPrefix(route, "/jobs"):
+		return "job"
+	default:
+		return "system"
 	}
 }
 

@@ -38,7 +38,24 @@ type Device struct {
 	LastSeenAt time.Time
 }
 
-// Store — хранилище токенов устройств.
+// Notification — запись центра уведомлений (ТЗ §2.14).
+//
+// Push доходит не всегда: телефон выключен, разрешение не выдано, баннер
+// смахнули. Лента — надёжный канал, push лишь ускоряет доставку.
+type Notification struct {
+	ID     string
+	UserID string
+	// Тип события из push-матрицы: по нему клиент рисует иконку.
+	Kind  string
+	Title string
+	Body  string
+	// Куда вести по нажатию (deep link) и данные для экрана назначения.
+	Data      map[string]string
+	ReadAt    *time.Time
+	CreatedAt time.Time
+}
+
+// Store — хранилище токенов устройств и ленты уведомлений.
 type Store interface {
 	// UpsertDevice регистрирует/обновляет токен (идемпотентно по Token).
 	UpsertDevice(ctx context.Context, d Device) error
@@ -48,4 +65,13 @@ type Store interface {
 	// ListDevicesByUser — все активные токены пользователя (у него может быть
 	// несколько устройств: телефон + web).
 	ListDevicesByUser(ctx context.Context, userID string) ([]Device, error)
+
+	// Центр уведомлений (ТЗ §2.14).
+	SaveNotification(ctx context.Context, n Notification) error
+	ListNotifications(ctx context.Context, userID string, limit, offset int) ([]Notification, error)
+	UnreadCount(ctx context.Context, userID string) (int, error)
+	// MarkNotificationsRead отмечает прочитанными: пустой список — все.
+	MarkNotificationsRead(ctx context.Context, userID string, ids []string, at time.Time) error
+	// DeleteOldNotifications — уборка старше срока хранения (90 дней).
+	DeleteOldNotifications(ctx context.Context, before time.Time) (int, error)
 }

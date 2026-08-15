@@ -9,11 +9,12 @@ import (
 // Memory — потокобезопасная in-memory реализация Store для dev/тестов.
 type Memory struct {
 	mu      sync.Mutex
-	devices map[string]Device // по Token
+	devices map[string]Device       // по Token
+	feed    map[string]Notification // центр уведомлений, по ID
 }
 
 func NewMemory() *Memory {
-	return &Memory{devices: map[string]Device{}}
+	return &Memory{devices: map[string]Device{}, feed: map[string]Notification{}}
 }
 
 func (m *Memory) UpsertDevice(_ context.Context, d Device) error {
