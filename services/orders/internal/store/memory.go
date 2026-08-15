@@ -23,10 +23,14 @@ type Memory struct {
 	messages map[string]job.Message // сообщения чатов
 	// Порядок добавления сообщений: в тестах время подменяется фиксированным,
 	// и без него три сообщения одной минуты выстраиваются как попало.
-	msgSeq     map[string]int
-	reviews    map[string]job.Review      // взаимные оценки по сделкам
-	busyDays   map[string]string          // «не работаю»: владелец+день → пометка
-	disputes   map[string]job.Dispute     // споры по сделкам
+	msgSeq   map[string]int
+	reviews  map[string]job.Review  // взаимные оценки по сделкам
+	busyDays map[string]string      // «не работаю»: владелец+день → пометка
+	disputes map[string]job.Dispute // споры по сделкам
+	// Порядок появления споров и жалоб. В тестах время подменяется
+	// фиксированным, и без него две записи одной минуты выстраиваются как
+	// попало, хотя очередь модерации обещает «старые сверху».
+	queueSeq   map[string]int
 	complaints map[string]job.Complaint   // жалобы на задания и людей
 	views      map[string]map[string]bool // jobID → кто смотрел
 	idemp      map[string]string          // ключ идемпотентности → jobID
@@ -44,6 +48,7 @@ func NewMemory() *Memory {
 		reviews:    map[string]job.Review{},
 		busyDays:   map[string]string{},
 		disputes:   map[string]job.Dispute{},
+		queueSeq:   map[string]int{},
 		complaints: map[string]job.Complaint{},
 		views:      map[string]map[string]bool{},
 		idemp:      map[string]string{},

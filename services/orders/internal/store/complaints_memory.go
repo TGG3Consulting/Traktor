@@ -25,6 +25,7 @@ func (m *Memory) CreateComplaint(_ context.Context, c *job.Complaint) error {
 		m.complaints = map[string]job.Complaint{}
 	}
 	m.complaints[c.ID] = *c
+	m.rememberOrder(c.ID)
 	return nil
 }
 
@@ -35,6 +36,7 @@ func (m *Memory) UpdateComplaint(_ context.Context, c *job.Complaint) error {
 		return job.ErrComplaintNotFound
 	}
 	m.complaints[c.ID] = *c
+	m.rememberOrder(c.ID)
 	return nil
 }
 
@@ -73,7 +75,12 @@ func (m *Memory) OpenComplaints(_ context.Context, limit int) ([]job.Complaint, 
 		}
 		out = append(out, row)
 	}
-	sort.Slice(out, func(i, k int) bool { return out[i].CreatedAt.Before(out[k].CreatedAt) })
+	sort.Slice(out, func(i, k int) bool {
+		if out[i].CreatedAt.Equal(out[k].CreatedAt) {
+			return m.queueSeq[out[i].ID] < m.queueSeq[out[k].ID]
+		}
+		return out[i].CreatedAt.Before(out[k].CreatedAt)
+	})
 	if limit > 0 && limit < len(out) {
 		out = out[:limit]
 	}
@@ -112,4 +119,13 @@ func (m *Memory) PlatformStats(_ context.Context, from, to time.Time) (job.Platf
 		}
 	}
 	return s, nil
+}
+
+// rememberOrder запоминает порядок появления записи в очереди модерации.
+// Вызывается под уже взятой блокировкой.
+func (m *Memory) rememberOrder(id string) {
+	if m.queueSeq == nil {
+		m.queueSeq = map[string]int{}
+	}
+	m.queueSeq[id] = len(m.queueSeq) + 1
 }

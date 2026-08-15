@@ -23,6 +23,7 @@ func (m *Memory) CreateDispute(_ context.Context, d *job.Dispute) error {
 		m.disputes = map[string]job.Dispute{}
 	}
 	m.disputes[d.ID] = *d
+	m.rememberOrder(d.ID)
 	return nil
 }
 
@@ -81,7 +82,14 @@ func (m *Memory) OpenDisputes(_ context.Context, limit int) ([]job.Dispute, erro
 		}
 		out = append(out, copy)
 	}
-	sort.Slice(out, func(i, k int) bool { return out[i].CreatedAt.Before(out[k].CreatedAt) })
+	// При одинаковом времени (тесты с фиксированными часами) порядок решает
+	// очередь добавления: «старые сверху» — это обещание модератору.
+	sort.Slice(out, func(i, k int) bool {
+		if out[i].CreatedAt.Equal(out[k].CreatedAt) {
+			return m.queueSeq[out[i].ID] < m.queueSeq[out[k].ID]
+		}
+		return out[i].CreatedAt.Before(out[k].CreatedAt)
+	})
 	if limit > 0 && limit < len(out) {
 		out = out[:limit]
 	}
