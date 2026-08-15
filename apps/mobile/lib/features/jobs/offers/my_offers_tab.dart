@@ -3,6 +3,7 @@ import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import 'offers_providers.dart';
 
@@ -17,6 +18,7 @@ class MyOffersTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
     final offers = ref.watch(myOffersProvider);
 
     return offers.when(
@@ -27,10 +29,10 @@ class MyOffersTab extends ConsumerWidget {
       ),
       data: (list) {
         if (list.isEmpty) {
-          return const TkEmptyState(
+          return TkEmptyState(
             icon: TkIcons.chartBar,
-            title: 'Предложений пока нет',
-            description: 'Откликайтесь на задания из ленты — они появятся здесь',
+            title: l.noOffersMine,
+            description: l.noOffersMineDesc,
           );
         }
         return RefreshIndicator(
@@ -54,8 +56,9 @@ class _MyOfferCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final (label, color, hint) = _state(offer);
+    final (label, color, hint) = _state(offer, l);
 
     return TkCard(
       onTap: () => context.go('/jobs/${offer.jobId}'),
@@ -66,7 +69,7 @@ class _MyOfferCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  offer.kind == 'accept' ? 'Принял цену заказчика' : 'Своё предложение',
+                  offer.kind == 'accept' ? l.acceptedClientPrice : l.myOwnOffer,
                   style: TkText.h3,
                 ),
               ),
@@ -94,7 +97,7 @@ class _MyOfferCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 3),
                   child: Text(
-                    'заказчик: ${tkMoney(offer.clientCounterPrice, currency: offer.currency)}',
+                    l.clientPriceIs(tkMoney(offer.clientCounterPrice, currency: offer.currency)),
                     style: TkText.caption.copyWith(color: TkColors.warning),
                   ),
                 ),
@@ -107,7 +110,7 @@ class _MyOfferCard extends StatelessWidget {
           ],
           if (offer.declineReason.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text('Причина: ${offer.declineReason}',
+            Text(l.reasonIs(offer.declineReason),
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant)),
           ],
         ],
@@ -116,15 +119,15 @@ class _MyOfferCard extends StatelessWidget {
   }
 
   /// Состояние предложения словами, а не кодом статуса.
-  (String, Color, String) _state(Offer o) => switch (o.status) {
-        'accepted' => ('Вас выбрали', TkColors.success, 'Заказчик подтверждает сделку'),
-        'declined' => ('Отклонено', TkColors.error, ''),
-        'withdrawn' => ('Вы сняли', const Color(0xFF8A919B), ''),
+  (String, Color, String) _state(Offer o, AppLocalizations l) => switch (o.status) {
+        'accepted' => (l.youWereChosen, TkColors.success, l.clientConfirming),
+        'declined' => (l.declinedShort, TkColors.error, ''),
+        'withdrawn' => (l.youWithdrew, const Color(0xFF8A919B), ''),
         'counter_offered' => (
-            'Встречная цена',
+            l.counterPrice,
             TkColors.warning,
-            'Заказчик предложил свою цену — примите её или предложите другую'
+            l.clientCounteredHint
           ),
-        _ => ('Ждёт ответа', TkColors.info, 'Заказчик ещё не принял решение'),
+        _ => (l.waitingAnswer, TkColors.info, l.clientNotDecided),
       };
 }

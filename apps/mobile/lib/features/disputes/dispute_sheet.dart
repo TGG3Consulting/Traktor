@@ -2,6 +2,7 @@ import 'package:api_client/api_client.dart';
 import 'package:design_system/design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:traktor_mobile/l10n/app_localizations.dart';
 
 import 'dispute_providers.dart';
 
@@ -59,6 +60,7 @@ class _DisputeSheetState extends ConsumerState<_DisputeSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final left = _minLength - _reason.text.trim().length;
 
@@ -75,23 +77,21 @@ class _DisputeSheetState extends ConsumerState<_DisputeSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Открыть спор', style: TkText.h2),
+              Text(l.disputeOpenTitle, style: TkText.h2),
               const SizedBox(height: 6),
               Text(
-                'Опишите, что пошло не так. Модератор посмотрит переписку, фотографии '
-                'и отметки времени по сделке и вынесет решение с объяснением — его '
-                'получите вы оба.',
+                l.disputeOpenHint,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 14),
               TkTextField(
                 controller: _reason,
-                label: 'Что случилось',
-                hint: 'Например: договаривались на 40 метров траншеи, выкопано 20',
+                label: l.whatHappened,
+                hint: l.disputeExample,
                 maxLines: 4,
                 maxLength: 1000,
                 onChanged: (_) => setState(() {}),
-                helper: left > 0 ? 'Ещё $left символов' : null,
+                helper: left > 0 ? l.charsLeft(left) : null,
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -111,11 +111,11 @@ class _DisputeSheetState extends ConsumerState<_DisputeSheet> {
                     ? const SizedBox(
                         width: 20, height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Отправить на разбор'),
+                    : Text(l.sendToArbitration),
               ),
               const SizedBox(height: 8),
               Text(
-                'Пока идёт разбор, оценки по сделке не выставляются.',
+                l.noRatingsDuringDispute,
                 textAlign: TextAlign.center,
                 style: TkText.caption.copyWith(color: scheme.onSurfaceVariant),
               ),
