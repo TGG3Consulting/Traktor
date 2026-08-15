@@ -44,10 +44,10 @@ var ErrUnsupportedType = errors.New("media: такой тип файла не п
 // allowed — что разрешено грузить. Список закрытый: хранилище не должно
 // превращаться в свалку произвольных файлов.
 var allowed = map[string]string{
-	"image/jpeg": ".jpg",
-	"image/png":  ".png",
-	"image/webp": ".webp",
-	"image/heic": ".heic",
+	"image/jpeg":      ".jpg",
+	"image/png":       ".png",
+	"image/webp":      ".webp",
+	"image/heic":      ".heic",
 	"application/pdf": ".pdf",
 }
 

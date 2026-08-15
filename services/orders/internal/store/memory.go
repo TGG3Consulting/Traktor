@@ -16,37 +16,37 @@ import (
 type Memory struct {
 	mu       sync.RWMutex
 	jobs     map[string]job.Job
-	offers   map[string]job.Offer       // отклики по идентификатору
-	deals    map[string]job.Deal        // сделки по идентификатору
-	bids     map[string]job.Bid         // ставки аукциона
-	chats    map[string]job.Chat        // переписка по заданиям
-	messages map[string]job.Message     // сообщения чатов
+	offers   map[string]job.Offer   // отклики по идентификатору
+	deals    map[string]job.Deal    // сделки по идентификатору
+	bids     map[string]job.Bid     // ставки аукциона
+	chats    map[string]job.Chat    // переписка по заданиям
+	messages map[string]job.Message // сообщения чатов
 	// Порядок добавления сообщений: в тестах время подменяется фиксированным,
 	// и без него три сообщения одной минуты выстраиваются как попало.
-	msgSeq map[string]int
-	reviews  map[string]job.Review      // взаимные оценки по сделкам
-	busyDays map[string]string          // «не работаю»: владелец+день → пометка
-	disputes map[string]job.Dispute     // споры по сделкам
-	complaints map[string]job.Complaint // жалобы на задания и людей
-	views    map[string]map[string]bool // jobID → кто смотрел
-	idemp    map[string]string          // ключ идемпотентности → jobID
+	msgSeq     map[string]int
+	reviews    map[string]job.Review      // взаимные оценки по сделкам
+	busyDays   map[string]string          // «не работаю»: владелец+день → пометка
+	disputes   map[string]job.Dispute     // споры по сделкам
+	complaints map[string]job.Complaint   // жалобы на задания и людей
+	views      map[string]map[string]bool // jobID → кто смотрел
+	idemp      map[string]string          // ключ идемпотентности → jobID
 }
 
 func NewMemory() *Memory {
 	return &Memory{
-		jobs:     map[string]job.Job{},
-		offers:   map[string]job.Offer{},
-		deals:    map[string]job.Deal{},
-		bids:     map[string]job.Bid{},
-		chats:    map[string]job.Chat{},
-		messages: map[string]job.Message{},
-		msgSeq:   map[string]int{},
-		reviews:  map[string]job.Review{},
-		busyDays: map[string]string{},
-		disputes: map[string]job.Dispute{},
+		jobs:       map[string]job.Job{},
+		offers:     map[string]job.Offer{},
+		deals:      map[string]job.Deal{},
+		bids:       map[string]job.Bid{},
+		chats:      map[string]job.Chat{},
+		messages:   map[string]job.Message{},
+		msgSeq:     map[string]int{},
+		reviews:    map[string]job.Review{},
+		busyDays:   map[string]string{},
+		disputes:   map[string]job.Dispute{},
 		complaints: map[string]job.Complaint{},
-		views:    map[string]map[string]bool{},
-		idemp:    map[string]string{},
+		views:      map[string]map[string]bool{},
+		idemp:      map[string]string{},
 	}
 }
 

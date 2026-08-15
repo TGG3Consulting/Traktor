@@ -91,10 +91,10 @@ func (f Funnel) FinishRate() float64 {
 
 // Client — строка клиентской базы (ТЗ §3.1).
 type Client struct {
-	UserID string `json:"userId"`
-	Name   string `json:"name,omitempty"`
-	Deals  int    `json:"deals"`
-	Total  int64  `json:"total"`
+	UserID string    `json:"userId"`
+	Name   string    `json:"name,omitempty"`
+	Deals  int       `json:"deals"`
+	Total  int64     `json:"total"`
 	Last   time.Time `json:"last"`
 }
 

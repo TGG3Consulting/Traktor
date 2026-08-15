@@ -31,6 +31,34 @@ type User struct {
 	ActiveRole string
 	Verified   bool
 	CreatedAt  time.Time
+
+	// Состояние в модерации (ТЗ §4.1, п.3): active — обычная работа,
+	// frozen — нельзя откликаться и ставить ставки, banned — вход закрыт.
+	// Бан обратимый: ошибку модератора должно быть можно исправить, не заводя
+	// человеку новый номер.
+	Status       string
+	StatusReason string
+	StatusAt     *time.Time
+	StatusBy     string
+}
+
+// Состояния пользователя в модерации.
+const (
+	StatusActive = "active"
+	StatusFrozen = "frozen"
+	StatusBanned = "banned"
+)
+
+// AdminAction — запись журнала действий модерации (ТЗ §4.1, п.8).
+//
+// Без журнала ошибку или злоупотребление невозможно ни найти, ни оспорить.
+type AdminAction struct {
+	ID        string
+	ActorID   string
+	Action    string
+	TargetID  string
+	Reason    string
+	CreatedAt time.Time
 }
 
 // OTP — запись одноразового кода: хэш кода, срок, счётчик попыток.
@@ -65,6 +93,15 @@ type Store interface {
 	GetUserByID(ctx context.Context, id string) (*User, error)
 	CreateUser(ctx context.Context, u User) error
 	UpdateUser(ctx context.Context, u User) error
+
+	// ── модерация пользователей (ТЗ §4.1, п.3 и 8) ───────────────────────────
+	// SearchUsers — поиск по телефону, имени или идентификатору.
+	SearchUsers(ctx context.Context, query string, limit int) ([]User, error)
+	// SetUserStatus — заморозка, бан или снятие ограничений.
+	SetUserStatus(ctx context.Context, id, status, reason, byID string, at time.Time) error
+	LogAdminAction(ctx context.Context, a AdminAction) error
+	// AdminActionsFor — история решений по конкретному человеку.
+	AdminActionsFor(ctx context.Context, targetID string, limit int) ([]AdminAction, error)
 
 	SaveRefresh(ctx context.Context, r Refresh) error
 	GetRefresh(ctx context.Context, tokenHash string) (*Refresh, error)

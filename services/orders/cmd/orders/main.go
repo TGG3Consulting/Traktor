@@ -20,9 +20,9 @@ import (
 	"traktor/orders/internal/notify"
 	"traktor/orders/internal/profiles"
 	"traktor/orders/internal/realtime"
-	"traktor/orders/internal/units"
 	"traktor/orders/internal/service"
 	"traktor/orders/internal/store"
+	"traktor/orders/internal/units"
 )
 
 func main() {

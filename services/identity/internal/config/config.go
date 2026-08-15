@@ -42,15 +42,15 @@ type Config struct {
 
 func Load() (*Config, error) {
 	c := &Config{
-		Port:          getenv("PORT", "8080"),
-		TestMode:      os.Getenv("TEST_MODE") == "1",
-		DexatelKey:    os.Getenv("DEXATEL_API_KEY"),
-		DexatelSender: getenv("DEXATEL_SENDER", "Traktor"),
-		Kid:           getenv("JWT_KID", "dev"),
-		DatabaseURL:   os.Getenv("DATABASE_URL"),
-		PhoneEncKey:   os.Getenv("PHONE_ENC_KEY"),
+		Port:            getenv("PORT", "8080"),
+		TestMode:        os.Getenv("TEST_MODE") == "1",
+		DexatelKey:      os.Getenv("DEXATEL_API_KEY"),
+		DexatelSender:   getenv("DEXATEL_SENDER", "Traktor"),
+		Kid:             getenv("JWT_KID", "dev"),
+		DatabaseURL:     os.Getenv("DATABASE_URL"),
+		PhoneEncKey:     os.Getenv("PHONE_ENC_KEY"),
 		ModeratorPhones: splitList(os.Getenv("MODERATOR_PHONES")),
-		OTPStaticCode: os.Getenv("OTP_STATIC_CODE"),
+		OTPStaticCode:   os.Getenv("OTP_STATIC_CODE"),
 	}
 
 	// Пока SMS-провайдер не подключён, вход идёт по фиксированному коду.

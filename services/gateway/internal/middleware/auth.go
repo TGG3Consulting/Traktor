@@ -39,6 +39,9 @@ func Auth(cache *jwks.Cache, public func(path string) bool) func(http.Handler) h
 			// или исполнителем и не должен переключать роль ради проверки
 			// техники (ТЗ §4.1).
 			r.Header.Del("X-User-Roles")
+			// Заморозка ставок и откликов (ТЗ §4.1, п.3): сам запрет живёт
+			// в сервисах, шлюз только доносит проверенное состояние.
+			r.Header.Del("X-User-Status")
 
 			if public(r.URL.Path) {
 				if token, ok := bearer(r); ok {
@@ -46,6 +49,7 @@ func Auth(cache *jwks.Cache, public func(path string) bool) func(http.Handler) h
 						r.Header.Set("X-User-Id", claims.Sub)
 						r.Header.Set("X-User-Role", claims.ActiveRole)
 						r.Header.Set("X-User-Roles", strings.Join(claims.Roles, ","))
+						r.Header.Set("X-User-Status", claims.Status)
 						next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), claimsKey, claims)))
 						return
 					}
@@ -68,6 +72,7 @@ func Auth(cache *jwks.Cache, public func(path string) bool) func(http.Handler) h
 			r.Header.Set("X-User-Id", claims.Sub)
 			r.Header.Set("X-User-Role", claims.ActiveRole)
 			r.Header.Set("X-User-Roles", strings.Join(claims.Roles, ","))
+			r.Header.Set("X-User-Status", claims.Status)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

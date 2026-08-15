@@ -57,14 +57,14 @@ const (
 )
 
 var (
-	ErrDisputeNotFound  = errors.New("dispute: спор не найден")
-	ErrDisputeForbidden = errors.New("dispute: это чужой спор")
-	ErrDisputeExists    = errors.New("dispute: спор по этой сделке уже открыт")
-	ErrDisputeClosed    = errors.New("dispute: спор уже разобран")
-	ErrDisputeReason    = errors.New("dispute: опишите, что пошло не так")
-	ErrDisputeOutcome   = errors.New("dispute: выберите, в чью пользу решение")
+	ErrDisputeNotFound   = errors.New("dispute: спор не найден")
+	ErrDisputeForbidden  = errors.New("dispute: это чужой спор")
+	ErrDisputeExists     = errors.New("dispute: спор по этой сделке уже открыт")
+	ErrDisputeClosed     = errors.New("dispute: спор уже разобран")
+	ErrDisputeReason     = errors.New("dispute: опишите, что пошло не так")
+	ErrDisputeOutcome    = errors.New("dispute: выберите, в чью пользу решение")
 	ErrDisputeResolution = errors.New("dispute: решение нужно обосновать")
-	ErrDisputeStage     = errors.New("dispute: спор открывается по начатой работе")
+	ErrDisputeStage      = errors.New("dispute: спор открывается по начатой работе")
 )
 
 const (

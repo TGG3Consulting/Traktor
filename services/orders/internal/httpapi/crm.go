@@ -58,11 +58,11 @@ func (s *Server) business(w http.ResponseWriter, r *http.Request) {
 		"delta":           delta,
 		"deltaComparable": comparable,
 		"funnel": map[string]any{
-			"offers":      data.Funnel.Offers,
-			"won":         data.Funnel.Won,
-			"completed":   data.Funnel.Completed,
-			"winRate":     data.Funnel.WinRate(),
-			"finishRate":  data.Funnel.FinishRate(),
+			"offers":     data.Funnel.Offers,
+			"won":        data.Funnel.Won,
+			"completed":  data.Funnel.Completed,
+			"winRate":    data.Funnel.WinRate(),
+			"finishRate": data.Funnel.FinishRate(),
 		},
 		"clients": clients,
 	})

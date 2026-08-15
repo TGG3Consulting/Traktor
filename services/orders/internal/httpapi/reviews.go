@@ -45,8 +45,8 @@ func (s *Server) leaveReview(w http.ResponseWriter, r *http.Request) {
 		"review": rev,
 		// Пока вторая сторона молчит, отзыв скрыт: клиент честно говорит об
 		// этом, иначе человек решит, что оценка пропала.
-		"published":          rev.Published(),
-		"asksWhatWentWrong":  job.AsksWhatWentWrong(rev.Stars),
+		"published":         rev.Published(),
+		"asksWhatWentWrong": job.AsksWhatWentWrong(rev.Stars),
 	})
 }
 

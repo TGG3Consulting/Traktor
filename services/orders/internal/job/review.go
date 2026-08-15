@@ -77,7 +77,7 @@ var (
 		"Вежливо":           true,
 	}
 	ownerTags = map[string]bool{
-		"Чёткое ТЗ":         true,
+		"Чёткое ТЗ":          true,
 		"Оплата без проблем": true,
 		"Подъезд как описан": true,
 		"Вежливо":            true,

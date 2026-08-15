@@ -87,7 +87,9 @@ type ValidationError struct {
 	Fields map[string]string
 }
 
-func (e *ValidationError) Error() string { return "equipment: карточка заполнена не полностью" }
+func (e *ValidationError) Error() string {
+	return "equipment: карточка заполнена не полностью"
+}
 
 const (
 	minYear      = 1980

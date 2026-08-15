@@ -9,6 +9,9 @@ set FAILED=0
 call :check identity
 call :check gateway
 call :check notifications
+call :check orders
+call :check catalog
+call :check media
 
 >> "%LOG%" echo.
 if "%FAILED%"=="0" goto ok
@@ -27,8 +30,12 @@ set SVC=%1
 >> "%LOG%" echo ==================== %SVC% ====================
 cd /d C:\Traktor\services\%SVC%
 
+REM Neotformatirovannyy fayl valit CI, poetomu eto proval, a ne zametka.
 >> "%LOG%" echo --- gofmt (dolzhno byt pusto) ---
-gofmt -l . >> "%LOG%" 2>&1
+for /f %%F in ('gofmt -l .') do (
+  >> "%LOG%" echo PROVAL: ne otformatirovano: %%F
+  set FAILED=1
+)
 
 >> "%LOG%" echo --- go build ---
 go build ./... >> "%LOG%" 2>&1

@@ -53,12 +53,12 @@ func (s *Server) pendingEquipment(w http.ResponseWriter, r *http.Request) {
 	out := make([]map[string]any, 0, len(items))
 	for _, e := range items {
 		out = append(out, map[string]any{
-			"id":           e.ID,
-			"ownerId":      e.OwnerID,
-			"title":        e.Title(),
-			"year":         e.Year,
-			"specs":        e.Specs,
-			"photos":       e.Photos,
+			"id":      e.ID,
+			"ownerId": e.OwnerID,
+			"title":   e.Title(),
+			"year":    e.Year,
+			"specs":   e.Specs,
+			"photos":  e.Photos,
 			// Документы видит только модерация — здесь они и нужны.
 			"docs":         e.Docs,
 			"categoryName": e.CategoryName,

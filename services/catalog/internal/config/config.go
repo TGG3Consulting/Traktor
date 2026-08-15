@@ -16,7 +16,7 @@ type Config struct {
 
 func Load() *Config {
 	return &Config{
-		Port:        getenv("PORT", "8080"),
+		Port:             getenv("PORT", "8080"),
 		DatabaseURL:      os.Getenv("DATABASE_URL"),
 		NotificationsURL: os.Getenv("NOTIFICATIONS_URL"),
 	}

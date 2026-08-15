@@ -32,13 +32,18 @@ type Claims struct {
 	Sub        string   `json:"sub"`
 	Roles      []string `json:"roles"`
 	ActiveRole string   `json:"activeRole"`
-	Exp        int64    `json:"exp"`
+	// Status — active или frozen (ТЗ §4.1, п.3). Замороженному отказывают
+	// сервисы, а не шлюз: где именно заморозка запрещает действие, знает
+	// предметная область.
+	Status string `json:"status"`
+	Exp    int64  `json:"exp"`
 }
 
 // wire — те же данные в терминах golang-jwt (sub/exp — регистрируемые поля).
 type wire struct {
 	Roles      []string `json:"roles,omitempty"`
 	ActiveRole string   `json:"activeRole,omitempty"`
+	Status     string   `json:"status,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -111,7 +116,7 @@ func (c *Cache) Verify(ctx context.Context, tok string, now time.Time) (*Claims,
 			return nil, ErrMalformed
 		}
 	}
-	cl := &Claims{Sub: w.Subject, Roles: w.Roles, ActiveRole: w.ActiveRole}
+	cl := &Claims{Sub: w.Subject, Roles: w.Roles, ActiveRole: w.ActiveRole, Status: w.Status}
 	if w.ExpiresAt != nil {
 		cl.Exp = w.ExpiresAt.Unix()
 	}

@@ -30,15 +30,20 @@ type Claims struct {
 	Sub        string   `json:"sub"`
 	Roles      []string `json:"roles"`
 	ActiveRole string   `json:"activeRole"`
-	Typ        string   `json:"typ"` // "access"
-	Iat        int64    `json:"iat"`
-	Exp        int64    `json:"exp"`
+	// Status — active или frozen. Заморозка запрещает отклики и ставки, но
+	// оставляет вход и переписку: человеку нужно закрыть текущие сделки
+	// (ТЗ §4.1, п.3). Забаненному токен не выдаётся вовсе.
+	Status string `json:"status,omitempty"`
+	Typ    string `json:"typ"` // "access"
+	Iat    int64  `json:"iat"`
+	Exp    int64  `json:"exp"`
 }
 
 // wire — представление тех же данных для golang-jwt.
 type wire struct {
 	Roles      []string `json:"roles,omitempty"`
 	ActiveRole string   `json:"activeRole,omitempty"`
+	Status     string   `json:"status,omitempty"`
 	Typ        string   `json:"typ,omitempty"`
 	jwt.RegisteredClaims
 }
@@ -56,6 +61,7 @@ func (s *Signer) Sign(c Claims) (string, error) {
 	claims := wire{
 		Roles:      c.Roles,
 		ActiveRole: c.ActiveRole,
+		Status:     c.Status,
 		Typ:        c.Typ,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   c.Sub,
@@ -90,6 +96,7 @@ func Parse(tok string, pub *ecdsa.PublicKey, now time.Time) (*Claims, error) {
 		Sub:        w.Subject,
 		Roles:      w.Roles,
 		ActiveRole: w.ActiveRole,
+		Status:     w.Status,
 		Typ:        w.Typ,
 	}
 	if w.IssuedAt != nil {

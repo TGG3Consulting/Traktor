@@ -23,8 +23,8 @@ func completed(t *testing.T, svc *Service) *job.Deal {
 		t.Fatalf("подтверждение сделки: %v", err)
 	}
 	for _, step := range []struct {
-		to   job.DealStatus
-		who  string
+		to  job.DealStatus
+		who string
 	}{
 		{job.DealOnTheWay, owner},
 		{job.DealInProgress, owner},
@@ -241,10 +241,10 @@ func TestРейтингСчитаетсяЗаПоследнийГод(t *testing
 	published := now.Add(-time.Hour)
 
 	summary := job.Rating([]job.Review{
-		{Stars: 1, CreatedAt: old, PublishedAt: &old},          // старый грех не тянет вниз
+		{Stars: 1, CreatedAt: old, PublishedAt: &old}, // старый грех не тянет вниз
 		{Stars: 5, CreatedAt: now, PublishedAt: &published},
 		{Stars: 4, CreatedAt: now, PublishedAt: &published},
-		{Stars: 5, CreatedAt: now},                             // скрытый в рейтинг не идёт
+		{Stars: 5, CreatedAt: now}, // скрытый в рейтинг не идёт
 	}, now)
 
 	if summary.Count != 2 || summary.Rating != 4.5 {

@@ -17,8 +17,8 @@ import (
 	"traktor/orders/internal/notify"
 	"traktor/orders/internal/profiles"
 	"traktor/orders/internal/realtime"
-	"traktor/orders/internal/units"
 	"traktor/orders/internal/store"
+	"traktor/orders/internal/units"
 )
 
 type Service struct {

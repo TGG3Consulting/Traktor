@@ -7,8 +7,8 @@
 package main
 
 import (
-	"encoding/json"
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -19,9 +19,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/golang-jwt/jwt/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/golang-jwt/jwt/v5"
 
 	"traktor/gateway/internal/config"
 	"traktor/gateway/internal/jwks"
